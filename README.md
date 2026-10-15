@@ -74,12 +74,12 @@ groundwork is a GitHub template repository.
 A copy shares no history with groundwork and does not receive later changes. To move from `v0.1.0` to a later version:
 
 1. Read the [release notes](https://github.com/michelwils/groundwork/releases) of the versions in between. A minor version adds a rule or a file without breaking anything. A major version requires the project to change something, which its `BREAKING CHANGE:` notes describe.
-2. Fetch the tags of groundwork under their own prefix, so that they do not collide with the tags of the project, and apply the difference between the two versions. Skip the changes that concern groundwork itself, such as its README, and resolve the conflicts on the files the project has changed:
+2. Fetch the tags of groundwork under their own prefix, so that they do not collide with the tags of the project, and apply the difference between the two versions. Leave out the files that concern groundwork itself, such as its README, and resolve the conflicts on the files the project has changed:
 
    ```
    git remote add groundwork https://github.com/michelwils/groundwork.git
    git fetch groundwork 'refs/tags/*:refs/tags/groundwork/*'
-   git diff groundwork/v0.1.0 groundwork/v0.2.0 | git apply --3way
+   git diff groundwork/v0.1.0 groundwork/v0.2.0 -- . ':!README.md' | git apply --3way
    ```
 
 3. Commit the result like any other change, through an issue and a pull request, and update the recorded version.
