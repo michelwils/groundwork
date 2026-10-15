@@ -18,7 +18,7 @@ We will write every commit message following [Conventional Commits 1.0.0](https:
 
 - **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore` and `revert`, the set popularised by the Angular commit guidelines and used by most Conventional Commits tooling. No other type is used.
 - **Scope:** optional. When used, it is a single lowercase word naming the part of the repository that changes, for example `docs(adr): …`. A change that spans several parts has no scope.
-- **Description:** imperative mood, lowercase, no trailing period, short enough to read in one line.
+- **Description:** imperative mood, starting with a lowercase letter, no trailing period, short enough to read in one line.
 - **Body:** optional, explains why the change was made rather than what it does.
 - **Footers:** follow the git trailer format, for example `Refs #12` or `Co-Authored-By: …`.
 - **Breaking changes:** a change that is not backward compatible is marked with `!` before the colon and has a `BREAKING CHANGE:` footer that describes what breaks and how to migrate.
