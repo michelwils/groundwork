@@ -28,6 +28,7 @@ We will develop on a single long-lived branch, `main`. All other branches are sh
 - The branch receives fixes only, never a `feat`.
 - Its patch version is tagged on the branch with an annotated tag `vMAJOR.MINOR.PATCH`. The release notes list the fixes since the previous tag on the branch, and the release is not marked as the latest one.
 - The branch is never merged back into `main`.
+- When the project stops maintaining the version, it releases the fixes still waiting, updates its README and deletes the branch. The tags remain.
 
 ## Consequences
 
