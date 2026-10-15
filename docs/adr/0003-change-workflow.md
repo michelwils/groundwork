@@ -18,7 +18,7 @@ We will make every change to the repository through an issue, a branch and a pul
   - It stays a draft until every item of the checklist is checked.
   - It is merged by squash, so that `main` stays linear with one commit per issue. The pull request title, followed by the pull request number, becomes the commit title.
   - The branch is deleted after the merge.
-- **Backports:** a fix for a maintained older version follows these rules with the exceptions defined in [ADR 0006](0006-trunk-based-development.md): its pull request targets a maintenance branch, refers to the issue instead of closing it, and has no checklist.
+- **Backports:** a fix for a maintained older version follows these rules with the exceptions defined in [ADR 0006](0006-trunk-based-development.md): its branch is a second one for the issue, named as defined there, and its pull request targets a maintenance branch, refers to the issue instead of closing it, and has no checklist.
 - **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash is the only enabled merge method. It uses the pull request title as the commit title and an empty commit body. The platform appends the pull request number to the title, which links each commit on `main` to its pull request, and adds the co-author trailers of the squashed commits. Head branches are deleted automatically after the merge.
 
 ## Consequences

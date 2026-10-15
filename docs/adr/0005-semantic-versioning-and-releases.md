@@ -39,7 +39,7 @@ A `revert` that undoes released behaviour users rely on is marked as a breaking 
 
 1. Decide the version from the commits on `main`, or on the maintenance branch, since the previous tag. The version is incremented once, by the highest increment among those commits: ten `feat` commits and three `fix` commits give one minor increment. A commit that was undone before the release, together with the change that undid it, is ignored.
 2. Tag `main`, or the maintenance branch, with `v<version>`.
-3. Publish a release for the tag on the hosting platform. Its notes list the changes since the previous release, grouped by commit type, from the commit titles.
+3. Publish a release for the tag on the hosting platform. Its notes list the changes since the previous release, grouped by commit type, from the commit titles, without the changes that were undone before the release.
 
 The release notes are the changelog. There is no changelog file.
 
