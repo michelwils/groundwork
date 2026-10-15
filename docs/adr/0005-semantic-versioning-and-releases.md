@@ -4,7 +4,7 @@
 
 ## Context
 
-Users and maintainers of a project need to know what a new version means: whether they must change something, or can update freely. [ADR 0002](0002-conventional-commits.md) defines commit messages but leaves open what they mean for the version.
+Users and maintainers of a project need to know what a new version means: whether they must change something, or can update freely. [ADR 0002](0002-conventional-commits.md) defines commit messages but does not say what they mean for the version.
 
 ## Decision
 
@@ -49,4 +49,5 @@ The release notes are the changelog. There is no changelog file.
 - The commit title decides the version, so choosing the right type matters and is part of reviewing a pull request.
 - A project must state its public contract in its README. Until it does, the major and minor increments cannot be applied.
 - Releases are made by hand until they are automated, which is the subject of a later decision.
+- Every release is made from `main`. Releasing a fix for an older version while `main` holds unreleased changes is not covered.
 - The changelog depends on commit titles being accurate.
