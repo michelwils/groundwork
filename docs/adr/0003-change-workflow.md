@@ -18,7 +18,7 @@ We will make every change to the repository through an issue, a branch and a pul
   - It stays a draft until every item of the checklist is checked.
   - It is merged by squash, so that `main` stays linear with one commit per issue. The pull request title becomes the commit message.
   - The branch is deleted after the merge.
-- **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash merging uses the pull request title as the commit title and an empty commit body, so that the message on `main` is the title alone. Head branches are deleted automatically after the merge.
+- **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash is the only enabled merge method, and it uses the pull request title as the commit title and an empty commit body, so that the message on `main` is the title alone. Head branches are deleted automatically after the merge.
 
 ## Consequences
 
