@@ -46,7 +46,7 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 
 A release increments the version once, by the highest increment among the changes since the previous release.
 
-While groundwork is at `0.y.z`, a breaking change increments the minor version, like `feat`, and `fix` and `perf` increment the patch version. The first release is `v0.1.0`, and `v1.0.0` is tagged when the contract is considered stable enough to rely on.
+While groundwork is at `0.y.z`, a breaking change or a `feat` increments the minor version, and a `fix` or a `perf` increments the patch version. The first release is `v0.1.0`, and `v1.0.0` is tagged when the contract is considered stable enough to rely on.
 
 ## Contributing
 
