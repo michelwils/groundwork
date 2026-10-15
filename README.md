@@ -2,7 +2,7 @@
 
 Best-practice baseline for my projects: repository structure, conventions, automation, documentation and architecture decisions. Clone before pouring concrete.
 
-> **Status:** work in progress. Nothing below is stable until `1.0.0`.
+> **Status:** work in progress. Nothing below is stable until `v1.0.0`.
 
 ## Who it is for
 
