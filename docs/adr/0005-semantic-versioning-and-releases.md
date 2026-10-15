@@ -35,9 +35,9 @@ A `revert` that undoes released behaviour users rely on is marked as a breaking 
 
 **Tags.** A version is tagged `vMAJOR.MINOR.PATCH` on `main`, with an annotated tag. Pre-release identifiers are not used.
 
-**Releases.** A release is made by hand:
+**Releases.** A release is made by hand, when the maintainers decide, not on every merge. Between releases, `main` carries no version. To make a release:
 
-1. Decide the version from the commits on `main` since the previous tag, following the rules above.
+1. Decide the version from the commits on `main` since the previous tag. The version is incremented once, by the highest increment among those commits: ten `feat` commits and three `fix` commits give one minor increment.
 2. Tag `main` with `v<version>`.
 3. Publish a release for the tag on the hosting platform. Its notes list the changes since the previous release, grouped by commit type, from the commit titles.
 
