@@ -38,7 +38,7 @@ fix(parser): handle empty input without crashing
 ```
 
 ```
-docs(adr): clarify when an ADR is superseded
+docs(readme): describe the release process
 ```
 
 ```
@@ -55,6 +55,10 @@ feat(api)!: rename the user field to account in responses
 BREAKING CHANGE: clients must read `account` instead of `user`.
 The `user` field is removed.
 ```
+
+## Releases
+
+Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the type of a commit sets the increment. A release is made by hand: decide the version from the commits on `main` since the previous tag, tag `main` with `v<version>`, then publish a release for the tag whose notes list the changes since the previous release. What groundwork's public contract is, is described in the [README](README.md#versioning).
 
 ## Language
 
