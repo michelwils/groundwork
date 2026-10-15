@@ -15,7 +15,7 @@ Every change goes through an issue, a branch and a pull request ([ADR 0003](docs
 3. Commit your work on the branch.
 4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description.
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
-6. The pull request is merged by squash, and its title becomes the commit message on `main`. The branch is then deleted.
+6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted.
 
 ## Commit messages
 
