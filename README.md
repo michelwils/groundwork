@@ -44,7 +44,7 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 | `fix`, `perf` | A rule is clarified without changing its meaning, or a file is improved without changing what it does | patch |
 | `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`, `revert` | Anything outside the contract: the README, the Context and Consequences sections of ADRs, wording | none |
 
-While groundwork is at `0.y.z`, a breaking change increments the minor version and the other changes increment the patch version.
+While groundwork is at `0.y.z`, a breaking change increments the minor version, and `feat`, `fix` and `perf` increment the patch version.
 
 ## Contributing
 
