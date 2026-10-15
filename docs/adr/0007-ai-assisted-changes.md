@@ -12,7 +12,7 @@ We will accept changes made with a coding agent, under the same rules as any oth
 
 - **Disclosure.** A commit made with an agent has a `Co-Authored-By` trailer naming the agent. An issue or a pull request written by an agent ends with a line stating that it was generated, with the name of the tool.
 - **No private references.** A commit, an issue or a pull request never contains a link to, or an identifier of, a private agent session or conversation.
-- **Approval.** A maintainer approves every merge. An agent never merges a pull request on its own initiative, and an approval applies to one pull request only.
+- **Approval.** A maintainer approves every merge of a change made with an agent. An agent never merges a pull request on its own initiative, and an approval applies to one pull request only.
 - **Reporting.** An agent reports to the maintainer the errors it corrected and the deviations from a rule. It does not report that it followed the rules.
 - **Concision.** An agent writes the shortest text that stays clear and precise, in its replies and in what it writes in commits, issues, pull requests and documentation. It does not repeat what was said, introduce what it is about to say or summarise what it just said.
 

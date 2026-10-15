@@ -5,7 +5,7 @@ Rules for coding agents working on this repository. The rules for every contribu
 ## Before a change
 
 - Read the ADRs that concern the change.
-- Follow the workflow, the commit messages and the language rules of `CONTRIBUTING.md`: every change goes through an issue, a branch and a pull request.
+- Follow the workflow, the commit messages and the language rules of `CONTRIBUTING.md`.
 - A significant decision is recorded as a new ADR, following [`docs/adr/template.md`](docs/adr/template.md). Propose it instead of deciding.
 
 ## Rules for agents
