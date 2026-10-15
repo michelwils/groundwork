@@ -2,6 +2,10 @@
 
 This file summarises how changes are made. The decisions behind it are recorded in [`docs/adr/`](docs/adr/).
 
+## Language
+
+All repository content is written in English ([ADR 0004](docs/adr/0004-repository-language-english.md)).
+
 ## Workflow
 
 Every change goes through an issue, a branch and a pull request ([ADR 0003](docs/adr/0003-change-workflow.md)).
@@ -38,7 +42,7 @@ fix(parser): handle empty input without crashing
 ```
 
 ```
-docs(adr): clarify when an ADR is superseded
+docs(readme): describe the release process
 ```
 
 ```
@@ -56,10 +60,10 @@ BREAKING CHANGE: clients must read `account` instead of `user`.
 The `user` field is removed.
 ```
 
-## Language
-
-All repository content is written in English ([ADR 0004](docs/adr/0004-repository-language-english.md)).
-
 ## Decisions
 
 Significant decisions are recorded as ADRs, following the template in [`docs/adr/template.md`](docs/adr/template.md) ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)).
+
+## Releases
+
+Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the type of a commit sets the increment. A release is made by hand: decide the version from the commits on `main` since the previous tag, tag `main` with `v<version>`, then publish a release for the tag whose notes list the changes since the previous release. The public contract is described in the [README](README.md#versioning).
