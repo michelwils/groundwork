@@ -12,12 +12,13 @@ We will make every change to the repository through an issue, a branch and a pul
 
 - **Issues:** one issue per change. The title names the outcome. The body gives the context, the deliverables, the acceptance criteria as a plain list, and what is out of scope. Each issue belongs to a milestone.
 - **Branches:** one branch per issue, created from `main` and named `<type>/<issue-number>-<issue-title-in-kebab-case>`, where `<type>` is a commit type defined in [ADR 0002](0002-conventional-commits.md), for example `docs/1-bootstrap-the-repository`.
-- **Pull requests:** one pull request per issue, from that branch to `main`.
+- **Pull requests:** one pull request per issue, from that branch to `main`. The only exception is the backport of a fix to a maintained older version, described in [ADR 0006](0006-trunk-based-development.md).
   - The title follows [ADR 0002](0002-conventional-commits.md).
   - The description contains `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist.
   - It stays a draft until every item of the checklist is checked.
   - It is merged by squash, so that `main` stays linear with one commit per issue. The pull request title, followed by the pull request number, becomes the commit title.
   - The branch is deleted after the merge.
+- **Backports:** a fix for a maintained older version follows these rules with the exceptions defined in [ADR 0006](0006-trunk-based-development.md): its branch is a second one for the issue, named as defined there, and its pull request targets a maintenance branch, refers to the issue instead of closing it, and has no checklist.
 - **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash is the only enabled merge method. It uses the pull request title as the commit title and an empty commit body. The platform appends the pull request number to the title, which links each commit on `main` to its pull request, and adds the co-author trailers of the squashed commits. Head branches are deleted automatically after the merge.
 
 ## Consequences
