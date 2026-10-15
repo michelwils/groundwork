@@ -14,6 +14,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - How changes are made: issues, branches and pull requests
 - Commit messages
 - Versioning and releases
+- Rules for changes made with AI coding agents
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
 
 ## What it does not cover
@@ -66,8 +67,9 @@ groundwork is a GitHub template repository.
 
 3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
 4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered after them. Keep `CONTRIBUTING.md` and adjust it to the project.
-5. **Create** the first milestone, then the first issue.
-6. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
+5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
+6. **Create** the first milestone, then the first issue.
+7. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
 
 ### Moving to a later version
 
