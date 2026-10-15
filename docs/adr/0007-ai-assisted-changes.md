@@ -4,7 +4,7 @@
 
 ## Context
 
-Coding agents write code, documentation, commits and pull requests. A project that uses them needs to know which changes involved an agent, to keep a person responsible for what is merged, and to keep the history readable. Agents also tend to add references to the private session they run in, to describe at length that they followed the rules, and to be verbose, which adds noise to commits, issues and pull requests, and to the conversation with the maintainer.
+Coding agents write code, documentation, commits and pull requests. A project that uses them needs to know which changes involved an agent, to keep a person responsible for what is merged, and to keep the history readable. Agents also tend to add references to the private session they run in, to describe at length that they followed the rules, and to be verbose, which adds noise to commits, issues and pull requests, and to the conversation with the maintainer. They may also present work that they have not checked, which turns the review by the maintainer into the first check.
 
 ## Decision
 
@@ -14,6 +14,7 @@ We will accept changes made with a coding agent, under the same rules as any oth
 - **No private references.** A commit, an issue or a pull request never contains a link to, or an identifier of, a private agent session or conversation.
 - **Approval.** A maintainer approves every merge of a change made with an agent. An agent never merges a pull request on its own initiative, and an approval applies to one pull request only.
 - **Reporting.** An agent reports to the maintainer the errors it corrected and the deviations from a rule. It does not report that it followed the rules.
+- **Self-review.** An agent checks its own work before presenting it, committing it or marking a pull request ready: it runs the commands that it documents, looks for rules that the change contradicts or repeats, and checks the acceptance criteria against the diff.
 - **Concision.** An agent writes the shortest text that stays clear and precise, in its replies and in what it writes in commits, issues, pull requests and documentation. It does not repeat what was said, introduce what it is about to say or summarise what it just said.
 
 ## Consequences
@@ -23,4 +24,5 @@ We will accept changes made with a coding agent, under the same rules as any oth
 - The private conversation stays private, and the repository does not depend on access to it.
 - A maintainer reads reports about what went wrong and not about what went right. A silent agent is not proof that a rule was followed: the history is.
 - Concise texts are quicker to review, and the maintainer can ask the agent for more detail when needed. Clarity and precision take precedence over brevity: a text is not shortened at the cost of leaving out what a reader needs.
+- The review by the maintainer is meant to be the last check. The self-review of the agent reduces the corrections it asks for without replacing it.
 - The rules rely on the instructions given to the agent. Nothing checks them automatically yet, and doing so is left to later tooling.

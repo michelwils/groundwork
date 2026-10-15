@@ -16,6 +16,7 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 - Never include a link to, or an identifier of, your session or conversation.
 - Never merge a pull request without the explicit approval of a maintainer for that pull request.
 - Report the errors you corrected and the deviations from a rule. Do not report that you followed the rules.
+- Check your work before presenting it, committing it or marking a pull request ready: run the commands that you document, look for rules that the change contradicts or repeats, and check the acceptance criteria against the diff.
 - Write the shortest text that stays clear and precise.
 
 ## Project
