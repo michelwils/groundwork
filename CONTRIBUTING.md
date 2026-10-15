@@ -6,11 +6,11 @@ This file summarises how changes are made. The decisions behind it are recorded 
 
 Every change goes through an issue, a branch and a pull request ([ADR 0003](docs/adr/0003-change-workflow.md)).
 
-1. Open an issue that names the outcome and gives the context, deliverables, acceptance criteria and what is out of scope. Assign it to a milestone.
+1. Open an issue that names the outcome and gives the context, deliverables, acceptance criteria (as a plain list) and what is out of scope. Assign it to a milestone.
 2. Create a branch from `main` named `<type>/<issue-number>-<issue-title-in-kebab-case>`, for example `docs/1-bootstrap-the-repository`.
 3. Commit your work on the branch.
-4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` in its description.
-5. Mark it ready for review once every acceptance criterion of the issue is met.
+4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description.
+5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
 6. The pull request is merged by squash, and its title becomes the commit message on `main`. The branch is then deleted.
 
 ## Commit messages
