@@ -16,9 +16,9 @@ We will make every change to the repository through an issue, a branch and a pul
   - The title follows [ADR 0002](0002-conventional-commits.md).
   - The description contains `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist.
   - It stays a draft until every item of the checklist is checked.
-  - It is merged by squash, so that `main` stays linear with one commit per issue. The pull request title becomes the commit message.
+  - It is merged by squash, so that `main` stays linear with one commit per issue. The pull request title, followed by the pull request number, becomes the commit title.
   - The branch is deleted after the merge.
-- **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash is the only enabled merge method, and it uses the pull request title as the commit title and an empty commit body, so that the message on `main` is the title alone. Head branches are deleted automatically after the merge.
+- **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash is the only enabled merge method. It uses the pull request title as the commit title and an empty commit body. The platform appends the pull request number to the title, which links each commit on `main` to its pull request, and adds the co-author trailers of the squashed commits. Head branches are deleted automatically after the merge.
 
 ## Consequences
 
