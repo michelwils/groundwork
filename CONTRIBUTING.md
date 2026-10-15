@@ -60,10 +60,20 @@ BREAKING CHANGE: clients must read `account` instead of `user`.
 The `user` field is removed.
 ```
 
+Work that is not finished is merged as it is done, but stays out of the version until it is reachable by users ([ADR 0006](docs/adr/0006-trunk-based-development.md)). Its code is committed as `chore`, its tests as `test` and its documentation as `docs`. The commit that makes it reachable is the `feat`:
+
+```
+chore(reset): add the password reset service
+```
+
+```
+feat(reset): enable password reset by email
+```
+
 ## Decisions
 
 Significant decisions are recorded as ADRs, following the template in [`docs/adr/template.md`](docs/adr/template.md) ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)).
 
 ## Releases
 
-Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the type of a commit sets the increment. A release is made by hand: decide the version from the commits on `main` since the previous tag, tag `main` with `v<version>`, then publish a release for the tag whose notes list the changes since the previous release. The public contract is described in the [README](README.md#versioning).
+Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the type of a commit sets the increment. A release is made by hand: decide the version from the commits on `main` since the previous tag, tag `main` with `v<version>`, then publish a release for the tag whose notes list the changes since the previous release. A project that maintains an older major version fixes it on `main` first, then backports the fix to a `maintenance/v<major>` branch with a pull request and tags the release on that branch ([ADR 0006](docs/adr/0006-trunk-based-development.md)). The public contract is described in the [README](README.md#versioning).
