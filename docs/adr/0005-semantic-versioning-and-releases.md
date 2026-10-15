@@ -1,0 +1,52 @@
+# 0005. Semantic Versioning and releases
+
+**Status:** accepted
+
+## Context
+
+Users and maintainers of a project need to know what a new version means: whether they must change something, or can update freely. [ADR 0002](0002-conventional-commits.md) defines commit messages but leaves open what they mean for the version.
+
+## Decision
+
+We will version the project with [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
+
+**Public contract.** The project states in its README what its users rely on, such as an API, a file format, a command line or a configuration. This is its public contract, and the increments below are defined against it. Anything outside it can change without affecting the version.
+
+**Version increments.**
+
+- **Major:** the contract is broken. A user who followed the previous version must change something.
+- **Minor:** something is added to the contract, and users of the previous version do not have to change anything.
+- **Patch:** the project is corrected or improved without any change to the contract.
+
+**Commit types.** The type of a commit sets the increment:
+
+| Type | Version |
+|---|---|
+| any type with `!` or a `BREAKING CHANGE:` footer | major |
+| `feat` | minor |
+| `fix`, `perf` | patch |
+| `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`, `revert` | none |
+
+A `revert` that undoes released behaviour users rely on is marked as a breaking change with `!`.
+
+**Initial development.** While the major version is `0`, nothing is stable. A breaking change increments the minor version, and `feat`, `fix` and `perf` increment the patch version.
+
+**Version `1.0.0`.** It is tagged when the maintainers consider the public contract stable enough to be relied on. It may be tagged on a commit that has no change since the previous release, as a statement of confidence.
+
+**Tags.** A version is tagged `vMAJOR.MINOR.PATCH` on `main`, with an annotated tag. Pre-release identifiers are not used.
+
+**Releases.** A release is made by hand:
+
+1. Decide the version from the commits on `main` since the previous tag, following the rules above.
+2. Tag `main` with `v<version>`.
+3. Publish a release for the tag on the hosting platform. Its notes list the changes since the previous release, grouped by commit type, from the commit titles.
+
+The release notes are the changelog. There is no changelog file.
+
+## Consequences
+
+- A version number tells users whether they must act.
+- The commit title decides the version, so choosing the right type matters and is part of reviewing a pull request.
+- A project must state its public contract in its README. Until it does, the major and minor increments cannot be applied.
+- Releases are made by hand until they are automated, which is the subject of a later decision.
+- The changelog depends on commit titles being accurate.
