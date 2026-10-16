@@ -4,7 +4,7 @@
 
 ## Context
 
-A test written after the code tends to confirm what the code does, not what was required, and it is the first thing dropped when time is short. A test written first states the expected behaviour before any code exists, and it is seen to fail, which shows that it can. Coding agents are prone to the first failure: they write tests that mirror their own code, or change a test until it passes. The practice does not depend on a language or a technology stack.
+A test written after the code tends to confirm what the code does, not what was required, and it is the first thing dropped when time is short. A test written first states the expected behaviour before any code exists, and it is seen to fail, which shows that it can. Coding agents fall into it often: they write tests that mirror their own code, or change a test until it passes. The practice does not depend on a language or a technology stack.
 
 ## Decision
 
