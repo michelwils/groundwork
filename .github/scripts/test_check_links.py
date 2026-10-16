@@ -115,6 +115,25 @@ class Links(unittest.TestCase):
         self.make({"README.md": "\ufeff# Title\n\n[a](#title)\n"})
         self.assertEqual(self.problems(), [])
 
+    def test_a_link_in_an_indented_code_block_is_ignored(self):
+        self.make({"README.md": "Text\n\n    [a](missing.md)\n\n[b](missing.md)\n"})
+        (problem,) = self.problems()
+        self.assertIn("README.md:5", problem)
+
+    def test_a_broken_reference_is_reported_once_where_it_is_defined(self):
+        self.make({"README.md": "[one][g] and [two][g]\n\n[g]: missing.md\n"})
+        (problem,) = self.problems()
+        self.assertIn("README.md:3", problem)
+
+    def test_a_reference_that_is_never_used_is_checked_too(self):
+        self.make({"README.md": "Text\n\n[unused]: missing.md\n"})
+        self.assertEqual(len(self.problems()), 1)
+
+    def test_a_link_on_the_second_line_of_a_paragraph_is_reported_on_that_line(self):
+        self.make({"README.md": "A first line,\nthen [a](missing.md) on the second,\nand a third.\n"})
+        (problem,) = self.problems()
+        self.assertIn("README.md:2", problem)
+
     def test_a_footnote_is_not_a_reference_definition(self):
         self.make({"README.md": "Text[^1]\n\n[^1]: A note with words.\n"})
         self.assertEqual(self.problems(), [])

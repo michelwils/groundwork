@@ -2,12 +2,13 @@
 """Check the relative links and the anchors of the Markdown files (ADR 0008).
 
 Every inline link, image and reference definition that points to a file of the repository must
-find that file, and its `#anchor` must be a heading, or an `id` or `name` of an HTML element, of the target
-Markdown file, written with `#` or underlined. Anchors follow the rules of GitHub: the heading
-in lowercase, without punctuation, with hyphens for spaces, and `-1`, `-2` for a heading that
-repeats. External links (`http:`,
-`mailto:`, `//…`) are not checked, nor are links in code, in HTML comments or in the files of EXCLUDED.
-The check does not use the network.
+find that file, and its `#anchor` must be a heading, or an `id` or `name` of an HTML element, of
+the target Markdown file. Anchors follow the rules of GitHub: the heading in lowercase, without
+punctuation, with hyphens for spaces, and `-1`, `-2` for a heading that repeats. External links
+(`http:`, `mailto:`, `//…`) are not checked, nor are links in code, in HTML comments or in the
+files of EXCLUDED. The check does not use the network.
+
+The files are read with markdown-it-py, a parser of CommonMark, which requirements.txt pins.
 
 Usage: check_links.py [DIR]
 """
@@ -18,61 +19,75 @@ import subprocess
 import sys
 from urllib.parse import unquote
 
+from markdown_it import MarkdownIt
+
 # Files whose links are placeholders to be filled in.
 EXCLUDED = ("docs/adr/template.md",)
 
-FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
-COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
-CODE_SPAN = re.compile(r"(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.DOTALL)
-INLINE = re.compile(r"\]\(\s*(<[^<>\n]*>|[^()\s]*(?:\([^()\s]*\)[^()\s]*)*)")
-REFERENCE = re.compile(r"^ {0,3}\[(?!\^)[^\]\n]+\]:[ \t]*(<[^<>\n]*>|\S+)", re.MULTILINE)
-# A heading is written with `#`, or underlined: a line of text, then a line of = or - signs.
-HEADING = re.compile(
-    r"^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*$"
-    r"|^ {0,3}([^\s#>\-*+=`~|][^\n]*)\n {0,3}(?:=+|-+)[ \t]*$",
-    re.MULTILINE,
-)
+# The links and images, as the parser reads them. Without the rule of the reference definitions,
+# a link written as [text][label] is not resolved: the definitions are read by a second parser,
+# so that a definition is checked once, where it is written.
+LINKS = MarkdownIt("commonmark").enable(["table", "strikethrough"]).disable("reference")
+DEFINITIONS = MarkdownIt("commonmark").enable(["table", "strikethrough"])
+
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 EXPLICIT = re.compile(r"<[a-z][a-z0-9]*\s[^>]*?\b(?:name|id)=[\"']([^\"']+)[\"']", re.IGNORECASE)
 EXTERNAL = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.\-]*:|//)")
 LINE_ANCHOR = re.compile(r"^L\d+(?:C\d+)?(?:-L\d+(?:C\d+)?)?$")
 
 
-def blank(match):
-    return re.sub(r"[^\n]", " ", match.group(0))
-
-
-def without_blocks(text):
-    """Return the text with the content of the code blocks emptied and the comments blanked, line for line."""
-    lines, fence = [], None
-    for line in text.split("\n"):
-        opening = FENCE.match(line)
-        if fence:
-            if line.strip() and set(line.strip()) == {fence[0]} and len(line.strip()) >= len(fence):
-                fence = None
-            lines.append("")
-        elif opening:
-            fence = opening.group(1)
-            lines.append("")
-        else:
-            lines.append(line)
-    return COMMENT.sub(blank, "\n".join(lines))
-
-
 def slug(heading):
-    heading = re.sub(r"!?\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)", r"\1", heading)
-    heading = re.sub(r"<[^>]*>", "", heading)
-    heading = re.sub(r"[ \t]+#+$", "", heading).lower()
-    return re.sub(r"[^\w\- ]", "", heading).replace(" ", "-")
+    return re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-")
+
+
+def ids(html):
+    return EXPLICIT.findall(HTML_COMMENT.sub("", html))
 
 
 def anchors(text):
-    found, counts = set(EXPLICIT.findall(text)), {}
-    for match in HEADING.finditer(text):
-        name = slug((match.group(1) or match.group(2)).strip())
-        number = counts.get(name, 0)
-        counts[name] = number + 1
-        found.add(name if number == 0 else f"{name}-{number}")
+    """Return the anchors of a Markdown text: its headings, and the ids and names of its HTML."""
+    found, counts = set(), {}
+    tokens = LINKS.parse(text)
+    for index, token in enumerate(tokens):
+        if token.type == "heading_open":
+            children = tokens[index + 1].children or []
+            name = slug("".join(c.content for c in children if c.type in ("text", "code_inline", "image")))
+            number = counts.get(name, 0)
+            counts[name] = number + 1
+            found.add(name if number == 0 else f"{name}-{number}")
+        elif token.type == "html_block":
+            found.update(ids(token.content))
+        for child in token.children or []:
+            if child.type == "html_inline":
+                found.update(ids(child.content))
     return found
+
+
+def line_of(lines, first, last, target):
+    """Return the line, from 1, of a link in the lines [first, last) of its block: the first that has its target."""
+    wanted = unquote(target.split("#")[0].split("?")[0]) or unquote(target)
+    for number in range(first, last):
+        if wanted and wanted in unquote(lines[number]):
+            return number + 1
+    return first + 1
+
+
+def links(text):
+    """Return the (line, target) of the links, images and reference definitions of a Markdown text."""
+    lines, found = text.split("\n"), []
+    for token in LINKS.parse(text):
+        if token.type != "inline":
+            continue
+        first, last = token.map
+        for child in token.children:
+            if child.type in ("link_open", "image"):
+                target = child.attrGet("href" if child.type == "link_open" else "src")
+                found.append((line_of(lines, first, last, target), target))
+    env = {}
+    DEFINITIONS.parse(text, env)
+    for definition in env.get("references", {}).values():
+        found.append((definition["map"][0] + 1, definition["href"]))
+    return sorted(found)
 
 
 def markdown_files(root):
@@ -95,7 +110,7 @@ def check(root):
     def text_of(path):
         if path not in texts:
             with open(path, encoding="utf-8-sig", errors="replace") as handle:
-                texts[path] = without_blocks(handle.read())
+                texts[path] = handle.read()
         return texts[path]
 
     def anchors_of(path):
@@ -108,11 +123,8 @@ def check(root):
         relative = os.path.relpath(source, root).replace(os.sep, "/")
         if relative in EXCLUDED or not os.path.isfile(source):
             continue
-        text = CODE_SPAN.sub(blank, text_of(source))
-        targets = [(m.start(1), m.group(1)) for pattern in (INLINE, REFERENCE) for m in pattern.finditer(text)]
-        for start, target in sorted(targets):
-            line = text.count("\n", 0, start) + 1
-            problem = broken(root, source, target.strip("<>"), anchors_of)
+        for line, target in links(text_of(source)):
+            problem = broken(root, source, target, anchors_of)
             if problem:
                 problems.append(f"{relative}:{line}: {problem}")
     return problems

@@ -1,0 +1,4 @@
+# Dependencies of the scripts of .github/scripts, at exact versions. The hook markdown-links
+# of .pre-commit-config.yaml installs the same versions.
+markdown-it-py==4.0.0
+mdurl==0.1.2
