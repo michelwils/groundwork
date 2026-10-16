@@ -53,7 +53,7 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 
 A release increments the version once, by the highest increment among the changes since the previous release.
 
-A release is made by the [`release` workflow](.github/workflows/release.yml), which a maintainer starts by hand: it computes the version from the commit titles, tags it and publishes the release notes. A published release and its tag are never changed.
+A release is made by the [`release` workflow](.github/workflows/release.yml), which a maintainer starts by hand: it computes the version from the commit titles, tags it and publishes the release notes. The tag and the content of a published release are never changed.
 
 Only the latest release is maintained.
 
