@@ -1,0 +1,45 @@
+name: update-groundwork
+
+# Opens the pull request that moves the project to a later version of groundwork. It does
+# nothing where there is no .groundwork-version, such as in groundwork itself.
+# The secret GROUNDWORK_UPDATE_TOKEN is a fine-grained personal access token with write access
+# to contents, pull requests and workflows on this repository only: the token of a workflow
+# cannot push changes to workflow files, and does not start the checks of the pull request
+# without an approval.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-groundwork
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GROUNDWORK_UPDATE_TOKEN || github.token }}
+
+      - name: Check the secret
+        if: ${{ hashFiles('.groundwork-version') != '' }}
+        env:
+          TOKEN: ${{ secrets.GROUNDWORK_UPDATE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::The secret GROUNDWORK_UPDATE_TOKEN is not set. See the update section of the README."
+            exit 1
+          fi
+
+      - name: Open the update pull request
+        if: ${{ hashFiles('.groundwork-version') != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GROUNDWORK_UPDATE_TOKEN }}
+        run: python3 .github/scripts/open_update_pull_request.py

@@ -3,7 +3,8 @@
 
 The version of groundwork the project is based on is in `.groundwork-version`, at the root of
 the project: one line `X.Y.Z`. The script fetches the tags of groundwork under `groundwork/`,
-creates the branch `chore/<issue>-update-groundwork-to-v<X-Y-Z>` and applies on it what changed
+creates the branch `chore/<issue>-update-groundwork-to-v<X-Y-Z>`, or
+`groundwork/update-to-v<X-Y-Z>` when no issue is given, and applies on it what changed
 between the two versions, file by file, keeping the changes of the project. It leaves the result
 in the working tree: it does not commit, push or open a pull request.
 
@@ -12,7 +13,7 @@ Files that concern groundwork itself are left out, see EXCLUDED.
 Exit status: 0 when the project is updated or up to date, 1 on an error, 2 when some files are
 in conflict. A conflict leaves markers in the file, and the script names the files.
 
-Usage: update_groundwork.py ISSUE [--to X.Y.Z] [--source URL]
+Usage: update_groundwork.py [ISSUE] [--to X.Y.Z] [--source URL]
 """
 
 import argparse
@@ -139,7 +140,7 @@ def apply_path(path, old, new):
 
 
 def run(args):
-    if not args.issue.isdigit():
+    if args.issue is not None and not args.issue.isdigit():
         raise Failure(f"'{args.issue}' is not an issue number.")
     os.chdir(git("rev-parse", "--show-toplevel").stdout.strip())
     old = recorded_version()
@@ -165,7 +166,8 @@ def run(args):
             print(f"The project is up to date with groundwork {old}.")
             return 0
 
-    branch = f"chore/{args.issue}-update-groundwork-to-v{new.replace('.', '-')}"
+    slug = f"update-groundwork-to-v{new.replace('.', '-')}"
+    branch = f"chore/{args.issue}-{slug}" if args.issue else f"groundwork/update-to-v{new.replace('.', '-')}"
     if git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
         raise Failure(f"The branch {branch} already exists.")
     git("switch", "--quiet", "-c", branch)
@@ -187,7 +189,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Prepare the update of a project to a later version of groundwork.")
-    parser.add_argument("issue", help="number of the issue of the update, used in the name of the branch")
+    parser.add_argument("issue", nargs="?", help="number of the issue of the update, used in the name of the branch")
     parser.add_argument("--to", help="version to update to, without the leading v (default: the latest)")
     parser.add_argument("--source", default=SOURCE, help="repository of groundwork (default: %(default)s)")
     try:

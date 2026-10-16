@@ -91,6 +91,8 @@ groundwork is a GitHub template repository.
    It applies what [ADR 0003](docs/adr/0003-change-workflow.md) relies on: squash as the only merge method, with the pull request title as the commit title and an empty message, and the automatic deletion of branches after a merge. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. Last, it protects the default branch with the ruleset of this repository, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
 
    If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, changes the `context` of [`.github/rulesets/main.json`](.github/rulesets/main.json) and runs the script again.
+
+   Create the secret `GROUNDWORK_UPDATE_TOKEN` too, which the [automatic update](#automatic-update) of groundwork needs.
 3. **Create** the first milestone, then the first issue, which adapts the template to the project.
 4. **Adapt it** on a branch, in a pull request that closes that issue, since the default branch now rejects direct pushes:
    - **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
@@ -115,6 +117,19 @@ A copy shares no history with groundwork and does not receive later changes. To 
 
    It ends with status 0 when the project is updated or already up to date, 1 on an error, and 2 when files are in conflict. It names them and leaves markers in them for you to resolve.
 3. Commit the result like any other change, through the issue and a pull request.
+
+#### Automatic update
+
+The [`update-groundwork` workflow](.github/workflows/update-groundwork.yml) does this every week, and when started by hand. It runs [`.github/scripts/open_update_pull_request.py`](.github/scripts/open_update_pull_request.py), which runs the script above without an issue, commits the result on the branch `groundwork/update-to-v<X-Y-Z>`, pushes it and opens the pull request `chore: update groundwork to v<X.Y.Z>`. Like those of Dependabot, that pull request has no issue ([ADR 0003](docs/adr/0003-change-workflow.md)), and the check of the branch name and closing line skips the prefix `groundwork/`.
+
+- It opens nothing when the project is up to date, when a pull request from a branch `groundwork/…` is already open, or when the pull request of that version was closed without being merged. Close the pull request to skip a version: a later version is proposed again.
+- When files are in conflict, the pull request is a draft that lists them, with the markers left in the files. Resolve them, then mark it ready.
+- It does nothing where there is no `.groundwork-version`, such as in groundwork itself.
+- It needs the secret `GROUNDWORK_UPDATE_TOKEN`: a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) limited to the repository, with write access to contents, pull requests and workflows. The token of a workflow cannot push changes to workflow files, and does not start the checks of the pull request without an approval. Create the secret once, and renew the token before it expires:
+
+  ```sh
+  gh secret set GROUNDWORK_UPDATE_TOKEN --repo <owner>/<repo>
+  ```
 
 ## Contributing
 
