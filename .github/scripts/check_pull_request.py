@@ -3,7 +3,8 @@
 
 The branch is named <type>/<issue-number>-<slug>. The description has `Closes #<issue-number>`.
 A backport (base `maintenance/v<major>`, branch ending in `-v<major>`) has `Refs #<issue-number>`
-instead, and no `Closes`. Branches of dependency update bots are skipped.
+instead, and no `Closes`. Branches of Dependabot (`dependabot/…`) are skipped: a project that
+uses another dependency update bot adds its branch prefix to BOT_BRANCH.
 
 Usage: check_pull_request.py BRANCH BASE BODY
 """
