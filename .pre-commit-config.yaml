@@ -2,7 +2,7 @@
 # Install the hooks once with: pre-commit install
 # Run every check on all files, as the CI does, with:
 #   pre-commit run --all-files --hook-stage manual
-minimum_pre_commit_version: '2.18.0'
+minimum_pre_commit_version: '3.2.0'
 default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
