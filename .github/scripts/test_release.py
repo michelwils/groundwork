@@ -21,6 +21,9 @@ class Repository:
         self.git("init", "-q", "-b", "main")
         self.git("config", "user.email", "test@example.com")
         self.git("config", "user.name", "Test")
+        self.git("config", "commit.gpgsign", "false")
+        self.git("config", "tag.gpgsign", "false")
+        self.git("config", "core.hooksPath", os.devnull)
         return self
 
     def __exit__(self, *exc):
