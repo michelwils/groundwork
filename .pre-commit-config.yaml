@@ -39,6 +39,17 @@ repos:
 
   - repo: local
     hooks:
+      # ADR 0008: the relative links and the anchors of the Markdown files resolve. It checks
+      # all the files, since a link breaks when the file it points to is renamed.
+      - id: markdown-links
+        name: Check the links of the Markdown files
+        language: python
+        additional_dependencies: [markdown-it-py==4.0.0, mdurl==0.1.2]
+        entry: python .github/scripts/check_links.py
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, manual]
+
       # ADR 0002: <type>[(scope)][!]: <description>, with a single lowercase word
       # as scope, a description that starts with a lowercase letter and no final period.
       - id: commit-title
