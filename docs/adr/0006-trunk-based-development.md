@@ -40,4 +40,4 @@ We will develop on a single long-lived branch, `main`. All other branches are sh
 - Maintaining an older major version doubles the work of every fix, which is applied and released twice. A project should maintain as few as possible.
 - With maintenance branches, the latest tag by date is not always the highest version.
 - Coordinating a vulnerability fix before it is public is not covered. A rollback is a new fix or a `revert`, made like any other change.
-- Nothing checks that `main` is releasable. Doing so automatically is left to later tooling.
+- That `main` is releasable is checked by the CI, as described in [ADR 0008](0008-automated-checks.md).

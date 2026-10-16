@@ -53,7 +53,7 @@ While groundwork is at `0.y.z`, a breaking change or a `feat` increments the min
 
 ## Checks
 
-Checks run before each commit, as described in [ADR 0008](docs/adr/0008-automated-checks.md). They are defined in [`.pre-commit-config.yaml`](.pre-commit-config.yaml) and use the [pre-commit](https://pre-commit.com) framework:
+Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/0008-automated-checks.md). They are defined in [`.pre-commit-config.yaml`](.pre-commit-config.yaml) and use the [pre-commit](https://pre-commit.com) framework:
 
 - the commit title follows [ADR 0002](docs/adr/0002-conventional-commits.md)
 - the commit message refers to no agent session ([ADR 0007](docs/adr/0007-ai-assisted-changes.md))
@@ -61,6 +61,8 @@ Checks run before each commit, as described in [ADR 0008](docs/adr/0008-automate
 - Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
+
+The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`, and checks that the title of the pull request follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title.
 
 ## Adopting groundwork
 
@@ -79,7 +81,7 @@ groundwork is a GitHub template repository.
 3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
 4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered after them. Keep `CONTRIBUTING.md` and adjust it to the project.
 5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
-6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`.
+6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`. The `checks` job runs on `ubuntu-slim`, a light runner with a limit of 15 minutes. Run the build and the tests of the project in other jobs, on `ubuntu-latest` or a larger runner, and change the runner of the `checks` job if a check of the stack needs more.
 7. **Create** the first milestone, then the first issue.
 8. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
 
