@@ -21,7 +21,7 @@ We will version the project with [Semantic Versioning 2.0.0](https://semver.org/
 **Commit types.** The type of a commit sets the increment:
 
 | Type | Version |
-|---|---|
+| --- | --- |
 | any type with `!` or a `BREAKING CHANGE:` footer | major |
 | `feat` | minor |
 | `fix`, `perf` | patch |

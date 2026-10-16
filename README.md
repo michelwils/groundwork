@@ -39,7 +39,7 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 **Changes to the contract.**
 
 | Commit type | Change to the contract | Version |
-|---|---|---|
+| --- | --- | --- |
 | any type with `!` | A rule is reversed, or a file is removed, renamed or changed so that it no longer does what projects rely on | major |
 | `feat` | A rule or a file is added | minor |
 | `fix`, `perf` | A rule is clarified without changing its meaning, or a file is improved without changing what it does | patch |
@@ -58,7 +58,7 @@ groundwork is a GitHub template repository.
 1. **Create the repository.** On this page, choose "Use this template".
 2. **Configure it.** A template copies files, not repository settings. [ADR 0003](docs/adr/0003-change-workflow.md) relies on squash as the only merge method, with the pull request title as the commit title and an empty message, and on the automatic deletion of branches after a merge:
 
-   ```
+   ```sh
    gh repo edit --enable-squash-merge --enable-merge-commit=false \
      --enable-rebase-merge=false --delete-branch-on-merge
    gh api -X PATCH repos/<owner>/<repo> \
@@ -78,7 +78,7 @@ A copy shares no history with groundwork and does not receive later changes. To 
 1. Read the [release notes](https://github.com/michelwils/groundwork/releases) of the versions in between. A minor version adds a rule or a file without breaking anything. A major version requires the project to change something, which its `BREAKING CHANGE:` notes describe.
 2. Fetch the tags of groundwork under their own prefix, so that they do not collide with the tags of the project, and apply the difference between the two versions. Leave out the files that concern groundwork itself, such as its README, and resolve the conflicts on the files the project has changed:
 
-   ```
+   ```sh
    git remote add groundwork https://github.com/michelwils/groundwork.git
    git fetch groundwork 'refs/tags/*:refs/tags/groundwork/*'
    git diff groundwork/v0.1.0 groundwork/v0.2.0 -- . ':!README.md' | git apply --3way
