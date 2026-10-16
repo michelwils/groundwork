@@ -33,7 +33,7 @@ A `revert` that undoes released behaviour users rely on is marked as a breaking 
 
 **Version `1.0.0`.** It is tagged when the maintainers consider the public contract stable enough to be relied on. It may be tagged on a commit that has no change since the previous release, as a statement of confidence.
 
-**Tags.** A version is tagged `vMAJOR.MINOR.PATCH` with an annotated tag, on `main`, or on a maintenance branch for a fix to an older major version ([ADR 0006](0006-trunk-based-development.md)). Pre-release identifiers are not used.
+**Tags.** A version is tagged `vMAJOR.MINOR.PATCH` with an annotated tag, on `main`, or on a maintenance branch for a fix to an older major version ([ADR 0006](0006-trunk-based-development.md)). Pre-release identifiers are not used. The tag and the content of a published release are never changed. A defective release is corrected by the next version, and the immutable releases setting of the hosting platform enforces this.
 
 **Releases.** A release is made when the maintainers decide, not on every merge. Between releases, `main` carries no version. The maintainers start a workflow that makes the release in three steps:
 
@@ -51,3 +51,4 @@ The workflow can run without publishing, to show the version and the notes. The 
 - A release is started by hand and made by a workflow, so that the version follows the rules above. A change undone in another way than by a `revert`, such as by switching a feature off, is not recognised: the maintainers give the version.
 - A release is made from `main`, or from a maintenance branch for a fix to an older major version. How a fix is released while `main` holds unreleased changes is decided in [ADR 0006](0006-trunk-based-development.md).
 - The changelog depends on commit titles being accurate.
+- A mistake in a published release cannot be corrected under the same version. The next version carries the fix, and the name of a deleted release's tag cannot be used again.

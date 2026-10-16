@@ -53,7 +53,7 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 
 A release increments the version once, by the highest increment among the changes since the previous release.
 
-A release is made by the [`release` workflow](.github/workflows/release.yml), which a maintainer starts by hand: it computes the version from the commit titles, tags it and publishes the release notes.
+A release is made by the [`release` workflow](.github/workflows/release.yml), which a maintainer starts by hand: it computes the version from the commit titles, tags it and publishes the release notes. A published release and its tag are never changed.
 
 Only the latest release is maintained.
 
@@ -106,6 +106,13 @@ groundwork is a GitHub template repository.
    ```
 
    If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, and changes the `context` of the ruleset.
+
+   Make published releases immutable too, so that the tag of a release cannot be moved. It applies to the releases published afterwards:
+
+   ```sh
+   gh api -X PUT repos/<owner>/<repo>/immutable-releases
+   ```
+
 10. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
 
 ### Moving to a later version
