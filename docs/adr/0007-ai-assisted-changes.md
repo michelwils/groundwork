@@ -30,4 +30,4 @@ We will accept changes made with a coding agent, under the same rules as any oth
 - Concise texts are quicker to review, and the maintainer can ask the agent for more detail when needed. Clarity and precision take precedence over brevity: a text is not shortened at the cost of leaving out what a reader needs.
 - The review by the maintainer is meant to be the last check. The self-review of the agent reduces the corrections it asks for without replacing it.
 - A person or another agent can resume the work from the issue and the pull request, without the conversation that produced them.
-- The rules rely on the instructions given to the agent. Nothing checks them automatically yet, and doing so is left to later tooling.
+- The rules rely on the instructions given to the agent. Only the absence of references to a session is checked automatically, as described in [ADR 0008](0008-automated-checks.md).
