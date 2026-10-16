@@ -15,6 +15,10 @@ We will accept changes made with a coding agent, under the same rules as any oth
 - **Approval.** A maintainer approves every merge of a change made with an agent. An agent never merges a pull request on its own initiative, and an approval applies to one pull request only.
 - **Reporting.** An agent reports to the maintainer the errors it corrected and the deviations from a rule. It does not report that it followed the rules.
 - **Self-review.** An agent checks its own work before presenting it, committing it or marking a pull request ready: it runs the commands that it documents, looks for rules that the change contradicts or repeats, and checks the acceptance criteria against the diff.
+- **Checks.** An agent never bypasses a check: it does not skip hooks, disable a rule, or remove or weaken a test to make a check pass. When a check fails, it fixes the cause or reports it.
+- **Autonomy.** An agent may commit, push its own branch and open a draft pull request. It asks for explicit approval before any other action that is hard to reverse or reaches beyond its own branch, such as changing repository settings or milestones, deleting a branch or rewriting history.
+- **Sources.** Before stating a fact about an external tool or service, an agent checks its current documentation, or says that it did not.
+- **Record.** A decision taken during the work is recorded where the work is tracked, not left in the conversation: a significant one as an ADR, any other in the issue or in the description of the pull request.
 - **Concision.** An agent writes the shortest text that stays clear and precise, in its replies and in what it writes in commits, issues, pull requests and documentation. It does not repeat what was said, introduce what it is about to say or summarise what it just said.
 
 ## Consequences
@@ -25,4 +29,5 @@ We will accept changes made with a coding agent, under the same rules as any oth
 - A maintainer reads reports about what went wrong and not about what went right. A silent agent is not proof that a rule was followed: the history is.
 - Concise texts are quicker to review, and the maintainer can ask the agent for more detail when needed. Clarity and precision take precedence over brevity: a text is not shortened at the cost of leaving out what a reader needs.
 - The review by the maintainer is meant to be the last check. The self-review of the agent reduces the corrections it asks for without replacing it.
+- A person or another agent can resume the work from the issue and the pull request, without the conversation that produced them.
 - The rules rely on the instructions given to the agent. Nothing checks them automatically yet, and doing so is left to later tooling.
