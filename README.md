@@ -16,6 +16,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Versioning and releases
 - Rules for changes made with AI coding agents
 - Test-first development
+- Issue and pull request templates and a review checklist
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
 
 ## What it does not cover

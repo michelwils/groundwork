@@ -10,10 +10,10 @@ All repository content is written in English ([ADR 0004](docs/adr/0004-repositor
 
 Every change goes through an issue, a branch and a pull request ([ADR 0003](docs/adr/0003-change-workflow.md)).
 
-1. Open an issue that names the outcome and gives the context, deliverables, acceptance criteria (as a plain list) and what is out of scope. Assign it to a milestone.
+1. Open an issue that names the outcome and gives the context, deliverables, acceptance criteria (as a plain list) and what is out of scope. Assign it to a milestone. The issue template has these sections.
 2. Create a branch from `main` named `<type>/<issue-number>-<issue-title-in-kebab-case>`, for example `docs/1-bootstrap-the-repository`.
 3. Commit your work on the branch.
-4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. Add a "Plan" section with the files, tests and risks agreed before the work, if the change needed a plan.
+4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. The pull request template has these sections, and an optional "Plan" section for the files, tests and risks agreed before the work.
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
 6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted.
 
@@ -73,6 +73,17 @@ feat(reset): enable password reset by email
 ## Tests
 
 Write the test of a change of behaviour before the code that makes it pass, and see it fail ([ADR 0009](docs/adr/0009-test-first-development.md)). A bug is first reproduced by a test. A test changes only when the requirement changes, never to make code pass. A change of behaviour that has no new test says why in its pull request. Run the tests of the release script with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
+
+## Review checklist
+
+A reviewer, and an agent that checks its own work ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)), check:
+
+- each acceptance criterion of the issue against the diff, not against the description of the pull request
+- contradictions with, and repetitions of, the ADRs, the README and this file
+- the commands that the change documents, by running them
+- the links, by following them
+- the type of the pull request title, against the public contract in the [README](README.md#versioning), since it sets the next version
+- wording that can be read in two ways, or that leaves the reader to guess
 
 ## Checks
 
