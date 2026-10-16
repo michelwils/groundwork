@@ -13,7 +13,7 @@ Every change goes through an issue, a branch and a pull request ([ADR 0003](docs
 1. Open an issue that names the outcome and gives the context, deliverables, acceptance criteria (as a plain list) and what is out of scope. Assign it to a milestone.
 2. Create a branch from `main` named `<type>/<issue-number>-<issue-title-in-kebab-case>`, for example `docs/1-bootstrap-the-repository`.
 3. Commit your work on the branch.
-4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description.
+4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. Add a "Plan" section with the files, tests and risks agreed before the work, if the change needed a plan.
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
 6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted.
 
@@ -80,7 +80,7 @@ Checks run before each commit and in CI on every pull request ([ADR 0008](docs/a
 
 ## AI-assisted changes
 
-A change made with a coding agent follows the same rules ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)). Its commits have a `Co-Authored-By` trailer naming the agent, and an issue or a pull request it writes ends with a line stating that it was generated. Nothing refers to the agent's session, and a maintainer approves every merge. The instructions given to agents are in [`AGENTS.md`](AGENTS.md).
+A change made with a coding agent follows the same rules ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)). Its commits have a `Co-Authored-By` trailer naming the agent, and an issue or a pull request it writes ends with a line stating that it was generated. Nothing refers to the agent's session, and a maintainer approves every merge. For a change that is not trivial, it proposes a plan first and records the approved plan in the pull request. The instructions given to agents are in [`AGENTS.md`](AGENTS.md).
 
 ```text
 docs(readme): describe the release process
