@@ -6,7 +6,7 @@ find that file, and its `#anchor` must be a heading, or an `<a id>` or `<a name>
 Markdown file, written with `#` or underlined. Anchors follow the rules of GitHub: the heading
 in lowercase, without punctuation, with hyphens for spaces, and `-1`, `-2` for a heading that
 repeats. External links (`http:`,
-`mailto:`, `//…`) are not checked, nor are links in code, in HTML or in the files of EXCLUDED.
+`mailto:`, `//…`) are not checked, nor are links in code, in HTML comments or in the files of EXCLUDED.
 The check does not use the network.
 
 Usage: check_links.py [DIR]
@@ -21,7 +21,8 @@ from urllib.parse import unquote
 # Files whose links are placeholders to be filled in.
 EXCLUDED = ("docs/adr/template.md",)
 
-FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
+COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 CODE_SPAN = re.compile(r"(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.DOTALL)
 INLINE = re.compile(r"\]\(\s*(<[^<>\n]*>|[^()\s]*(?:\([^()\s]*\)[^()\s]*)*)")
 REFERENCE = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(<[^<>\n]*>|\S+)", re.MULTILINE)
@@ -40,7 +41,7 @@ def blank(match):
 
 
 def without_blocks(text):
-    """Return the text with the content of the code blocks emptied, line for line."""
+    """Return the text with the content of the code blocks emptied and the comments blanked, line for line."""
     lines, fence = [], None
     for line in text.split("\n"):
         opening = FENCE.match(line)
@@ -53,7 +54,7 @@ def without_blocks(text):
             lines.append("")
         else:
             lines.append(line)
-    return "\n".join(lines)
+    return COMMENT.sub(blank, "\n".join(lines))
 
 
 def slug(heading):

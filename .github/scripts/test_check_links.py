@@ -124,6 +124,16 @@ class Links(unittest.TestCase):
         self.make({"README.md": "```md\n[a](missing.md)\n```\n\n~~~\n[b](missing.md)\n~~~\n\nUse `[c](missing.md)` here.\n"})
         self.assertEqual(self.problems(), [])
 
+    def test_links_in_an_html_comment_are_ignored(self):
+        self.make({"README.md": "<!-- [a](missing.md) -->\n\n<!--\n[b](missing.md)\n-->\n[c](missing.md)\n"})
+        (problem,) = self.problems()
+        self.assertIn("README.md:6", problem)
+
+    def test_a_fence_inside_a_nested_list_item_is_a_code_block(self):
+        self.make({"README.md": "1. one\n   - two\n\n      ```sh\n      [a](missing.md)\n      ```\n\n[b](missing.md)\n"})
+        (problem,) = self.problems()
+        self.assertIn("README.md:8", problem)
+
     def test_the_line_of_a_link_is_right_after_a_code_block(self):
         self.make({"README.md": "```\ncode\n```\n[a](missing.md)\n"})
         (problem,) = self.problems()
