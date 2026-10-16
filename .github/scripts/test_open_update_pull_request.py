@@ -162,6 +162,11 @@ class OpenUpdatePullRequest(unittest.TestCase):
         self.run_script('[{"headRefName": "feat/3-add-a-thing"}, {"headRefName": "dependabot/pre_commit/x"}]')
         self.assertEqual(len(self.created()), 1)
 
+    def test_looks_for_an_open_update_among_all_the_open_pull_requests(self):
+        self.run_script()
+        (call,) = [call for call in self.gh_calls() if call[:2] == ["pr", "list"]]
+        self.assertGreaterEqual(int(self.value(call, "--limit")), 1000)
+
     def test_does_nothing_in_a_project_without_the_version_file(self):
         os.remove(os.path.join(self.project, ".groundwork-version"))
         git(self.project, "commit", "-q", "-am", "chore: remove the version file")

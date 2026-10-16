@@ -42,7 +42,7 @@ def run(*command):
 
 
 def open_update_exists():
-    pulls = json.loads(run("gh", "pr", "list", "--state", "open", "--json", "headRefName"))
+    pulls = json.loads(run("gh", "pr", "list", "--state", "open", "--limit", "1000", "--json", "headRefName"))
     return any(pull["headRefName"].startswith(PREFIX) for pull in pulls)
 
 
