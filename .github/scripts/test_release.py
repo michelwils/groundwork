@@ -165,6 +165,26 @@ class Reverts(unittest.TestCase):
             self.assertEqual(repo.next(), ("minor", "0.2.0"))
 
 
+class Tags(unittest.TestCase):
+    def test_tags_that_are_not_versions_are_ignored(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("fix: correct a bug")
+            repo.git("tag", "v0.2.0-rc1")
+            repo.git("tag", "release-2")
+            self.assertEqual(repo.next(), ("patch", "0.1.1"))
+
+    def test_the_highest_reachable_version_is_the_previous_one(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.9.0")
+            repo.commit("feat: add another")
+            repo.tag("0.10.0")
+            repo.commit("fix: correct a bug")
+            self.assertEqual(repo.next(), ("patch", "0.10.1"))
+
+
 class Branches(unittest.TestCase):
     def test_maintenance_branch_uses_its_own_tags(self):
         with Repository() as repo:

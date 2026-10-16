@@ -31,13 +31,13 @@ def git(*args):
 
 
 def previous_version():
-    """Return the version of the latest tag reachable from HEAD, or None."""
-    try:
-        tag = git("describe", "--tags", "--abbrev=0", "--match", "v[0-9]*.[0-9]*.[0-9]*").strip()
-    except subprocess.CalledProcessError:
-        return None
-    match = TAG.match(tag)
-    return match.group(1) if match else None
+    """Return the highest version among the tags reachable from HEAD, or None."""
+    versions = []
+    for tag in git("tag", "--merged", "HEAD", "--list", "v[0-9]*").split():
+        match = TAG.match(tag)
+        if match:
+            versions.append(match.group(1))
+    return max(versions, key=lambda version: tuple(map(int, version.split(".")))) if versions else None
 
 
 def commits_since(version):

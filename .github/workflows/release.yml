@@ -42,6 +42,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
+          set -o pipefail
           python3 .github/scripts/release.py ${VERSION:+--version "$VERSION"} --notes "$RUNNER_TEMP/notes.md" | tee "$RUNNER_TEMP/summary.txt"
           {
             echo '```text'
