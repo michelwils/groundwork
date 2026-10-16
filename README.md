@@ -10,7 +10,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 
 ## What it covers
 
-- Recording architecture decisions
+- Recording architecture decisions, with the numbers `0001` to `0999` reserved for the ADRs of groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md))
 - How changes are made: issues, branches and pull requests
 - Commit messages
 - Versioning and releases
@@ -18,8 +18,9 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Test-first development
 - Issue and pull request templates and a review checklist
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
-- Automated updates of pinned tool versions, in [`.github/dependabot.yml`](.github/dependabot.yml)
+- Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
 - A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py)
+- A workflow that opens every week the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
 - A security policy, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
 - A script that applies the repository settings, in [`.github/scripts/apply_settings.py`](.github/scripts/apply_settings.py)
