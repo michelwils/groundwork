@@ -17,6 +17,8 @@ Every change goes through an issue, a branch and a pull request ([ADR 0003](docs
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
 6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted.
 
+The pull requests that Dependabot opens to update pinned versions have no issue. A maintainer reviews and merges each one ([ADR 0003](docs/adr/0003-change-workflow.md)).
+
 ## Commit messages
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) ([ADR 0002](docs/adr/0002-conventional-commits.md)):
