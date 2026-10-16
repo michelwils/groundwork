@@ -15,6 +15,8 @@ V1 = {
     "LICENSE": "MIT\n",
     "CONTRIBUTING.md": "one\ntwo\nthree\n",
     "SECURITY.md": "security\n",
+    "old.md": "old\n",
+    "logo.bin": "a\0b",
 }
 V2 = {
     **V1,
@@ -22,8 +24,10 @@ V2 = {
     "LICENSE": "MIT 2026\n",
     "CONTRIBUTING.md": "one\ntwo changed\nthree\n",
     "new.md": "new\n",
+    "logo.bin": "a\0c",
 }
-V3 = {**V2, "SECURITY.md": "security 0.3\n"}
+V3 = {name: content for name, content in V2.items() if name != "old.md"}
+V3["SECURITY.md"] = "security 0.3\n"
 
 
 def git(cwd, *args):
@@ -101,6 +105,24 @@ class Update(unittest.TestCase):
         self.assertEqual(read(self.project, "CONTRIBUTING.md"), V3["CONTRIBUTING.md"])
         self.assertEqual(read(self.project, "SECURITY.md"), V3["SECURITY.md"])
         self.assertEqual(read(self.project, ".groundwork-version"), "0.3.0\n")
+
+    def test_removes_a_file_that_groundwork_removed(self):
+        self.run_script()
+        self.assertFalse(os.path.exists(os.path.join(self.project, "old.md")))
+
+    def test_keeps_and_reports_a_file_removed_by_groundwork_that_the_project_changed(self):
+        self.commit_project({"old.md": "old, adjusted\n"})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("old.md", result.stdout)
+        self.assertEqual(read(self.project, "old.md"), "old, adjusted\n")
+
+    def test_keeps_and_reports_a_binary_file_changed_on_both_sides(self):
+        self.commit_project({"logo.bin": "a\0d"})
+        result = self.run_script("--to", "0.2.0")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("logo.bin", result.stdout)
+        self.assertEqual(read(self.project, "logo.bin"), "a\0d")
 
     def test_updates_to_a_given_version(self):
         result = self.run_script("--to", "0.2.0")

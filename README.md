@@ -128,7 +128,7 @@ A copy shares no history with groundwork and does not receive later changes. To 
    python3 .github/scripts/update_groundwork.py <issue-number> [--to X.Y.Z]
    ```
 
-   It reads `.groundwork-version`, fetches the tags of groundwork under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request.
+   It reads `.groundwork-version`, fetches the tags of groundwork under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request. A project whose copy of groundwork predates the script takes `.github/scripts/update_groundwork.py` from the release it moves to.
 
    It ends with status 0 when the project is updated or already up to date, 1 on an error, and 2 when files are in conflict. It names them and leaves markers in them for you to resolve.
 3. Commit the result like any other change, through the issue and a pull request.
