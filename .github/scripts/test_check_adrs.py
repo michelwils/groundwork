@@ -88,6 +88,22 @@ class Adrs(unittest.TestCase):
         self.put("0001-a.md", adr("0001").replace("**Status:** accepted\n", ""))
         self.only("**Status:**")
 
+    def test_the_status_must_be_given_once(self):
+        self.put("0001-a.md", adr("0001").replace("## Context", "**Status:** accepted\n\n## Context"))
+        self.only("more than once")
+
+    def test_a_status_in_a_code_block_is_not_the_status(self):
+        content = adr("0001") + "\n```\n**Status:** maybe\n```\n"
+        self.put("0001-a.md", content)
+        self.assertEqual(self.problems(), [])
+        self.put("0001-a.md", adr("0001").replace("**Status:** accepted\n", "```\n**Status:** accepted\n```\n"))
+        self.only("**Status:**")
+
+    def test_files_with_windows_line_endings_are_understood(self):
+        with open(os.path.join(self.root, "docs", "adr", "0001-a.md"), "w", newline="") as handle:
+            handle.write(adr("0001").replace("\n", "\r\n"))
+        self.assertEqual(self.problems(), [])
+
     def test_a_superseding_adr_must_exist_and_be_more_recent(self):
         self.put("0001-a.md", adr("0001", status="superseded by [0009](0009-x.md)"))
         self.only("0009")

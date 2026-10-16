@@ -35,9 +35,9 @@ def read(path):
         return handle.read().split("\n")
 
 
-def sections(lines):
-    """Return the (name, line, empty) of the level 2 headings that are not in a code block."""
-    found, fence = [], None
+def outside_code(lines):
+    """Return the (number, line) of the lines that are not in a code block, nor its fences."""
+    kept, fence = [], None
     for number, line in enumerate(lines, start=1):
         opening = FENCE.match(line)
         if fence:
@@ -45,7 +45,16 @@ def sections(lines):
                 fence = None
         elif opening:
             fence = opening.group(1)
-        elif line.startswith("## "):
+        else:
+            kept.append((number, line.rstrip("\r")))
+    return kept
+
+
+def sections(lines):
+    """Return the (name, line, empty) of the level 2 headings that are not in a code block."""
+    found = []
+    for number, line in outside_code(lines):
+        if line.startswith("## "):
             found.append([line[3:].strip(), number, True])
         elif found and line.strip():
             found[-1][2] = False
@@ -72,11 +81,13 @@ def check_adr(name, number, lines, numbers, problems):
     title = TITLE.match(lines[0]) if lines else None
     if not title or int(title.group(1)) != number:
         problems.append(f"{name}:1: the title must be '# {number:04d}. …', with the number of the file")
-    status = next(((index, STATUS.match(line)) for index, line in enumerate(lines, 1) if STATUS.match(line)), None)
-    if not status:
+    statuses = [(index, STATUS.match(line)) for index, line in outside_code(lines) if STATUS.match(line)]
+    if not statuses:
         problems.append(f"{name}:1: the line '**Status:**' is missing")
+    elif len(statuses) > 1:
+        problems.append(f"{name}:{statuses[1][0]}: the line '**Status:**' is given more than once")
     else:
-        index, match = status
+        index, match = statuses[0]
         value = match.group(1).strip()
         superseded = SUPERSEDED.match(value)
         if value in STATUSES:
