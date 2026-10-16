@@ -96,6 +96,16 @@ class Links(unittest.TestCase):
         (problem,) = self.problems()
         self.assertIn("README.md:3", problem)
 
+    def test_a_file_that_is_not_valid_utf8_does_not_stop_the_check(self):
+        with open(os.path.join(self.root, "README.md"), "wb") as handle:
+            handle.write(b"\xff\xfe bad\n\n[a](missing.md)\n")
+        (problem,) = self.problems()
+        self.assertIn("README.md:3", problem)
+
+    def test_a_byte_order_mark_does_not_hide_the_first_heading(self):
+        self.make({"README.md": "\ufeff# Title\n\n[a](#title)\n"})
+        self.assertEqual(self.problems(), [])
+
     def test_a_footnote_is_not_a_reference_definition(self):
         self.make({"README.md": "Text[^1]\n\n[^1]: A note with words.\n"})
         self.assertEqual(self.problems(), [])

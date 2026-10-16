@@ -93,7 +93,7 @@ def check(root):
 
     def text_of(path):
         if path not in texts:
-            with open(path, encoding="utf-8") as handle:
+            with open(path, encoding="utf-8-sig", errors="replace") as handle:
                 texts[path] = without_blocks(handle.read())
         return texts[path]
 
