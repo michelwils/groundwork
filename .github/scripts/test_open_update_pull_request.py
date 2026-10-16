@@ -24,7 +24,8 @@ args = sys.argv[1:]
 with open(os.environ["FAKE_LOG"], "a") as log:
     log.write(json.dumps(args) + "\\n")
 if args[:2] == ["pr", "list"]:
-    print(os.environ.get("FAKE_PULL_REQUESTS", "[]"))
+    state = args[args.index("--state") + 1]
+    print(os.environ.get("FAKE_PULL_REQUESTS" if state == "open" else "FAKE_CLOSED_PULL_REQUESTS", "[]"))
 elif args[:2] == ["pr", "create"]:
     print("https://github.com/owner/project/pull/1")
 """
@@ -82,12 +83,13 @@ class OpenUpdatePullRequest(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_script(self, pull_requests="[]"):
+    def run_script(self, pull_requests="[]", closed="[]"):
         env = {
             **os.environ,
             "PATH": self.bin + os.pathsep + os.environ["PATH"],
             "FAKE_LOG": self.log,
             "FAKE_PULL_REQUESTS": pull_requests,
+            "FAKE_CLOSED_PULL_REQUESTS": closed,
         }
         return subprocess.run(
             [sys.executable, SCRIPT, "--source", self.source], cwd=self.project, capture_output=True, text=True, env=env
@@ -164,8 +166,35 @@ class OpenUpdatePullRequest(unittest.TestCase):
 
     def test_looks_for_an_open_update_among_all_the_open_pull_requests(self):
         self.run_script()
-        (call,) = [call for call in self.gh_calls() if call[:2] == ["pr", "list"]]
-        self.assertGreaterEqual(int(self.value(call, "--limit")), 1000)
+        calls = [call for call in self.gh_calls() if call[:2] == ["pr", "list"]]
+        self.assertEqual({self.value(call, "--state") for call in calls}, {"open", "closed"})
+        for call in calls:
+            self.assertGreaterEqual(int(self.value(call, "--limit")), 1000)
+
+    def test_does_not_propose_again_a_version_whose_pull_request_was_closed_without_a_merge(self):
+        result = self.run_script(closed='[{"headRefName": "groundwork/update-to-v0-2-0", "mergedAt": null}]')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("closed without being merged", result.stdout)
+        self.assertEqual(self.created(), [])
+        self.assertEqual(self.remote_branches(), ["main"])
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), "main")
+        self.assertEqual(git(self.project, "branch", "--format=%(refname:short)").split(), ["main"])
+        self.assertEqual(git(self.project, "status", "--porcelain").strip(), "")
+
+    def test_goes_back_to_a_detached_commit_when_the_version_was_rejected(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        git(self.project, "switch", "-q", "--detach")
+        self.run_script(closed='[{"headRefName": "groundwork/update-to-v0-2-0", "mergedAt": null}]')
+        self.assertEqual(git(self.project, "rev-parse", "HEAD").strip(), head)
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), "")
+
+    def test_a_version_rejected_earlier_does_not_prevent_a_later_one(self):
+        self.run_script(closed='[{"headRefName": "groundwork/update-to-v0-1-5", "mergedAt": null}]')
+        self.assertEqual(len(self.created()), 1)
+
+    def test_a_merged_pull_request_does_not_count_as_rejected(self):
+        self.run_script(closed='[{"headRefName": "groundwork/update-to-v0-2-0", "mergedAt": "2026-10-16T00:00:00Z"}]')
+        self.assertEqual(len(self.created()), 1)
 
     def test_does_nothing_in_a_project_without_the_version_file(self):
         os.remove(os.path.join(self.project, ".groundwork-version"))

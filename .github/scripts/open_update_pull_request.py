@@ -7,8 +7,9 @@ has no issue, like those of Dependabot. When files are in conflict, it is a draf
 and the markers stay in the files for a maintainer to resolve.
 
 It opens nothing when the project is up to date, when a pull request from a branch `groundwork/…`
-is already open, or when the project has no `.groundwork-version`. The branch of an earlier run that
-has no pull request is replaced.
+is already open, when the pull request of that version was closed without being merged, or when the
+project has no `.groundwork-version`. A later version is proposed again. The branch of an earlier
+run that has no pull request is replaced.
 
 Usage: open_update_pull_request.py [--source URL]
 """
@@ -41,9 +42,25 @@ def run(*command):
     return result.stdout
 
 
+def pull_requests(state):
+    return json.loads(run("gh", "pr", "list", "--state", state, "--limit", "1000", "--json", "headRefName,mergedAt"))
+
+
 def open_update_exists():
-    pulls = json.loads(run("gh", "pr", "list", "--state", "open", "--limit", "1000", "--json", "headRefName"))
-    return any(pull["headRefName"].startswith(PREFIX) for pull in pulls)
+    return any(pull["headRefName"].startswith(PREFIX) for pull in pull_requests("open"))
+
+
+def rejected(branch):
+    """Return True when a pull request from the branch was closed without being merged."""
+    return any(pull["headRefName"] == branch and not pull["mergedAt"] for pull in pull_requests("closed"))
+
+
+def undo(branch, current, commit):
+    """Leave the project as it was before the update script prepared the branch: on its branch, or detached."""
+    run("git", "reset", "--hard", "-q")
+    run("git", "clean", "-fdq")
+    run("git", "switch", "-q", *([current] if current else ["--detach", commit]))
+    run("git", "branch", "-q", "-D", branch)
 
 
 def body(old, new, conflicts, source):
@@ -67,6 +84,8 @@ def main():
         print(f"An update pull request from a branch {PREFIX}… is already open.")
         return 0
 
+    current = run("git", "branch", "--show-current").strip()
+    commit = run("git", "rev-parse", "HEAD").strip()
     command = [sys.executable, UPDATE] + (["--source", args.source] if args.source else [])
     update = subprocess.run(command, capture_output=True, text=True)
     sys.stdout.write(update.stdout)
@@ -79,6 +98,10 @@ def main():
     conflicts = re.findall(r"^- (.+)$", update.stdout, re.MULTILINE) if update.returncode == 2 else []
 
     branch, old, new = fields["branch"], fields["from"], fields["to"]
+    if rejected(branch):
+        undo(branch, current, commit)
+        print(f"The pull request of groundwork {new} was closed without being merged: not proposed again.")
+        return 0
     title = f"chore: update groundwork to v{new}"
     run("git", "add", "-A")
     run("git", *IDENTITY, "commit", "-q", "-m", title)

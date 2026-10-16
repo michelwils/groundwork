@@ -122,7 +122,7 @@ A copy shares no history with groundwork and does not receive later changes. To 
 
 The [`update-groundwork` workflow](.github/workflows/update-groundwork.yml) does this every week, and when started by hand. It runs [`.github/scripts/open_update_pull_request.py`](.github/scripts/open_update_pull_request.py), which runs the script above without an issue, commits the result on the branch `groundwork/update-to-v<X-Y-Z>`, pushes it and opens the pull request `chore: update groundwork to v<X.Y.Z>`. Like those of Dependabot, that pull request has no issue ([ADR 0003](docs/adr/0003-change-workflow.md)), and the check of the branch name and closing line skips the prefix `groundwork/`.
 
-- It opens nothing when the project is up to date, or when a pull request from a branch `groundwork/…` is already open.
+- It opens nothing when the project is up to date, when a pull request from a branch `groundwork/…` is already open, or when the pull request of that version was closed without being merged. Close the pull request to skip a version: a later version is proposed again.
 - When files are in conflict, the pull request is a draft that lists them, with the markers left in the files. Resolve them, then mark it ready.
 - It does nothing where there is no `.groundwork-version`, such as in groundwork itself.
 - It needs the secret `GROUNDWORK_UPDATE_TOKEN`: a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) limited to the repository, with write access to contents, pull requests and workflows. The token of a workflow cannot push changes to workflow files, and does not start the checks of the pull request without an approval. Create the secret once, and renew the token before it expires:
