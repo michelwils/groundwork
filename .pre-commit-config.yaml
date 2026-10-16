@@ -35,9 +35,10 @@ repos:
         args: [--multiline, --negate]
         stages: [commit-msg]
 
-      # ADR 0007: no link to, and no identifier of, an agent session.
+      # ADR 0007: no link to, and no identifier of, an agent session. It lists the
+      # session trailers and the session links of the known agents.
       - id: no-agent-session
         name: Reject references to agent sessions (ADR 0007)
         language: pygrep
-        entry: '(?i)(^claude-session:|https?://\S*/(code/)?session[_/]\S+|\bsession_[a-z0-9]{16,})'
+        entry: '(?i)(^[a-z]+-session:|https?://(www\.)?(claude\.ai/(code/)?(session|chat|share)|(chatgpt\.com|chat\.openai\.com)/(c|share)/)|\bsession_[a-z0-9]{16,})'
         stages: [commit-msg]
