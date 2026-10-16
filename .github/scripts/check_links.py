@@ -25,7 +25,7 @@ FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 CODE_SPAN = re.compile(r"(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.DOTALL)
 INLINE = re.compile(r"\]\(\s*(<[^<>\n]*>|[^()\s]*(?:\([^()\s]*\)[^()\s]*)*)")
-REFERENCE = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(<[^<>\n]*>|\S+)", re.MULTILINE)
+REFERENCE = re.compile(r"^ {0,3}\[(?!\^)[^\]\n]+\]:[ \t]*(<[^<>\n]*>|\S+)", re.MULTILINE)
 HEADING = re.compile(
     r"^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*$"  # underlined: a line of text, then = or - signs
     r"|^ {0,3}([^\s#>\-*+=`~|][^\n]*)\n {0,3}(?:=+|-+)[ \t]*$",

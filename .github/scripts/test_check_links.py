@@ -96,6 +96,10 @@ class Links(unittest.TestCase):
         (problem,) = self.problems()
         self.assertIn("README.md:3", problem)
 
+    def test_a_footnote_is_not_a_reference_definition(self):
+        self.make({"README.md": "Text[^1]\n\n[^1]: A note with words.\n"})
+        self.assertEqual(self.problems(), [])
+
     def test_a_target_in_angle_brackets_and_a_title_are_understood(self):
         self.make({"README.md": '[a](<docs/a b.md> "title") [b](docs/b.md \'t\')\n', "docs/a b.md": "# A\n", "docs/b.md": "# B\n"})
         self.assertEqual(self.problems(), [])
