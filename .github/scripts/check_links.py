@@ -2,7 +2,7 @@
 """Check the relative links and the anchors of the Markdown files (ADR 0008).
 
 Every inline link, image and reference definition that points to a file of the repository must
-find that file, and its `#anchor` must be a heading, or an `<a id>` or `<a name>`, of the target
+find that file, and its `#anchor` must be a heading, or an `id` or `name` of an HTML element, of the target
 Markdown file, written with `#` or underlined. Anchors follow the rules of GitHub: the heading
 in lowercase, without punctuation, with hyphens for spaces, and `-1`, `-2` for a heading that
 repeats. External links (`http:`,
@@ -31,7 +31,7 @@ HEADING = re.compile(
     r"|^ {0,3}([^\s#>\-*+=`~|][^\n]*)\n {0,3}(?:=+|-+)[ \t]*$",
     re.MULTILINE,
 )
-EXPLICIT = re.compile(r"<a\s[^>]*?\b(?:name|id)=[\"']([^\"']+)[\"']", re.IGNORECASE)
+EXPLICIT = re.compile(r"<[a-z][a-z0-9]*\s[^>]*?\b(?:name|id)=[\"']([^\"']+)[\"']", re.IGNORECASE)
 EXTERNAL = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.\-]*:|//)")
 LINE_ANCHOR = re.compile(r"^L\d+(?:C\d+)?(?:-L\d+(?:C\d+)?)?$")
 

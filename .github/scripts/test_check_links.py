@@ -91,6 +91,11 @@ class Links(unittest.TestCase):
         self.make({"README.md": '<a id="top"></a>\n\n[a](#top)\n'})
         self.assertEqual(self.problems(), [])
 
+    def test_an_id_on_any_html_element_is_an_anchor(self):
+        self.make({"README.md": '<h2 id="top">Top</h2>\n<div class="x" id="box"></div>\n\n[a](#top) [b](#box) [c](#nope)\n'})
+        (problem,) = self.problems()
+        self.assertIn("#nope", problem)
+
     def test_a_reference_definition_is_checked(self):
         self.make({"README.md": "[guide][g]\n\n[g]: docs/missing.md\n"})
         (problem,) = self.problems()
