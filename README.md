@@ -22,6 +22,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py)
 - A security policy, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
+- A script that applies the repository settings, in [`.github/scripts/apply_settings.py`](.github/scripts/apply_settings.py)
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
 
 ## What it does not cover
@@ -80,42 +81,23 @@ The [`checks` workflow](.github/workflows/checks.yml) runs that command on every
 groundwork is a GitHub template repository.
 
 1. **Create the repository.** On this page, choose "Use this template".
-2. **Configure it.** A template copies files, not repository settings. [ADR 0003](docs/adr/0003-change-workflow.md) relies on squash as the only merge method, with the pull request title as the commit title and an empty message, and on the automatic deletion of branches after a merge:
+2. **Configure it.** A template copies files, not repository settings. Clone the repository, then run the script from it, logged in with `gh` and with admin rights on the repository:
 
    ```sh
-   gh repo edit --enable-squash-merge --enable-merge-commit=false \
-     --enable-rebase-merge=false --delete-branch-on-merge
-   gh api -X PATCH repos/<owner>/<repo> \
-     -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=BLANK
+   python3 .github/scripts/apply_settings.py [<owner>/<repo>] [--dry-run]
    ```
 
-   Enable private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on:
+   It applies what [ADR 0003](docs/adr/0003-change-workflow.md) relies on: squash as the only merge method, with the pull request title as the commit title and an empty message, and the automatic deletion of branches after a merge. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. Last, it protects the default branch with the ruleset of this repository, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
 
-   ```sh
-   gh api -X PUT repos/<owner>/<repo>/private-vulnerability-reporting
-   ```
-
-3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
-4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered from `1000`, since the numbers below are reserved for groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
-5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
-6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, and the indentation rules of its languages to `.editorconfig`. Add the ecosystems of its stack to `.github/dependabot.yml`.
-7. **Create** the first milestone, then the first issue.
-8. **Record** the version of groundwork the project started from: create `.groundwork-version` at the root of the project, with one line `X.Y.Z` holding the latest release without the leading `v`, for example `0.2.0`. The update script reads it.
-9. **Protect** the default branch with the ruleset of this repository, once the steps above are done, since it rejects direct pushes and requires the `checks` job of the CI:
-
-   ```sh
-   gh api repos/<owner>/<repo>/rulesets --input .github/rulesets/main.json
-   ```
-
-   If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, and changes the `context` of the ruleset.
-
-   Make published releases immutable too, so that the tag of a release cannot be moved. It applies to the releases published afterwards:
-
-   ```sh
-   gh api -X PUT repos/<owner>/<repo>/immutable-releases
-   ```
-
-10. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
+   If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, changes the `context` of [`.github/rulesets/main.json`](.github/rulesets/main.json) and runs the script again.
+3. **Create** the first milestone, then the first issue, which adapts the template to the project.
+4. **Adapt it** on a branch, in a pull request that closes that issue, since the default branch now rejects direct pushes:
+   - **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
+   - **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered from `1000`, since the numbers below are reserved for groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
+   - **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
+   - **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, and the indentation rules of its languages to `.editorconfig`. Add the ecosystems of its stack to `.github/dependabot.yml`.
+   - **Record** the version of groundwork the project started from: create `.groundwork-version` at the root of the project, with one line `X.Y.Z` holding the latest release without the leading `v`, for example `0.2.0`. The update script reads it.
+5. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
 
 ### Moving to a later version
 
