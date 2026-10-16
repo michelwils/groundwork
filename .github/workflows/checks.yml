@@ -30,7 +30,7 @@ jobs:
       - name: Run every check
         run: pre-commit run --all-files --hook-stage manual
 
-      - name: Test the release script
+      - name: Test the scripts
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
 
       - name: Check the pull request title
@@ -40,3 +40,11 @@ jobs:
         run: |
           printf '%s\n' "$PR_TITLE" > "$RUNNER_TEMP/title.txt"
           pre-commit run commit-title --hook-stage commit-msg --commit-msg-filename "$RUNNER_TEMP/title.txt"
+
+      - name: Check the branch name and the closing line of the pull request
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BRANCH: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: python3 .github/scripts/check_pull_request.py "$BRANCH" "$BASE" "$BODY"
