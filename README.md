@@ -19,6 +19,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Issue and pull request templates and a review checklist
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, in [`.github/dependabot.yml`](.github/dependabot.yml)
+- A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py)
 - A security policy, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
@@ -39,6 +40,7 @@ groundwork follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html), a
 
 - the rules in the Decision section of accepted ADRs
 - the files groundwork provides for projects to use, such as hooks, workflows and templates: their names, locations and behaviour
+- the file `.groundwork-version` that a project keeps, and which the update script reads: its name and its format
 
 The README, the Context and Consequences sections of ADRs, and wording that does not change a rule are not part of it.
 
@@ -98,7 +100,7 @@ groundwork is a GitHub template repository.
 5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
 6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, and the indentation rules of its languages to `.editorconfig`. Add the ecosystems of its stack to `.github/dependabot.yml`.
 7. **Create** the first milestone, then the first issue.
-8. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
+8. **Record** the version of groundwork the project started from: create `.groundwork-version` at the root of the project, with one line `X.Y.Z` holding the latest release without the leading `v`, for example `0.2.0`. The update script reads it.
 9. **Protect** the default branch with the ruleset of this repository, once the steps above are done, since it rejects direct pushes and requires the `checks` job of the CI:
 
    ```sh
@@ -117,18 +119,19 @@ groundwork is a GitHub template repository.
 
 ### Moving to a later version
 
-A copy shares no history with groundwork and does not receive later changes. To move from `v0.1.0` to a later version:
+A copy shares no history with groundwork and does not receive later changes. To move to a later version:
 
 1. Read the [release notes](https://github.com/michelwils/groundwork/releases) of the versions in between. A minor version adds a rule or a file without breaking anything. A major version requires the project to change something, which its `BREAKING CHANGE:` notes describe.
-2. Fetch the tags of groundwork under their own prefix, so that they do not collide with the tags of the project, and apply the difference between the two versions. Leave out the files that concern groundwork itself, such as its README, and resolve the conflicts on the files the project has changed:
+2. Open an issue for the update, then run the script from a clean working tree, with the number of that issue:
 
    ```sh
-   git remote add groundwork https://github.com/michelwils/groundwork.git
-   git fetch groundwork 'refs/tags/*:refs/tags/groundwork/*'
-   git diff groundwork/v0.1.0 groundwork/v0.2.0 -- . ':!README.md' | git apply --3way
+   python3 .github/scripts/update_groundwork.py <issue-number> [--to X.Y.Z]
    ```
 
-3. Commit the result like any other change, through an issue and a pull request, and update the recorded version.
+   It reads `.groundwork-version`, fetches the tags of groundwork under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request. A project whose copy of groundwork predates the script takes `.github/scripts/update_groundwork.py` from the release it moves to.
+
+   It ends with status 0 when the project is updated or already up to date, 1 on an error, and 2 when files are in conflict. It names them and leaves markers in them for you to resolve.
+3. Commit the result like any other change, through the issue and a pull request.
 
 ## Contributing
 
