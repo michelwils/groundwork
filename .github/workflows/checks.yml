@@ -1,0 +1,39 @@
+name: checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PRE_COMMIT_VERSION: 4.7.0
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install pre-commit
+        run: pipx install "pre-commit==${PRE_COMMIT_VERSION}"
+
+      - name: Run every check
+        run: pre-commit run --all-files --hook-stage manual
+
+      - name: Check the pull request title
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" > "$RUNNER_TEMP/title.txt"
+          pre-commit run commit-title --hook-stage commit-msg --commit-msg-filename "$RUNNER_TEMP/title.txt"

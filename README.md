@@ -53,7 +53,7 @@ While groundwork is at `0.y.z`, a breaking change or a `feat` increments the min
 
 ## Checks
 
-Checks run before each commit, as described in [ADR 0008](docs/adr/0008-automated-checks.md). They are defined in [`.pre-commit-config.yaml`](.pre-commit-config.yaml) and use the [pre-commit](https://pre-commit.com) framework:
+Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/0008-automated-checks.md). They are defined in [`.pre-commit-config.yaml`](.pre-commit-config.yaml) and use the [pre-commit](https://pre-commit.com) framework:
 
 - the commit title follows [ADR 0002](docs/adr/0002-conventional-commits.md)
 - the commit message refers to no agent session ([ADR 0007](docs/adr/0007-ai-assisted-changes.md))
@@ -61,6 +61,8 @@ Checks run before each commit, as described in [ADR 0008](docs/adr/0008-automate
 - Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
+
+The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`, and checks that the title of the pull request follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title.
 
 ## Adopting groundwork
 
