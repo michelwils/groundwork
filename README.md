@@ -17,6 +17,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Rules for changes made with AI coding agents
 - Test-first development
 - Issue and pull request templates and a review checklist
+- Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
 
 ## What it does not cover
@@ -63,6 +64,7 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 - the commit message refers to no agent session ([ADR 0007](docs/adr/0007-ai-assisted-changes.md))
 - no secret is committed, detected by [gitleaks](https://github.com/gitleaks/gitleaks) in the staged changes before a commit and in the whole history on demand
 - Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)
+- files follow the settings of [`.editorconfig`](.editorconfig), checked by [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker), for which pre-commit downloads Go if it is not installed
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
 
@@ -85,7 +87,7 @@ groundwork is a GitHub template repository.
 3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
 4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered after them. Keep `CONTRIBUTING.md` and adjust it to the project.
 5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
-6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`.
+6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, and the indentation rules of its languages to `.editorconfig`.
 7. **Create** the first milestone, then the first issue.
 8. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
 9. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
