@@ -123,6 +123,12 @@ class Adrs(unittest.TestCase):
         self.put("0001_Bad Name.md", adr("0001"))
         self.only("0001_Bad Name.md")
 
+    def test_files_that_are_not_markdown_are_ignored(self):
+        for name in (".DS_Store", "0001-diagram.png", "0001-a.md~", ".0001-a.md.swp"):
+            self.put(name, "binary")
+        os.makedirs(os.path.join(self.root, "docs", "adr", "images"))
+        self.assertEqual(self.problems(), [])
+
     def test_the_title_must_carry_the_number_of_the_file(self):
         self.put("0001-a.md", adr("0002"))
         self.only("0001-a.md:1")
@@ -141,6 +147,10 @@ class Adrs(unittest.TestCase):
     def test_the_sections_must_come_in_the_order_of_the_template(self):
         self.put("0001-a.md", adr("0001", sections=("Decision", "Context", "Consequences")))
         self.only("order")
+
+    def test_a_section_title_may_have_a_closing_sequence_of_hashes(self):
+        self.put("0001-a.md", adr("0001").replace("## Context", "## Context ##"))
+        self.assertEqual(self.problems(), [])
 
     def test_a_section_must_not_be_repeated(self):
         self.put("0001-a.md", adr("0001", sections=("Context", "Decision", "Decision", "Consequences")))

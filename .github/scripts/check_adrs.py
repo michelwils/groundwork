@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that the ADRs follow their template and their numbering (ADR 0001).
 
-Every file of docs/adr/ except template.md is named `NNNN-title-in-kebab-case.md`. It starts with
+Every Markdown file of docs/adr/ except template.md is named `NNNN-title-in-kebab-case.md`. It starts with
 `# NNNN. Title`, with the number of its name, and has a line `**Status:**` with `proposed`,
 `accepted`, `rejected` or `superseded by NNNN`, which refers to a more recent ADR that exists,
 alone or as the link of the template. It has the sections Context, Decision and Consequences, each
@@ -55,7 +55,7 @@ def sections(lines):
     found = []
     for number, line in outside_code(lines):
         if line.startswith("## "):
-            found.append([line[3:].strip(), number, True])
+            found.append([re.sub(r"[ \t]+#+$", "", line[3:].strip()), number, True])
         elif found and line.strip():
             found[-1][2] = False
     return found
@@ -127,7 +127,7 @@ def check(root):
     problems, files = [], {}
     for name in sorted(os.listdir(directory)):
         path = os.path.join(directory, name)
-        if os.path.isdir(path):
+        if os.path.isdir(path) or not name.endswith(".md"):
             continue
         relative = f"{DIRECTORY}/{name}".replace(os.sep, "/")
         match = NAME.match(name)

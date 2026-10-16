@@ -39,8 +39,6 @@ repos:
 
   - repo: local
     hooks:
-      # ADR 0008: the relative links and the anchors of the Markdown files resolve. It checks
-      # all the files, since a link breaks when the file it points to is renamed.
       # ADR 0001: the ADRs have the sections, the status and the numbering of the template.
       - id: adrs
         name: Check the ADRs (ADR 0001)
@@ -50,6 +48,8 @@ repos:
         always_run: true
         stages: [pre-commit, manual]
 
+      # ADR 0008: the relative links and the anchors of the Markdown files resolve. It checks
+      # all the files, since a link breaks when the file it points to is renamed.
       - id: markdown-links
         name: Check the links of the Markdown files
         language: python
