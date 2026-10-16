@@ -20,6 +20,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, in [`.github/dependabot.yml`](.github/dependabot.yml)
 - A security policy, in [`SECURITY.md`](SECURITY.md)
+- Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
 
 ## What it does not cover
@@ -91,6 +92,14 @@ groundwork is a GitHub template repository.
    ```sh
    gh api -X PUT repos/<owner>/<repo>/private-vulnerability-reporting
    ```
+
+   Protect the default branch with the ruleset of this repository, which requires the `checks` job of the CI:
+
+   ```sh
+   gh api repos/<owner>/<repo>/rulesets --input .github/rulesets/main.json
+   ```
+
+   If the project adds jobs to its CI, it requires one job that depends on all the others instead, since a skipped job counts as passed, and changes the `context` of the ruleset.
 
 3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
 4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered after them. Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
