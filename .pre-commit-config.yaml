@@ -1,4 +1,4 @@
-# Checks run before each commit and in CI (ADR 0008).
+# Checks run before each commit (ADR 0008).
 # Install the hooks once with: pre-commit install
 # Run every check on all files, and scan the whole history for secrets, with:
 #   pre-commit run --all-files --hook-stage manual
