@@ -25,4 +25,4 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 
 ## Project
 
-This repository contains documentation and configuration only: there is nothing to build or test.
+This repository contains documentation and configuration only: there is nothing to build or test. Run every check with `pre-commit run --all-files` before committing.

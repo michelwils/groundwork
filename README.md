@@ -51,6 +51,17 @@ Only the latest release is maintained.
 
 While groundwork is at `0.y.z`, a breaking change or a `feat` increments the minor version, and a `fix` or a `perf` increments the patch version. The first release is `v0.1.0`, and `v1.0.0` is tagged when the contract is considered stable enough to rely on.
 
+## Checks
+
+Checks run before each commit, as described in [ADR 0008](docs/adr/0008-automated-checks.md). They are defined in [`.pre-commit-config.yaml`](.pre-commit-config.yaml) and use the [pre-commit](https://pre-commit.com) framework:
+
+- the commit title follows [ADR 0002](docs/adr/0002-conventional-commits.md)
+- the commit message refers to no agent session ([ADR 0007](docs/adr/0007-ai-assisted-changes.md))
+- no secret is committed, detected by [gitleaks](https://github.com/gitleaks/gitleaks)
+- Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)
+
+Install the hooks once with `pre-commit install`, and run every check on all files with `pre-commit run --all-files`.
+
 ## Adopting groundwork
 
 groundwork is a GitHub template repository.
@@ -68,8 +79,9 @@ groundwork is a GitHub template repository.
 3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
 4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered after them. Keep `CONTRIBUTING.md` and adjust it to the project.
 5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
-6. **Create** the first milestone, then the first issue.
-7. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
+6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`.
+7. **Create** the first milestone, then the first issue.
+8. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
 
 ### Moving to a later version
 

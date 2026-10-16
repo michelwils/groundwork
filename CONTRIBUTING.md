@@ -70,6 +70,10 @@ chore(reset): add the password reset service
 feat(reset): enable password reset by email
 ```
 
+## Checks
+
+Checks run before each commit ([ADR 0008](docs/adr/0008-automated-checks.md)). Install the hooks once with `pre-commit install`, and run every check on all files with `pre-commit run --all-files`. A failing check is fixed, not skipped.
+
 ## AI-assisted changes
 
 A change made with a coding agent follows the same rules ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)). Its commits have a `Co-Authored-By` trailer naming the agent, and an issue or a pull request it writes ends with a line stating that it was generated. Nothing refers to the agent's session, and a maintainer approves every merge. The instructions given to agents are in [`AGENTS.md`](AGENTS.md).
