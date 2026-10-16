@@ -77,7 +77,11 @@ def run(args):
     if not REPOSITORY.match(repository):
         raise Failure(f"'{repository}' is not of the form OWNER/REPO")
     print(f"repository: {repository}")
-    for description, arguments in settings(repository):
+    try:
+        steps = settings(repository)
+    except Failure as failure:
+        raise Failure(f"could not read the rulesets of {repository}: {failure}. This needs admin rights on the repository.")
+    for description, arguments in steps:
         if args.dry_run:
             print(f"would apply {description}")
             continue

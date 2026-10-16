@@ -108,6 +108,14 @@ class ApplySettings(unittest.TestCase):
         self.assertFalse(any("immutable-releases" in " ".join(call) for call in self.calls()))
         self.assertFalse(any("rulesets" in " ".join(call) and "-X" in call for call in self.calls()))
 
+    def test_says_what_failed_when_the_rulesets_cannot_be_read(self):
+        result = self.run_script("owner/repo", fail="owner/repo/rulesets")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("owner/repo", result.stderr)
+        self.assertIn("rulesets", result.stderr)
+        self.assertIn("admin", result.stderr)
+        self.assertEqual(self.writes(), [])
+
     def test_dry_run_changes_nothing_and_shows_what_it_would_do(self):
         result = self.run_script("owner/repo", "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
