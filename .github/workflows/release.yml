@@ -1,0 +1,65 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, without the leading v. Leave empty to compute it.
+        required: false
+        type: string
+      publish:
+        description: Create the tag and the release. Unchecked, only show the version and the notes.
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          case "$GITHUB_REF_NAME" in
+            "$DEFAULT_BRANCH" | maintenance/v*) ;;
+            *) echo "A release is made from $DEFAULT_BRANCH or from a maintenance branch, not from $GITHUB_REF_NAME." >&2; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Compute the version and the notes
+        id: release
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python3 .github/scripts/release.py ${VERSION:+--version "$VERSION"} --notes "$RUNNER_TEMP/notes.md" | tee "$RUNNER_TEMP/summary.txt"
+          {
+            echo '```text'
+            cat "$RUNNER_TEMP/summary.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tag and publish the release
+        if: ${{ inputs.publish && steps.release.outputs.version != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
+          latest=true
+          if [ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]; then latest=false; fi
+          gh release create "v$VERSION" --verify-tag --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md" --latest="$latest"
