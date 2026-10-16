@@ -152,6 +152,10 @@ class Adrs(unittest.TestCase):
         self.put("0001-a.md", adr("0001").replace("## Context", "## Context ##"))
         self.assertEqual(self.problems(), [])
 
+    def test_a_section_that_holds_only_a_code_block_is_not_empty(self):
+        self.put("0001-a.md", adr("0001").replace("Text of Decision.\n", "```sh\nmake it\n```\n"))
+        self.assertEqual(self.problems(), [])
+
     def test_a_section_must_not_be_repeated(self):
         self.put("0001-a.md", adr("0001", sections=("Context", "Decision", "Decision", "Consequences")))
         self.only("Decision")

@@ -51,14 +51,16 @@ def outside_code(lines):
 
 
 def sections(lines):
-    """Return the (name, line, empty) of the level 2 headings that are not in a code block."""
-    found = []
-    for number, line in outside_code(lines):
-        if line.startswith("## "):
-            found.append([re.sub(r"[ \t]+#+$", "", line[3:].strip()), number, True])
-        elif found and line.strip():
-            found[-1][2] = False
-    return found
+    """Return the (name, line, empty) of the level 2 headings that are not in a code block.
+
+    A section is empty when it has nothing but blank lines, a code block counting as content."""
+    headings = [
+        (re.sub(r"[ \t]+#+$", "", line[3:].strip()), number)
+        for number, line in outside_code(lines)
+        if line.startswith("## ")
+    ]
+    ends = [number - 1 for _, number in headings[1:]] + [len(lines)]
+    return [(name, number, not any(line.strip() for line in lines[number:end])) for (name, number), end in zip(headings, ends)]
 
 
 def check_sections(name, lines, problems):
