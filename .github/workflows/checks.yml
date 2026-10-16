@@ -40,8 +40,9 @@ jobs:
         run: |
           "$RUNNER_TEMP/scripts/bin/python" -m unittest discover -s .github/scripts -p 'test_*.py'
 
+      # Dependabot starts the title of its pull requests with a capital letter (ADR 0003).
       - name: Check the pull request title
-        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && !startsWith(github.head_ref, 'dependabot/') }}
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
