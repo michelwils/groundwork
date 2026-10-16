@@ -47,6 +47,7 @@ repos:
         entry: python .github/scripts/check_links.py
         pass_filenames: false
         always_run: true
+        stages: [pre-commit, manual]
 
       # ADR 0002: <type>[(scope)][!]: <description>, with a single lowercase word
       # as scope, a description that starts with a lowercase letter and no final period.
