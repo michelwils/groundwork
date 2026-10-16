@@ -60,7 +60,7 @@ Checks run before each commit, as described in [ADR 0008](docs/adr/0008-automate
 - no secret is committed, detected by [gitleaks](https://github.com/gitleaks/gitleaks) in the staged changes before a commit and in the whole history on demand
 - Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)
 
-Install the hooks once with `pre-commit install`, and run every check on all files, and scan the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
+Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
 
 ## Adopting groundwork
 
