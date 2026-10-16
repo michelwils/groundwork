@@ -1,6 +1,6 @@
 # Checks run before each commit and in CI (ADR 0008).
 # Install the hooks once with: pre-commit install
-# Run every check on all files, as the CI does, with:
+# Run every check on all files, and scan the whole history for secrets, with:
 #   pre-commit run --all-files --hook-stage manual
 minimum_pre_commit_version: '3.2.0'
 default_install_hook_types: [pre-commit, commit-msg]
@@ -12,7 +12,7 @@ repos:
       # Scans the staged changes before a commit.
       - id: gitleaks
         stages: [pre-commit]
-      # Scans the whole history, in CI and on demand (see the command above).
+      # Scans the whole history, on demand (see the command above).
       - id: gitleaks
         alias: gitleaks-history
         name: Detect hardcoded secrets in the history

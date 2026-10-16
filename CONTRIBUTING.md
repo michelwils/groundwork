@@ -72,7 +72,7 @@ feat(reset): enable password reset by email
 
 ## Checks
 
-Checks run before each commit ([ADR 0008](docs/adr/0008-automated-checks.md)). Install the hooks once with `pre-commit install`, and run every check on all files, as the CI does, with `pre-commit run --all-files --hook-stage manual`. A failing check is fixed, not skipped.
+Checks run before each commit ([ADR 0008](docs/adr/0008-automated-checks.md)). Install the hooks once with `pre-commit install`, and run every check on all files, and scan the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`. A failing check is fixed, not skipped.
 
 ## AI-assisted changes
 
