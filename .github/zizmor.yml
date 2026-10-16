@@ -1,0 +1,7 @@
+# Configuration of zizmor, which audits the workflows (ADR 0008).
+rules:
+  artipacked:
+    ignore:
+      # The release workflow pushes the tag with the credentials of the checkout, and it
+      # uploads no artifact, which is what the audit protects against.
+      - release.yml
