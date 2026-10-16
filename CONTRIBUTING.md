@@ -94,4 +94,9 @@ Significant decisions are recorded as ADRs, following the template in [`docs/adr
 
 ## Releases
 
-Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the type of a commit sets the increment. A release is made by hand: decide the version from the commits on `main` since the previous tag, tag `main` with `v<version>`, then publish a release for the tag whose notes list the changes since the previous release. A project that maintains an older major version fixes it on `main` first, then backports the fix to a `maintenance/v<major>` branch with a pull request and tags the release on that branch ([ADR 0006](docs/adr/0006-trunk-based-development.md)). The public contract is described in the [README](README.md#versioning).
+Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the type of a commit sets the increment. A release is made when the maintainers decide, with the [`release` workflow](.github/workflows/release.yml), started by hand from the Actions tab on `main`:
+
+1. Run it with `publish` unchecked and the version empty. It shows the version it computes and the release notes, and creates nothing.
+2. Run it again with `publish` checked. It creates the annotated tag `v<version>` and publishes the release.
+
+To release another version than the computed one, for example `1.0.0` or after a change that was undone without a `revert`, give it in `version`. A project that maintains an older major version fixes it on `main` first, then backports the fix to a `maintenance/v<major>` branch with a pull request and runs the workflow on that branch ([ADR 0006](docs/adr/0006-trunk-based-development.md)). The public contract is described in the [README](README.md#versioning).
