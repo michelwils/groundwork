@@ -27,4 +27,4 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 
 ## Project
 
-This repository contains documentation, configuration and the release script, with its tests. Run every check with `pre-commit run --all-files --hook-stage manual` and the tests with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'` before committing. The same checks and tests run in CI on every pull request.
+This repository contains documentation, configuration and the scripts, with their tests. Run every check with `pre-commit run --all-files --hook-stage manual` and the tests with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'` before committing. The same checks and tests run in CI on every pull request.
