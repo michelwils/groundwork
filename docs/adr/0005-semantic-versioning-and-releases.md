@@ -35,19 +35,19 @@ A `revert` that undoes released behaviour users rely on is marked as a breaking 
 
 **Tags.** A version is tagged `vMAJOR.MINOR.PATCH` with an annotated tag, on `main`, or on a maintenance branch for a fix to an older major version ([ADR 0006](0006-trunk-based-development.md)). Pre-release identifiers are not used.
 
-**Releases.** A release is made by hand, when the maintainers decide, not on every merge. Between releases, `main` carries no version. To make a release:
+**Releases.** A release is made when the maintainers decide, not on every merge. Between releases, `main` carries no version. The maintainers start a workflow that makes the release in three steps:
 
-1. Decide the version from the commits on `main`, or on the maintenance branch, since the previous tag. The version is incremented once, by the highest increment among those commits: ten `feat` commits and three `fix` commits give one minor increment. A commit that was undone before the release, together with the change that undid it, is ignored.
-2. Tag `main`, or the maintenance branch, with `v<version>`.
-3. Publish a release for the tag on the hosting platform. Its notes list the changes since the previous release, grouped by commit type, from the commit titles, without the changes that were undone before the release.
+1. It decides the version from the commits on `main`, or on the maintenance branch, since the previous tag. The version is incremented once, by the highest increment among those commits: ten `feat` commits and three `fix` commits give one minor increment. A change is undone when a later `revert` repeats its description in its title ([ADR 0002](0002-conventional-commits.md)), and it is then ignored together with that `revert`. The maintainers can give the version instead, for example to tag `1.0.0`. The workflow refuses a version that is not greater than the previous one, or whose tag already exists.
+2. It tags `main`, or the maintenance branch, with `v<version>`.
+3. It publishes a release for the tag on the hosting platform. Its notes list the changes since the previous release, grouped by commit type, from the commit titles, without the changes that were undone. A release made on a maintenance branch is not marked as the latest one.
 
-The release notes are the changelog. There is no changelog file.
+The workflow can run without publishing, to show the version and the notes. The release notes are the changelog. There is no changelog file.
 
 ## Consequences
 
 - A version number tells users whether they must act.
 - The commit title decides the version, so choosing the right type matters and is part of reviewing a pull request.
 - A project must state its public contract in its README. Until it does, the major and minor increments cannot be applied.
-- Releases are made by hand until they are automated, which is the subject of a later decision.
+- A release is started by hand and made by a workflow, so that the version follows the rules above. A change undone in another way than by a `revert`, such as by switching a feature off, is not recognised: the maintainers give the version.
 - A release is made from `main`, or from a maintenance branch for a fix to an older major version. How a fix is released while `main` holds unreleased changes is decided in [ADR 0006](0006-trunk-based-development.md).
 - The changelog depends on commit titles being accurate.

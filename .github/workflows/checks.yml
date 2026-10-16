@@ -30,6 +30,9 @@ jobs:
       - name: Run every check
         run: pre-commit run --all-files --hook-stage manual
 
+      - name: Test the release script
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+
       - name: Check the pull request title
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:

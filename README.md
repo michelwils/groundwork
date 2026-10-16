@@ -47,6 +47,8 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 
 A release increments the version once, by the highest increment among the changes since the previous release.
 
+A release is made by the [`release` workflow](.github/workflows/release.yml), which a maintainer starts by hand: it computes the version from the commit titles, tags it and publishes the release notes.
+
 Only the latest release is maintained.
 
 While groundwork is at `0.y.z`, a breaking change or a `feat` increments the minor version, and a `fix` or a `perf` increments the patch version. The first release is `v0.1.0`, and `v1.0.0` is tagged when the contract is considered stable enough to rely on.
@@ -84,6 +86,7 @@ groundwork is a GitHub template repository.
 6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`.
 7. **Create** the first milestone, then the first issue.
 8. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
+9. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
 
 ### Moving to a later version
 
