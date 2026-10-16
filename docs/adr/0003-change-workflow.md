@@ -19,7 +19,7 @@ We will make every change to the repository through an issue, a branch and a pul
   - It is merged by squash, so that `main` stays linear with one commit per issue. The pull request title, followed by the pull request number, becomes the commit title.
   - The branch is deleted after the merge.
 - **Backports:** a fix for a maintained older version follows these rules with the exceptions defined in [ADR 0006](0006-trunk-based-development.md): its branch is a second one for the issue, named as defined there, and its pull request targets a maintenance branch, refers to the issue instead of closing it, and has no checklist.
-- **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash is the only enabled merge method. It uses the pull request title as the commit title and an empty commit body. The platform appends the pull request number to the title, which links each commit on `main` to its pull request, and adds the co-author trailers of the squashed commits. Head branches are deleted automatically after the merge.
+- **Repository settings:** these rules rely on settings of the hosting platform, which a repository adopting this workflow must configure. Squash is the only enabled merge method. It uses the pull request title as the commit title and an empty commit body. The platform appends the pull request number to the title, which links each commit on `main` to its pull request, and adds the co-author trailers of the squashed commits. Head branches are deleted automatically after the merge. The default branch also has a ruleset: changes go through a pull request, the checks of the CI must pass before merging, forced pushes and deletion are blocked, history stays linear, and nobody bypasses it. It requires no approving review, since a project may have a single maintainer, and the approval of [ADR 0007](0007-ai-assisted-changes.md) is the merge itself.
 
 ## Consequences
 
@@ -29,4 +29,4 @@ We will make every change to the repository through an issue, a branch and a pul
 - A small change still needs an issue and a pull request, which is overhead for a one-line fix.
 - The size of an issue sets the size of the pull request, so issues must be kept small enough to review in one pass.
 - The commits on a branch are not kept on `main`. They remain visible in the pull request.
-- The merge settings live in the hosting platform, not in the repository, so each repository that adopts the workflow must configure them and nothing in the repository checks them.
+- The merge settings and the ruleset live in the hosting platform, not in the repository, even though a file of the repository describes the ruleset. Each repository that adopts the workflow must configure them, and nothing in the repository checks them.
