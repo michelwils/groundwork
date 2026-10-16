@@ -88,7 +88,7 @@ class Update(unittest.TestCase):
 
     def run_script(self, *args, issue="42"):
         return subprocess.run(
-            [sys.executable, SCRIPT, issue, "--source", self.source, *args],
+            [sys.executable, SCRIPT, *([issue] if issue else []), "--source", self.source, *args],
             cwd=self.project,
             capture_output=True,
             text=True,
@@ -134,6 +134,14 @@ class Update(unittest.TestCase):
         self.run_script()
         self.assertEqual(read(self.project, "README.md"), V1["README.md"])
         self.assertEqual(read(self.project, "LICENSE"), V1["LICENSE"])
+
+    def test_without_an_issue_the_branch_is_the_one_of_the_update_of_groundwork(self):
+        result = self.run_script(issue=None)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = git(self.project, "branch", "--show-current").strip()
+        self.assertEqual(branch, "groundwork/update-to-v0-3-0")
+        self.assertEqual(check_pull_request.check(branch, "main", ""), [])
+        self.assertEqual(read(self.project, ".groundwork-version"), "0.3.0\n")
 
     def test_does_not_commit_nor_leave_the_branch_of_the_project(self):
         head = git(self.project, "rev-parse", "main").strip()

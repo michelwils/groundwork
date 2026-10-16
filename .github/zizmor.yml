@@ -5,3 +5,6 @@ rules:
       # The release workflow pushes the tag with the credentials of the checkout, and it
       # uploads no artifact, which is what the audit protects against.
       - release.yml
+      # The update workflow pushes its branch with the credentials of the checkout, and it
+      # uploads no artifact either.
+      - update-groundwork.yml

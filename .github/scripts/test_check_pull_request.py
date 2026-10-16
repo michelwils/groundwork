@@ -39,6 +39,12 @@ class Accepted(unittest.TestCase):
     def test_dependency_update_bot_is_skipped(self):
         self.assertEqual(check(branch="dependabot/pre_commit/hooks-1a6e794268", body=""), [])
 
+    def test_groundwork_update_is_skipped(self):
+        self.assertEqual(check(branch="groundwork/update-to-v0-3-0", body=""), [])
+
+    def test_a_branch_that_only_looks_like_a_bot_branch_is_not_skipped(self):
+        self.assertNotEqual(check(branch="groundwork-update/v0-3-0", body=""), [])
+
     def test_direct_fix_on_a_maintenance_branch_closes_its_issue(self):
         self.assertEqual(check(branch="fix/12-handle-empty-input", base="maintenance/v1"), [])
 

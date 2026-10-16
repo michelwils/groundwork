@@ -8,7 +8,7 @@ A repository that records decisions and conventions needs its own changes to be 
 
 ## Decision
 
-We will make every change to the repository through an issue, a branch and a pull request. The only exceptions are the root commit and the pull requests that a bot opens to update dependencies: they have no issue and no checklist, they pass the same checks as other pull requests, and a maintainer approves each merge.
+We will make every change to the repository through an issue, a branch and a pull request. The only exceptions are the root commit and the pull requests that a bot opens to update dependencies, such as the pinned versions of the tools or the version of groundwork: they have no issue and no checklist, they pass the same checks as other pull requests, and a maintainer approves each merge.
 
 - **Issues:** one issue per change. The title names the outcome. The body gives the context, the deliverables, the acceptance criteria as a plain list, and what is out of scope. Each issue belongs to a milestone.
 - **Branches:** one branch per issue, created from `main` and named `<type>/<issue-number>-<issue-title-in-kebab-case>`, where `<type>` is a commit type defined in [ADR 0002](0002-conventional-commits.md), for example `docs/1-bootstrap-the-repository`.

@@ -3,8 +3,9 @@
 
 The branch is named <type>/<issue-number>-<slug>. The description has `Closes #<issue-number>`.
 A backport (base `maintenance/v<major>`, branch ending in `-v<major>`) has `Refs #<issue-number>`
-instead, and no `Closes`. Branches of Dependabot (`dependabot/…`) are skipped: a project that
-uses another dependency update bot adds its branch prefix to BOT_BRANCH.
+instead, and no `Closes`. Branches of Dependabot (`dependabot/…`) and of the update of groundwork
+(`groundwork/…`) are skipped: a project that uses another dependency update bot adds its branch
+prefix to BOT_BRANCHES.
 
 Usage: check_pull_request.py BRANCH BASE BODY
 """
@@ -17,12 +18,12 @@ BRANCH = re.compile(r"^(?:" + "|".join(TYPES) + r")/(?P<issue>[0-9]+)-[a-z0-9]+(
 MAINTENANCE = re.compile(r"^maintenance/v(?P<major>[0-9]+)$")
 CLOSES = re.compile(r"\bCloses #([0-9]+)\b")
 REFS = re.compile(r"\bRefs #([0-9]+)\b")
-BOT_BRANCH = "dependabot/"
+BOT_BRANCHES = ("dependabot/", "groundwork/")
 
 
 def check(branch, base, body):
     """Return the problems of the pull request, empty when it follows the rules."""
-    if branch.startswith(BOT_BRANCH):
+    if branch.startswith(BOT_BRANCHES):
         return []
     match = BRANCH.match(branch)
     if not match:
