@@ -22,10 +22,11 @@ We will write every commit message following [Conventional Commits 1.0.0](https:
 - **Body:** optional, explains why the change was made rather than what it does.
 - **Footers:** follow the git trailer format, for example `Refs #12` or `Co-Authored-By: …`.
 - **Breaking changes:** a change that is not backward compatible is marked with `!` before the colon and has a `BREAKING CHANGE:` footer that describes what breaks and how to migrate.
+- **Reverts:** the title of a `revert` repeats the description of the change it undoes, for example `revert: add password reset`, so that tools can recognise it. The default title that git or the hosting platform generates is replaced by it.
 
 ## Consequences
 
 - The history can be scanned by type and read by tools.
 - Every commit needs a type, which takes a moment to choose. A commit that fits two types is usually a sign it should be split.
 - What each type or a breaking change means for the version is defined in [ADR 0005](0005-semantic-versioning-and-releases.md).
-- Nothing enforces the format yet. Checking messages automatically is left to later tooling.
+- The format is checked automatically, as described in [ADR 0008](0008-automated-checks.md).

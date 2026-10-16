@@ -1,0 +1,2 @@
+# Markdown rules (ADR 0008). Paragraphs are written on one line, so line length is not checked.
+MD013: false

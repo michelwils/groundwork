@@ -1,0 +1,44 @@
+# Checks run before each commit (ADR 0008).
+# Install the hooks once with: pre-commit install
+# Run every check on all files, including a scan of the whole history for secrets, with:
+#   pre-commit run --all-files --hook-stage manual
+minimum_pre_commit_version: '3.2.0'
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      # Scans the staged changes before a commit.
+      - id: gitleaks
+        stages: [pre-commit]
+      # Scans the whole history, on demand (see the command above).
+      - id: gitleaks
+        alias: gitleaks-history
+        name: Detect hardcoded secrets in the history
+        entry: gitleaks git --redact --verbose
+        stages: [manual]
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.49.1
+    hooks:
+      - id: markdownlint
+
+  - repo: local
+    hooks:
+      # ADR 0002: <type>[(scope)][!]: <description>, with a single lowercase word
+      # as scope, a description that starts with a lowercase letter and no final period.
+      - id: commit-title
+        name: Check the commit title (ADR 0002)
+        language: pygrep
+        entry: '\A(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z]+\))?!?: [a-z]([^\n]*[^.\n])?(\n|\Z)'
+        args: [--multiline, --negate]
+        stages: [commit-msg]
+
+      # ADR 0007: no link to, and no identifier of, an agent session. It lists the
+      # session trailers and the session links of the known agents.
+      - id: no-agent-session
+        name: Reject references to agent sessions (ADR 0007)
+        language: pygrep
+        entry: '(?i)(^[a-z]+-session:|https?://(www\.)?(claude\.ai/(code/)?(session|chat|share)|(chatgpt\.com|chat\.openai\.com)/(c|share)/)|\bsession_[a-z0-9]{16,})'
+        stages: [commit-msg]
