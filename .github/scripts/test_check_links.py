@@ -75,6 +75,10 @@ class Links(unittest.TestCase):
         self.make({"README.md": headings + links, "a.md": "# A\n"})
         self.assertEqual(self.problems(), [])
 
+    def test_a_link_with_parentheses_in_a_heading_is_reduced_to_its_text(self):
+        self.make({"README.md": "## See [x](a_(b).md) now\n\n[a](#see-x-now)\n", "a_(b).md": "# A\n"})
+        self.assertEqual(self.problems(), [])
+
     def test_a_closing_sequence_of_hashes_is_not_part_of_the_anchor(self):
         self.make({"README.md": "## Title ##\n\n[a](#title)\n"})
         self.assertEqual(self.problems(), [])

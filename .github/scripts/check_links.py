@@ -59,7 +59,7 @@ def without_blocks(text):
 
 
 def slug(heading):
-    heading = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", heading)
+    heading = re.sub(r"!?\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)", r"\1", heading)
     heading = re.sub(r"<[^>]*>", "", heading)
     heading = re.sub(r"[ \t]+#+$", "", heading).lower()
     return re.sub(r"[^\w\- ]", "", heading).replace(" ", "-")
