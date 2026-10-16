@@ -1,0 +1,34 @@
+# Checks run before each commit and in CI (ADR 0008).
+# Install the hooks once with: pre-commit install
+# Run every check on all files with: pre-commit run --all-files
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        entry: gitleaks dir --redact --verbose
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.49.1
+    hooks:
+      - id: markdownlint
+
+  - repo: local
+    hooks:
+      # ADR 0002: <type>[(scope)][!]: <description>, with a single lowercase word
+      # as scope, a description that starts with a lowercase letter and no final period.
+      - id: commit-title
+        name: Check the commit title (ADR 0002)
+        language: pygrep
+        entry: '\A(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z]+\))?!?: [a-z]([^\n]*[^.\n])?(\n|\Z)'
+        args: [--multiline, --negate]
+        stages: [commit-msg]
+
+      # ADR 0007: no link to, and no identifier of, an agent session.
+      - id: no-agent-session
+        name: Reject references to agent sessions (ADR 0007)
+        language: pygrep
+        entry: '(?i)(^claude-session:|https?://\S*/(code/)?session[_/]\S+|\bsession_[a-z0-9]{16,})'
+        stages: [commit-msg]
