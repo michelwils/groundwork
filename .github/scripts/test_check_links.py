@@ -79,6 +79,14 @@ class Links(unittest.TestCase):
         self.make({"README.md": "## Title ##\n\n[a](#title)\n"})
         self.assertEqual(self.problems(), [])
 
+    def test_a_heading_underlined_with_equal_signs_or_hyphens_is_an_anchor(self):
+        self.make({"README.md": "Main title\n==========\n\nSub title\n---\n\n[a](#main-title) [b](#sub-title)\n"})
+        self.assertEqual(self.problems(), [])
+
+    def test_a_thematic_break_after_a_blank_line_is_not_a_heading(self):
+        self.make({"README.md": "Text\n\n---\n\n[a](#text)\n"})
+        self.assertEqual(len(self.problems()), 1)
+
     def test_an_explicit_anchor_is_accepted(self):
         self.make({"README.md": '<a id="top"></a>\n\n[a](#top)\n'})
         self.assertEqual(self.problems(), [])

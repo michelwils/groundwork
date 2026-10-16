@@ -3,8 +3,9 @@
 
 Every inline link, image and reference definition that points to a file of the repository must
 find that file, and its `#anchor` must be a heading, or an `<a id>` or `<a name>`, of the target
-Markdown file. Anchors follow the rules of GitHub: the heading in lowercase, without punctuation,
-with hyphens for spaces, and `-1`, `-2` for a heading that repeats. External links (`http:`,
+Markdown file, written with `#` or underlined. Anchors follow the rules of GitHub: the heading
+in lowercase, without punctuation, with hyphens for spaces, and `-1`, `-2` for a heading that
+repeats. External links (`http:`,
 `mailto:`, `//…`) are not checked, nor are links in code, in HTML or in the files of EXCLUDED.
 The check does not use the network.
 
@@ -24,7 +25,11 @@ FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 CODE_SPAN = re.compile(r"(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.DOTALL)
 INLINE = re.compile(r"\]\(\s*(<[^<>\n]*>|[^()\s]*(?:\([^()\s]*\)[^()\s]*)*)")
 REFERENCE = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(<[^<>\n]*>|\S+)", re.MULTILINE)
-HEADING = re.compile(r"^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+HEADING = re.compile(
+    r"^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*$"  # underlined: a line of text, then = or - signs
+    r"|^ {0,3}([^\s#>\-*+=`~|][^\n]*)\n {0,3}(?:=+|-+)[ \t]*$",
+    re.MULTILINE,
+)
 EXPLICIT = re.compile(r"<a\s[^>]*?\b(?:name|id)=[\"']([^\"']+)[\"']", re.IGNORECASE)
 EXTERNAL = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.\-]*:|//)")
 LINE_ANCHOR = re.compile(r"^L\d+(?:C\d+)?(?:-L\d+(?:C\d+)?)?$")
@@ -60,8 +65,8 @@ def slug(heading):
 
 def anchors(text):
     found, counts = set(EXPLICIT.findall(text)), {}
-    for heading in HEADING.findall(text):
-        name = slug(heading)
+    for match in HEADING.finditer(text):
+        name = slug((match.group(1) or match.group(2)).strip())
         number = counts.get(name, 0)
         counts[name] = number + 1
         found.add(name if number == 0 else f"{name}-{number}")
