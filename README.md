@@ -15,11 +15,12 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Commit messages
 - Versioning and releases
 - Rules for changes made with AI coding agents
+- Test-first development
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
 
 ## What it does not cover
 
-Anything specific to a language, technology stack or type of application: code formatting and linting, tests, dependency updates, dev environment, publishing, reference architecture and operations. That belongs in the projects that adopt groundwork.
+Anything specific to a language, technology stack or type of application: code formatting and linting, test frameworks, test commands and coverage, dependency updates, dev environment, publishing, reference architecture and operations. That belongs in the projects that adopt groundwork.
 
 ## Decisions
 
@@ -64,7 +65,7 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
 
-The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`, and checks that the title of the pull request follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title.
+The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`, and checks that the title of the pull request follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title. It also runs the tests of the release script.
 
 ## Adopting groundwork
 
@@ -82,7 +83,7 @@ groundwork is a GitHub template repository.
 
 3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
 4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered after them. Keep `CONTRIBUTING.md` and adjust it to the project.
-5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
+5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
 6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`.
 7. **Create** the first milestone, then the first issue.
 8. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.

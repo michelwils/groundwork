@@ -7,6 +7,7 @@ Rules for coding agents working on this repository. The rules for every contribu
 - Read the ADRs that concern the change.
 - Follow the workflow, the commit messages and the language rules of `CONTRIBUTING.md`.
 - A significant decision is recorded as a new ADR, following [`docs/adr/template.md`](docs/adr/template.md). Propose it instead of deciding.
+- Write the test of a change of behaviour and see it fail for the expected reason before you write the code ([ADR 0009](docs/adr/0009-test-first-development.md)). Report a test that you could not write first, and why.
 
 ## Rules for agents
 
@@ -25,4 +26,4 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 
 ## Project
 
-This repository contains documentation and configuration only: there is nothing to build or test. Run every check with `pre-commit run --all-files --hook-stage manual` before committing. The same checks run in CI on every pull request.
+This repository contains documentation, configuration and the release script, with its tests. Run every check with `pre-commit run --all-files --hook-stage manual` and the tests with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'` before committing. The same checks and tests run in CI on every pull request.
