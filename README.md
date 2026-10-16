@@ -93,21 +93,20 @@ groundwork is a GitHub template repository.
    gh api -X PUT repos/<owner>/<repo>/private-vulnerability-reporting
    ```
 
-   Protect the default branch with the ruleset of this repository, which requires the `checks` job of the CI:
-
-   ```sh
-   gh api repos/<owner>/<repo>/rulesets --input .github/rulesets/main.json
-   ```
-
-   If the project adds jobs to its CI, it requires one job that depends on all the others instead, since a skipped job counts as passed, and changes the `context` of the ruleset.
-
 3. **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
 4. **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered after them. Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
 5. **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
 6. **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, and the indentation rules of its languages to `.editorconfig`. Add the ecosystems of its stack to `.github/dependabot.yml`.
 7. **Create** the first milestone, then the first issue.
 8. **Record** the version of groundwork the project started from, for example "Based on groundwork v0.1.0" in the README.
-9. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
+9. **Protect** the default branch with the ruleset of this repository, once the steps above are done, since it rejects direct pushes and requires the `checks` job of the CI:
+
+   ```sh
+   gh api repos/<owner>/<repo>/rulesets --input .github/rulesets/main.json
+   ```
+
+   If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, and changes the `context` of the ruleset.
+10. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
 
 ### Moving to a later version
 
