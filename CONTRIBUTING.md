@@ -70,6 +70,20 @@ chore(reset): add the password reset service
 feat(reset): enable password reset by email
 ```
 
+## AI-assisted changes
+
+A change made with a coding agent follows the same rules ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)). Its commits have a `Co-Authored-By` trailer naming the agent, and an issue or a pull request it writes ends with a line stating that it was generated. Nothing refers to the agent's session, and a maintainer approves every merge. The instructions given to agents are in [`AGENTS.md`](AGENTS.md).
+
+```
+docs(readme): describe the release process
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+```
+
+```
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
 ## Decisions
 
 Significant decisions are recorded as ADRs, following the template in [`docs/adr/template.md`](docs/adr/template.md) ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)).
