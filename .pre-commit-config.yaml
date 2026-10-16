@@ -24,6 +24,11 @@ repos:
     hooks:
       - id: markdownlint
 
+  - repo: https://github.com/editorconfig-checker/editorconfig-checker
+    rev: v4.0.2
+    hooks:
+      - id: editorconfig-checker
+
   - repo: local
     hooks:
       # ADR 0002: <type>[(scope)][!]: <description>, with a single lowercase word

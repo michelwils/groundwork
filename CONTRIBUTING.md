@@ -87,7 +87,7 @@ A reviewer, and an agent that checks its own work ([ADR 0007](docs/adr/0007-ai-a
 
 ## Checks
 
-Checks run before each commit and in CI on every pull request ([ADR 0008](docs/adr/0008-automated-checks.md)). Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`. A failing check is fixed, not skipped.
+Checks run before each commit and in CI on every pull request ([ADR 0008](docs/adr/0008-automated-checks.md)). Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`. A failing check is fixed, not skipped. The checks cover the commit message, secrets, Markdown and the settings of `.editorconfig`.
 
 ## AI-assisted changes
 
