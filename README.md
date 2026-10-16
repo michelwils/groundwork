@@ -86,7 +86,7 @@ groundwork is a GitHub template repository.
      -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=BLANK
    ```
 
-   Private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, is off in a new repository:
+   Enable private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on:
 
    ```sh
    gh api -X PUT repos/<owner>/<repo>/private-vulnerability-reporting
