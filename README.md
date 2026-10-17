@@ -16,6 +16,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Versioning and releases
 - Rules for changes made with AI coding agents
 - Test-first development
+- Rules for the security of the code of an application ([ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md))
 - Issue and pull request templates and a review checklist
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
