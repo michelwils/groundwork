@@ -4,8 +4,8 @@ This map tells what each ADR of groundwork is made of, so that a project can see
 
 For each ADR, an entry gives:
 
-- **Needs**: the ADRs that it cannot be applied without. A project that keeps this ADR keeps them.
-- **Mentions**: the ADRs that it refers to and that it can be applied without.
+- **Needs**: the ADRs that it cannot be applied without.
+- **Mentions**: the ADRs that its text names and that it does not need to be applied. A project that leaves one out keeps a reference to an ADR it does not have.
 - **Files**: the files that apply it. The file of the ADR itself is not listed.
 - **Shared lines**: the files that carry lines of several ADRs, with the section or the bullet of the lines. A section or a bullet, not a line number, since a line moves. The check does not verify them.
 
