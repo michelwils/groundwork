@@ -21,7 +21,7 @@ We will apply these rules to the code of an application, wherever the subject ex
 - **Defaults.** A default is the safe choice: no default credential, and no debugging feature on in production.
 - **Dependencies.** A dependency is chosen for what it does, kept at a pinned version, and updated when a vulnerability is known in it.
 
-The rules are applied by the rules for agents ([ADR 0007](0007-ai-assisted-changes.md)), by the baseline checks, for the rules that a tool can check, and by the review. An agent that makes a change that touches a trust boundary names in the risks of its plan the rule of this ADR that applies. The cases that a hostile input would produce have their tests written first.
+The rules are applied by the rules for agents, by the baseline checks, for the rules that a tool can check, and by the review. The cases that a hostile input would produce have their tests written first.
 
 ## Consequences
 

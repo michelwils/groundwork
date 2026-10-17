@@ -125,7 +125,7 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 
 ### 0010. [Security of the code of an application](adr/0010-security-of-the-code-of-an-application.md)
 
-- Needs: ADR 0007
+- Needs: none
 - Files:
   - none
 - Shared lines:
@@ -135,7 +135,7 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 
 ### 0011. [Protection of confidential and personal data](adr/0011-protection-of-confidential-and-personal-data.md)
 
-- Needs: ADR 0007, ADR 0010, ADR 0012
+- Needs: ADR 0010, ADR 0012
 - Files:
   - none
 - Shared lines:
@@ -153,7 +153,7 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 
 ### 0013. [Licenses of the dependencies](adr/0013-licenses-of-the-dependencies.md)
 
-- Needs: ADR 0007
+- Needs: none
 - Files:
   - none
 - Shared lines:

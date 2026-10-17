@@ -11,7 +11,7 @@ The dependencies of a project come with licenses, which set what the project may
 We will ask each project to state which licenses it accepts in its dependencies, and to apply that statement. The list is the project's own: this ADR names no license, no tool and no law, and it decides none of them.
 
 - **List.** The project writes, in its documentation, the licenses it accepts for its dependencies, or the rule by which it accepts them.
-- **New dependency.** The license of a new dependency is named with the dependency itself in the plan of the change, for an agent ([ADR 0007](0007-ai-assisted-changes.md)), and in the pull request that adds it, and is read against the list.
+- **New dependency.** The license of a new dependency is named in the pull request that adds it, with the dependency itself, and is read against the list.
 - **Outside the list.** A dependency whose license is not on the list, or that has none, is not added as it stands. The project extends its list, or records the exception and its reason in an ADR of its own. The decision is always the project's.
 - **Tools.** A project whose stack has a tool that lists licenses may add a check for it to the configuration of its checks. None is required.
 
