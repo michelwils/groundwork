@@ -7,6 +7,8 @@ A template copies files, not settings. The script applies, to a repository on Gi
   commit message, and the deletion of branches after a merge
 - private vulnerability reporting, which SECURITY.md relies on
 - immutable releases, which apply to the releases published afterwards
+- the vulnerability alerts, which also turn on the dependency graph, then the security updates of
+  the dependencies, which open a pull request for a vulnerable dependency (ADR 0008)
 - the ruleset of .github/rulesets/main.json, last, since it rejects direct pushes: it is updated if
   a ruleset of that name exists and created otherwise
 
@@ -65,6 +67,8 @@ def settings(repository):
         ),
         ("private vulnerability reporting: enabled", ("-X", "PUT", f"{api}/private-vulnerability-reporting")),
         ("immutable releases: enabled", ("-X", "PUT", f"{api}/immutable-releases")),
+        ("vulnerability alerts: enabled", ("-X", "PUT", f"{api}/vulnerability-alerts")),
+        ("security updates: enabled", ("-X", "PUT", f"{api}/automated-security-fixes")),
         (
             f"ruleset '{ruleset_name()}': {'updated' if ruleset_id else 'created'}",
             (*ruleset, "--input", os.path.abspath(RULESET)),

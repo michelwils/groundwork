@@ -73,6 +73,8 @@ class ApplySettings(unittest.TestCase):
             self.assertIn(field, merge)
         self.assertIn("api -X PUT repos/owner/repo/private-vulnerability-reporting", text)
         self.assertIn("api -X PUT repos/owner/repo/immutable-releases", text)
+        self.assertIn("api -X PUT repos/owner/repo/vulnerability-alerts", text)
+        self.assertIn("api -X PUT repos/owner/repo/automated-security-fixes", text)
         self.assertTrue(any(call.startswith("api -X POST repos/owner/repo/rulesets") for call in text))
 
     def test_creates_the_ruleset_from_the_file_of_the_repository(self):
@@ -85,7 +87,24 @@ class ApplySettings(unittest.TestCase):
     def test_applies_the_ruleset_last(self):
         self.run_script("owner/repo")
         self.assertIn("rulesets", self.writes()[-1][3])
-        self.assertEqual(len(self.writes()), 4)
+        self.assertEqual(len(self.writes()), 6)
+
+    def test_turns_on_the_alerts_before_the_security_updates_and_both_before_the_ruleset(self):
+        self.run_script("owner/repo")
+        text = [" ".join(call) for call in self.writes()]
+        alerts = text.index("api -X PUT repos/owner/repo/vulnerability-alerts")
+        updates = text.index("api -X PUT repos/owner/repo/automated-security-fixes")
+        ruleset = next(index for index, call in enumerate(text) if "/rulesets" in call)
+        self.assertLess(alerts, updates)
+        self.assertLess(updates, ruleset)
+
+    def test_running_it_twice_applies_the_same_settings(self):
+        existing = '[{"id": 7, "name": "main"}]'
+        self.run_script("owner/repo", rulesets=existing)
+        first = self.writes()
+        os.remove(self.log)
+        self.run_script("owner/repo", rulesets=existing)
+        self.assertEqual(self.writes(), first)
 
     def test_updates_the_ruleset_that_already_exists_instead_of_creating_a_second(self):
         result = self.run_script("owner/repo", rulesets='[{"id": 7, "name": "main"}]')
@@ -108,6 +127,21 @@ class ApplySettings(unittest.TestCase):
         self.assertFalse(any("immutable-releases" in " ".join(call) for call in self.calls()))
         self.assertFalse(any("rulesets" in " ".join(call) and "-X" in call for call in self.calls()))
 
+    def test_stops_when_the_alerts_cannot_be_turned_on_and_does_not_try_the_security_updates(self):
+        result = self.run_script("owner/repo", fail="vulnerability-alerts")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("owner/repo", result.stderr)
+        self.assertIn("vulnerability alerts", result.stderr)
+        self.assertIn("admin", result.stderr)
+        self.assertFalse(any("automated-security-fixes" in " ".join(call) for call in self.calls()))
+        self.assertFalse(any("rulesets" in " ".join(call) and "-X" in call for call in self.calls()))
+
+    def test_says_what_failed_when_the_security_updates_cannot_be_turned_on(self):
+        result = self.run_script("owner/repo", fail="automated-security-fixes")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("security updates", result.stderr)
+        self.assertFalse(any("rulesets" in " ".join(call) and "-X" in call for call in self.calls()))
+
     def test_says_what_failed_when_the_rulesets_cannot_be_read(self):
         result = self.run_script("owner/repo", fail="owner/repo/rulesets")
         self.assertEqual(result.returncode, 1)
@@ -120,12 +154,28 @@ class ApplySettings(unittest.TestCase):
         result = self.run_script("owner/repo", "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.writes(), [])
-        for text in ("owner/repo", "merge", "private vulnerability reporting", "immutable releases", "ruleset"):
+        for text in (
+            "owner/repo",
+            "merge",
+            "private vulnerability reporting",
+            "immutable releases",
+            "vulnerability alerts",
+            "security updates",
+            "ruleset",
+        ):
             self.assertIn(text, result.stdout)
 
     def test_names_the_repository_and_each_setting(self):
         result = self.run_script("owner/repo")
-        for text in ("owner/repo", "merge", "private vulnerability reporting", "immutable releases", "ruleset"):
+        for text in (
+            "owner/repo",
+            "merge",
+            "private vulnerability reporting",
+            "immutable releases",
+            "vulnerability alerts",
+            "security updates",
+            "ruleset",
+        ):
             self.assertIn(text, result.stdout)
 
     def test_acts_on_the_current_repository_by_default(self):
