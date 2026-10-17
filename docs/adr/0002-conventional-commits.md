@@ -28,5 +28,3 @@ We will write every commit message following [Conventional Commits 1.0.0](https:
 
 - The history can be scanned by type and read by tools.
 - Every commit needs a type, which takes a moment to choose. A commit that fits two types is usually a sign it should be split.
-- What each type or a breaking change means for the version is defined in [ADR 0005](0005-semantic-versioning-and-releases.md).
-- The format is checked automatically, as described in [ADR 0008](0008-automated-checks.md).

@@ -4,7 +4,7 @@
 
 ## Context
 
-groundwork protects the repository of a project: [ADR 0008](0008-automated-checks.md) detects secrets, the workflows are audited, and a policy tells how to report a vulnerability. It says nothing about the security of the code of the application that the project builds. Yet the faults that let an application be taken over are few and well known: input that is trusted, a query built from a string, output that is not encoded, access that is not checked, a password kept in clear, a secret in the code, an error that tells too much, a default credential, a vulnerable dependency. Anyone who looks finds them in minutes. A person, and even more an agent that writes quickly without knowing the threats to the application, needs rules to read a change against.
+groundwork protects the repository of a project: the checks detect secrets, the workflows are audited, and a policy tells how to report a vulnerability. It says nothing about the security of the code of the application that the project builds. Yet the faults that let an application be taken over are few and well known: input that is trusted, a query built from a string, output that is not encoded, access that is not checked, a password kept in clear, a secret in the code, an error that tells too much, a default credential, a vulnerable dependency. Anyone who looks finds them in minutes. A person, and even more an agent that writes quickly without knowing the threats to the application, needs rules to read a change against.
 
 ## Decision
 
@@ -21,7 +21,7 @@ We will apply these rules to the code of an application, wherever the subject ex
 - **Defaults.** A default is the safe choice: no default credential, and no debugging feature on in production.
 - **Dependencies.** A dependency is chosen for what it does, kept at a pinned version, and updated when a vulnerability is known in it.
 
-The rules are applied by the rules for agents ([ADR 0007](0007-ai-assisted-changes.md)), by the baseline checks ([ADR 0008](0008-automated-checks.md)), for the rules that a tool can check, and by the review. The cases that a hostile input would produce have their tests written first ([ADR 0009](0009-test-first-development.md)).
+The rules are applied by the rules for agents ([ADR 0007](0007-ai-assisted-changes.md)), by the baseline checks, for the rules that a tool can check, and by the review. An agent that makes a change that touches a trust boundary names in the risks of its plan the rule of this ADR that applies. The cases that a hostile input would produce have their tests written first.
 
 ## Consequences
 

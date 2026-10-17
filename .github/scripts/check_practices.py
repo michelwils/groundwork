@@ -2,14 +2,15 @@
 """Check the map of the practices of groundwork, `docs/practices.md` (ADR 0008).
 
 The map has an entry `### NNNN. Title` for each ADR of `docs/adr/`, under `## Practices`, with
-the lines `- Needs:` and `- Mentions:` (`none`, or ADRs such as `ADR 0001, ADR 0003`), the list
-`- Files:` of the files that apply the ADR and the list `- Shared lines:` of the files that carry
-lines of the ADR, each with `path`, then where. The section `## Shared files` names the files that
+the line `- Needs:` (`none`, or the ADRs that it cannot be applied without, such as `ADR 0001, ADR 0003`),
+the list `- Files:` of the files that apply the ADR and the list `- Shared lines:` of the files that
+carry lines of the ADR, each with `path`, then where. The section `## Shared files` names the files that
 carry the lines of several ADRs and the section `## Not part of a practice` the other files.
 
 It reports an ADR without an entry or an entry without an ADR, an ADR that needs itself, an ADR that
-does not exist, an ADR both needed and mentioned or a cycle of needs, a file named in the map that is
-not tracked by git or that two entries name, and a tracked file that the map does not name. The file
+does not exist or a cycle of needs, an ADR whose text names or links an ADR that its entry does not
+list as needed, a file named in the map that is not tracked by git or that two entries name, and a
+tracked file that the map does not name. The file
 of an ADR is named by its entry. The lines of the shared files are not checked.
 
 The map describes groundwork: it has entries for the ADRs `0001` to `0999` only. In a project, which
@@ -27,6 +28,10 @@ import sys
 MAP = "docs/practices.md"
 VERSION_FILE = ".groundwork-version"
 FIRST_OF_A_PROJECT = 1000
+FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
+NAMED = re.compile(r"\bADRs? \d{4}(?:(?:,| and| or| to)? \d{4})*")
+LINKED = re.compile(r"\]\((\d{4})-[a-z0-9-]+\.md")
+STATUS = re.compile(r"^\*\*Status:\*\*")
 ADR_DIRECTORY = "docs/adr"
 ADR_FILE = re.compile(r"^(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*\.md$")
 HEADING = re.compile(r"^### (\d{4})\. \S")
@@ -64,14 +69,14 @@ def parse(lines):
         elif line.startswith("## "):
             section, entry, list_name = None, None, None
         elif HEADING.match(line):
-            entry = {"number": int(HEADING.match(line).group(1)), "line": number, "needs": None, "mentions": None, "files": [], "shared": []}
+            entry = {"number": int(HEADING.match(line).group(1)), "line": number, "needs": None, "files": [], "shared": []}
             entries.append(entry)
             list_name = None
         elif entry is not None and line.startswith("- "):
             head, _, value = line[2:].partition(":")
             list_name = {"Files": "files", "Shared lines": "shared"}.get(head)
-            if head in ("Needs", "Mentions"):
-                entry[head.lower()] = (value.strip(), number)
+            if head == "Needs":
+                entry["needs"] = (value.strip(), number)
         elif entry is not None and list_name and LIST_ITEM.match(line):
             item = LIST_ITEM.match(line).group(1)
             path = PATH.match(item)
@@ -116,39 +121,70 @@ def check_entries(entries, numbers, problems):
     for entry in entries:
         number = entry["number"]
         if number in seen:
-            problems.append((entry["line"], f"the ADR {number:04d} has an entry more than once, first at line {seen[number]}"))
+            problems.append((MAP, entry["line"], f"the ADR {number:04d} has an entry more than once, first at line {seen[number]}"))
         else:
             seen[number] = entry["line"]
         if number not in numbers:
-            problems.append((entry["line"], f"the entry {number:04d} has no ADR in {ADR_DIRECTORY}"))
+            problems.append((MAP, entry["line"], f"the entry {number:04d} has no ADR in {ADR_DIRECTORY}"))
     for number in sorted(numbers - set(seen)):
-        problems.append((1, f"the ADR {number:04d} has no entry"))
+        problems.append((MAP, 1, f"the ADR {number:04d} has no entry"))
     needs = {}
     for entry in entries:
         number = entry["number"]
-        for name in ("needs", "mentions"):
-            if entry[name] is None:
-                problems.append((entry["line"], f"the entry {number:04d} has no line '{name.capitalize()}'"))
-        found = {}
-        for name in ("needs", "mentions"):
-            if entry[name] is None:
-                continue
-            value, line = entry[name]
-            found[name], wrong = references(value)
-            for part in wrong:
-                problems.append((line, f"'{part}' is not 'none' or ADRs such as 'ADR 0001'"))
-            for other in found[name]:
-                if other == number:
-                    problems.append((line, f"the ADR {number:04d} refers to itself"))
-                elif other not in numbers:
-                    problems.append((line, f"the ADR {other:04d} that the entry {number:04d} refers to does not exist"))
-        both = set(found.get("needs", [])) & set(found.get("mentions", []))
-        for other in sorted(both):
-            problems.append((entry["mentions"][1], f"the ADR {other:04d} is both needed and mentioned by the entry {number:04d}"))
-        needs[number] = [other for other in found.get("needs", []) if other in numbers and other != number]
+        if entry["needs"] is None:
+            problems.append((MAP, entry["line"], f"the entry {number:04d} has no line 'Needs'"))
+            continue
+        value, line = entry["needs"]
+        found, wrong = references(value)
+        for part in wrong:
+            problems.append((MAP, line, f"'{part}' is not 'none' or ADRs such as 'ADR 0001'"))
+        for other in found:
+            if other == number:
+                problems.append((MAP, line, f"the ADR {number:04d} refers to itself"))
+            elif other not in numbers:
+                problems.append((MAP, line, f"the ADR {other:04d} that the entry {number:04d} refers to does not exist"))
+        needs[number] = [other for other in found if other in numbers and other != number]
     lines = {entry["number"]: entry["line"] for entry in entries}
     for number in cycles(needs):
-        problems.append((lines[number], f"the ADR {number:04d} is on a cycle of needs"))
+        problems.append((MAP, lines[number], f"the ADR {number:04d} is on a cycle of needs"))
+
+
+def outside_code(lines):
+    """Return the (number, line) of the lines that are not in a code block, nor its fences."""
+    kept, fence = [], None
+    for number, line in enumerate(lines, start=1):
+        opening = FENCE.match(line)
+        if fence:
+            if line.strip() and set(line.strip()) == {fence[0]} and len(line.strip()) >= len(fence):
+                fence = None
+        elif opening:
+            fence = opening.group(1)
+        else:
+            kept.append((number, line))
+    return kept
+
+
+def check_texts(root, entries, numbers, problems):
+    """Report the ADR named or linked in the text of an ADR that its entry does not list as needed."""
+    allowed = {}
+    for entry in entries:
+        if entry["needs"] is not None and entry["number"] in numbers:
+            allowed[entry["number"]] = {entry["number"], *references(entry["needs"][0])[0]}
+    directory = os.path.join(root, ADR_DIRECTORY)
+    for name in sorted(os.listdir(directory)) if os.path.isdir(directory) else []:
+        match = ADR_FILE.match(name)
+        if not match or int(match.group(1)) not in allowed:
+            continue
+        number = int(match.group(1))
+        with open(os.path.join(directory, name), encoding="utf-8-sig", errors="replace") as handle:
+            lines = handle.read().split("\n")
+        for line_number, line in outside_code(lines):
+            if STATUS.match(line):
+                continue
+            named = {int(n) for found in NAMED.findall(line) for n in re.findall(r"\d{4}", found)}
+            named |= {int(n) for n in LINKED.findall(line)}
+            for other in sorted(named - allowed[number]):
+                problems.append((f"{ADR_DIRECTORY}/{name}", line_number, f"the ADR {number:04d} refers to the ADR {other:04d}, which its entry in the map does not list as needed"))
 
 
 def check_files(root, entries, shared, apart, files, problems):
@@ -158,22 +194,22 @@ def check_files(root, entries, shared, apart, files, problems):
     listed += [(path, line, "the files that are not part of a practice") for path, line in apart]
     for path, line, owner in listed:
         if path in named:
-            problems.append((line, f"the file {path} is named by {owner} and by {named[path]}"))
+            problems.append((MAP, line, f"the file {path} is named by {owner} and by {named[path]}"))
         else:
             named[path] = owner
         if path not in files:
             reason = "is not tracked by git" if os.path.exists(os.path.join(root, path)) else "does not exist"
-            problems.append((line, f"the file {path} {reason}"))
+            problems.append((MAP, line, f"the file {path} {reason}"))
     shared_files = {path for path, _ in shared}
     for entry in entries:
         for path, line in entry["shared"]:
             if path not in shared_files:
-                problems.append((line, f"the file {path} of the shared lines of the entry {entry['number']:04d} is not in the shared files"))
+                problems.append((MAP, line, f"the file {path} of the shared lines of the entry {entry['number']:04d} is not in the shared files"))
     implicit = {path for path in files if path.startswith(ADR_DIRECTORY + "/") and ADR_FILE.match(path[len(ADR_DIRECTORY) + 1:])}
     if os.path.exists(os.path.join(root, VERSION_FILE)):
         return
     for path in sorted(files - set(named) - implicit):
-        problems.append((1, f"the file {path} is tracked and the map does not name it"))
+        problems.append((MAP, 1, f"the file {path} is tracked and the map does not name it"))
 
 
 def check(root):
@@ -187,9 +223,11 @@ def check(root):
     with open(path, encoding="utf-8-sig", errors="replace") as handle:
         entries, shared, apart = parse(handle.read().split("\n"))
     problems = []
-    check_entries(entries, adrs_of(root), problems)
+    numbers = adrs_of(root)
+    check_entries(entries, numbers, problems)
+    check_texts(root, entries, numbers, problems)
     check_files(root, entries, shared, apart, files, problems)
-    return [f"{MAP}:{line}: {message}" for line, message in sorted(problems)]
+    return [f"{name}:{line}: {message}" for name, line, message in sorted(problems)]
 
 
 def main():

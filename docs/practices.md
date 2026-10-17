@@ -4,8 +4,7 @@ This map tells what each ADR of groundwork is made of, so that a project can see
 
 For each ADR, an entry gives:
 
-- **Needs**: the ADRs that it cannot be applied without.
-- **Mentions**: the ADRs that its text names and that it does not need to be applied. A project that leaves one out keeps a reference to an ADR it does not have.
+- **Needs**: the ADRs that it cannot be applied without. The text of an ADR names and links only these, so that the ADRs a project keeps, with the ADRs they need, hold together with no reference to an ADR the project does not have. The check reads the text of the ADRs to verify it.
 - **Files**: the files that apply it. The file of the ADR itself is not listed.
 - **Shared lines**: the files that carry lines of several ADRs, with the section or the bullet of the lines. A section or a bullet, not a line number, since a line moves. The check does not verify them.
 
@@ -16,7 +15,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0001. [Record architecture decisions](adr/0001-record-architecture-decisions.md)
 
 - Needs: none
-- Mentions: none
 - Files:
   - `docs/adr/template.md`
   - `.github/scripts/check_adrs.py`
@@ -29,7 +27,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0002. [Conventional Commits](adr/0002-conventional-commits.md)
 
 - Needs: none
-- Mentions: ADR 0005, ADR 0008
 - Files:
   - none
 - Shared lines:
@@ -39,7 +36,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0003. [Change workflow](adr/0003-change-workflow.md)
 
 - Needs: ADR 0002
-- Mentions: ADR 0006, ADR 0007
 - Files:
   - `.github/ISSUE_TEMPLATE/change.md`
   - `.github/rulesets/main.json`
@@ -57,7 +53,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0004. [Repository language is English](adr/0004-repository-language-english.md)
 
 - Needs: none
-- Mentions: none
 - Files:
   - none
 - Shared lines:
@@ -66,7 +61,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0005. [Semantic Versioning and releases](adr/0005-semantic-versioning-and-releases.md)
 
 - Needs: ADR 0002
-- Mentions: ADR 0006
 - Files:
   - `.github/workflows/release.yml`
   - `.github/scripts/release.py`
@@ -78,8 +72,7 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 
 ### 0006. [Trunk-based development](adr/0006-trunk-based-development.md)
 
-- Needs: ADR 0005
-- Mentions: ADR 0008
+- Needs: ADR 0003, ADR 0005
 - Files:
   - none
 - Shared lines:
@@ -88,7 +81,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0007. [AI-assisted changes](adr/0007-ai-assisted-changes.md)
 
 - Needs: ADR 0002, ADR 0003
-- Mentions: ADR 0006, ADR 0008, ADR 0010, ADR 0011, ADR 0013
 - Files:
   - none
 - Shared lines:
@@ -100,7 +92,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0008. [Automated checks](adr/0008-automated-checks.md)
 
 - Needs: none
-- Mentions: ADR 0002, ADR 0003, ADR 0006, ADR 0007
 - Files:
   - `.editorconfig`
   - `.github/dependabot.yml`
@@ -126,7 +117,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0009. [Test-first development](adr/0009-test-first-development.md)
 
 - Needs: none
-- Mentions: ADR 0006, ADR 0007
 - Files:
   - none
 - Shared lines:
@@ -135,8 +125,7 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 
 ### 0010. [Security of the code of an application](adr/0010-security-of-the-code-of-an-application.md)
 
-- Needs: none
-- Mentions: ADR 0007, ADR 0008, ADR 0009
+- Needs: ADR 0007
 - Files:
   - none
 - Shared lines:
@@ -146,8 +135,7 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 
 ### 0011. [Protection of confidential and personal data](adr/0011-protection-of-confidential-and-personal-data.md)
 
-- Needs: ADR 0010
-- Mentions: ADR 0007, ADR 0012
+- Needs: ADR 0007, ADR 0010, ADR 0012
 - Files:
   - none
 - Shared lines:
@@ -158,7 +146,6 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 ### 0012. [Responding to an incident](adr/0012-responding-to-an-incident.md)
 
 - Needs: none
-- Mentions: ADR 0011
 - Files:
   - `SECURITY.md`
 - Shared lines:
@@ -166,8 +153,7 @@ A file belongs to one entry, or to the shared files, or to the files that are no
 
 ### 0013. [Licenses of the dependencies](adr/0013-licenses-of-the-dependencies.md)
 
-- Needs: none
-- Mentions: ADR 0007, ADR 0008
+- Needs: ADR 0007
 - Files:
   - none
 - Shared lines:

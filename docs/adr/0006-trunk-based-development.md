@@ -23,7 +23,7 @@ We will develop on a single long-lived branch, `main`. All other branches are sh
 **Maintained older versions.** A project that maintains an older major version does so on a maintenance branch. A minor increment does not break users ([ADR 0005](0005-semantic-versioning-and-releases.md)), so there is one branch per major version, not per minor version. None is used while the major version is `0`, where nothing is stable.
 
 - The branch is created on demand, never in advance, from the latest tag of that major version, and is named `maintenance/v<major>`.
-- The fix is made on `main` first. A backport pull request then applies the fix commit to the maintenance branch. Its branch is created from the maintenance branch and named like the original branch followed by `-v<major>`, for example `fix/12-handle-empty-input-v1`. Its title is the title of the original pull request, without its number. Its description contains `Refs #<issue-number>` instead of `Closes`, and it has no checklist, since the issue is already closed.
+- The fix is made on `main` first. A backport pull request then applies the fix commit to the maintenance branch. It is the one pull request that does not target `main`, an exception to [ADR 0003](0003-change-workflow.md), and it follows the other rules of that ADR. Its branch is created from the maintenance branch and named like the original branch followed by `-v<major>`, for example `fix/12-handle-empty-input-v1`. Its title is the title of the original pull request, without its number. Its description contains `Refs #<issue-number>` instead of `Closes`, and it has no checklist, since the issue is already closed.
 - When the code to fix no longer exists on `main`, the fix is made directly on the maintenance branch, with an issue and a pull request that targets that branch.
 - The branch receives fixes only, never a `feat`.
 - Its patch version is tagged on the branch with an annotated tag `vMAJOR.MINOR.PATCH`. The release notes list the fixes since the previous tag on the branch, and the release is not marked as the latest one.
@@ -40,4 +40,4 @@ We will develop on a single long-lived branch, `main`. All other branches are sh
 - Maintaining an older major version doubles the work of every fix, which is applied and released twice. A project should maintain as few as possible.
 - With maintenance branches, the latest tag by date is not always the highest version.
 - The fix of a vulnerability that is not public yet is made outside this workflow, as [`SECURITY.md`](../../SECURITY.md) says. A rollback is a new fix or a `revert`, made like any other change.
-- That `main` is releasable is checked by the CI, as described in [ADR 0008](0008-automated-checks.md).
+- That `main` is releasable relies on the checks of the CI.
