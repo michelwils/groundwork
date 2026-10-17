@@ -78,7 +78,7 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
 
-The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`, and checks that the title of the pull request follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title, and that its branch is named `<type>/<issue-number>-<slug>` and its description closes that issue ([ADR 0003](docs/adr/0003-change-workflow.md)). It also runs the tests of its scripts.
+The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`, and checks that the title of the pull request follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title, except for the pull requests of Dependabot, and that its branch is named `<type>/<issue-number>-<slug>` and its description closes that issue ([ADR 0003](docs/adr/0003-change-workflow.md)). It also runs the tests of its scripts.
 
 ## Adopting groundwork
 
