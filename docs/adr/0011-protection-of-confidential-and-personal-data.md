@@ -24,7 +24,7 @@ The principles are applied by the rules for agents ([ADR 0007](0007-ai-assisted-
 ## Consequences
 
 - A reviewer, and an agent that checks its own work, have a short list of principles to read each change against, wherever it touches data.
-- The principles do not make an application lawful or its data safe. They are not legal advice, they do not replace the knowledge of the law that applies, and a project that follows them can still leak data or break the law.
+- The principles do not make an application lawful or its data safe: a project that follows them can still leak data or break the law.
 - The classification, the purposes and the periods of retention depend on the application. Each project states them, and the principles are only as good as that statement.
 - No tool detects most of these principles. Only the review applies them, and a principle that is not read in a diff is not applied.
 - The principles are general. A project that needs more, because of the data it holds or the law that applies to it, adds its own in an ADR.
