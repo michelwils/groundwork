@@ -11,7 +11,7 @@ groundwork is a set of choices about how projects are structured and run. Withou
 We will record each significant decision as an Architecture Decision Record (ADR), using the format proposed by Michael Nygard: context, decision, consequences.
 
 - **Location:** `docs/adr/`.
-- **Naming:** `NNNN-title-in-kebab-case.md`, where `NNNN` is a four-digit sequence number. Numbers are never reused. The numbers `0001` to `0999` are reserved for the ADRs of groundwork, and the ADRs of a project start at `1000`: a number starting with `0` is a groundwork ADR, any other is the project's.
+- **Naming:** `NNNN-title-in-kebab-case.md`, where `NNNN` is a four-digit sequence number. Numbers are never reused. The numbers `0001` to `0999` are reserved for the ADRs of groundwork, and the ADRs of a project start at `1000`: a number starting with `0` is a groundwork ADR, any other is the project's. groundwork is itself a project: its own decisions that do not apply to the projects that adopt it are numbered from `1000` and are never synchronised.
 - **Template:** `docs/adr/template.md`.
 - **Statuses:** `proposed`, `accepted`, `rejected`, and `superseded by NNNN`.
 - **Changing a decision:** an accepted ADR may be clarified in place when its meaning does not change (wording, missing detail, broken links). A decision that is reversed or contradicted is replaced by a new ADR, and the old one is updated only to set its status to `superseded by NNNN`.

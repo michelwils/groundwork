@@ -8,7 +8,7 @@ For each ADR, an entry gives:
 - **Files**: the files that apply it. The file of the ADR itself is not listed.
 - **Shared lines**: the files that carry lines of several ADRs, with the section or the bullet of the lines. A section or a bullet, not a line number, since a line moves. The check does not verify them.
 
-A file belongs to one entry, or to the shared files, or to the files that are not part of a practice. In groundwork, the check fails for a file that is tracked by git and that the map does not name. In a project, which has a `.groundwork-version`, it does not look for such files, since a project has files of its own, and it reports a file of the map that the project lacks.
+The ADRs of groundwork numbered `1000` or more are its own decisions, not practices, and have no entry. A file belongs to one entry, or to the shared files, or to the files that are not part of a practice. In groundwork, the check fails for a file that is tracked by git and that the map does not name. In a project, which has a `.groundwork-version`, it does not look for such files, since a project has files of its own, and it reports a file of the map that the project lacks.
 
 ## Practices
 
