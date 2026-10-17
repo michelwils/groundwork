@@ -37,7 +37,10 @@ def cache_folder():
     given = os.environ.get("GROUNDWORK_CACHE")
     if given:
         return os.path.abspath(given)
-    git = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True)
+    try:
+        git = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True)
+    except FileNotFoundError:
+        raise Failure("git is not installed: set GROUNDWORK_CACHE to the folder of the environments")
     if git.returncode != 0:
         raise Failure("this is not a git repository: set GROUNDWORK_CACHE to the folder of the environments")
     return os.path.join(os.path.abspath(git.stdout.strip()), "groundwork")
@@ -70,10 +73,12 @@ def build(folder, key, requirements):
             raise Failure(f"could not install the requirements of {requirements}: {installed.stderr.strip()}")
         with open(os.path.join(temporary, ".ready"), "w"):
             pass
+        if os.path.exists(final) and not os.path.exists(os.path.join(final, ".ready")):
+            shutil.rmtree(final, ignore_errors=True)  # not an environment of this launcher, which marks them
         try:
             os.rename(temporary, final)
         except OSError:
-            if not os.path.exists(os.path.join(final, ".ready")):
+            if not os.path.exists(os.path.join(final, ".ready")):  # lost the race to a complete one: use it
                 raise
     except subprocess.CalledProcessError as error:
         raise Failure(f"could not make an environment: {error.stderr.strip()}")
@@ -98,7 +103,6 @@ def environment_for(requirements):
     final = os.path.join(folder, f"venv-{key}")
     if not os.path.exists(os.path.join(final, ".ready")):
         os.makedirs(folder, exist_ok=True)
-        shutil.rmtree(final, ignore_errors=True)
         build(folder, key, requirements)
         prune(folder, f"venv-{key}")
     return final
@@ -107,6 +111,8 @@ def environment_for(requirements):
 def main(arguments):
     requirements = REQUIREMENTS
     if arguments[:1] == ["--requirements"]:
+        if len(arguments) < 2:
+            raise Failure("--requirements needs the file of requirements")
         requirements, arguments = os.path.abspath(arguments[1]), arguments[2:]
     if not arguments:
         raise Failure(__doc__.strip().splitlines()[-1])

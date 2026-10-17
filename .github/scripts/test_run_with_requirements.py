@@ -135,6 +135,23 @@ class Launcher(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("GROUNDWORK_CACHE", result.stderr)
 
+    def test_a_folder_that_has_the_name_of_the_environment_but_no_marker_is_replaced(self):
+        sys.path.insert(0, HERE)
+        import run_with_requirements
+
+        half = os.path.join(self.cache, f"venv-{run_with_requirements.key_of(self.requirements)}")
+        os.makedirs(half)
+        self.write(os.path.join(half, "leftover"), "not an environment")
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(os.path.exists(os.path.join(half, ".ready")))
+        self.assertFalse(os.path.exists(os.path.join(half, "leftover")))
+
+    def test_an_option_without_its_value_is_reported(self):
+        result = subprocess.run([sys.executable, LAUNCHER, "--requirements"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("--requirements", result.stderr)
+
     def test_a_missing_script_is_reported(self):
         command = [sys.executable, LAUNCHER, "--requirements", self.requirements, os.path.join(self.root, "nope.py")]
         env = {**os.environ, "GROUNDWORK_CACHE": self.cache}
