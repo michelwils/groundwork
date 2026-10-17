@@ -8,7 +8,7 @@ Closes #<issue-number>
 
 ## Security
 
-<!-- The rule of ADR 0010 that applies to the trust boundaries of the change, and the dependencies it adds. Write "Not applicable" if there are none. -->
+<!-- The rule of ADR 0010 that applies to the trust boundaries of the change, and the dependencies it adds. Write "Not applicable" if the change touches no trust boundary and adds no dependency. -->
 
 ## Acceptance criteria
 
