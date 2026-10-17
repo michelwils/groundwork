@@ -16,6 +16,7 @@ We will check the repository automatically, in two places, from one configuratio
 - **A failing check blocks the change.** A commit whose check fails is not made, and a pull request whose check fails is not merged.
 - **No bypass.** A check is never skipped or disabled to get a change through, except for the merge of the fix of a vulnerability that is not public yet, which no check can reach ([ADR 0003](0003-change-workflow.md)). A check that is wrong or too strict is changed or removed in a pull request that explains why.
 - **Baseline checks.** Whatever its stack, a project checks the format of its commit messages, the presence of secrets and the format of its documentation. It adds the checks of its own stack to the same configuration.
+- **Audit of the dependencies.** A project configures, for its stack, a check that fails when a dependency has a known vulnerability, in the same configuration and in the CI. A project whose stack has no such tool writes the exception and its reason in its `AGENTS.md`.
 
 ## Consequences
 
@@ -25,3 +26,5 @@ We will check the repository automatically, in two places, from one configuratio
 - A check that rejects valid work costs time until it is fixed.
 - Rules that need judgement, such as whether the type of a commit is right, stay with the review.
 - The condition of [ADR 0006](0006-trunk-based-development.md) that the checks of a pull request pass before it is merged can be verified.
+- A new advisory fails the audit of every pull request until the dependency is updated, which is the intent.
+- The audit sees a vulnerability only when a pull request runs it. The alerts and the security updates of the platform, which the settings script turns on, tell when one is found after the merge.

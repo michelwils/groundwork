@@ -27,7 +27,8 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
 - A script that applies the repository settings, in [`.github/scripts/apply_settings.py`](.github/scripts/apply_settings.py)
-- Pre-commit checks and baseline CI that do not depend on a language or technology stack
+- Pre-commit checks and baseline CI that do not depend on a language or technology stack, including the audit of the dependencies of the stack ([ADR 0008](docs/adr/0008-automated-checks.md))
+- Vulnerability alerts and security updates of the platform, turned on by the settings script
 
 ## What it does not cover
 
@@ -92,7 +93,7 @@ groundwork is a GitHub template repository.
    python3 .github/scripts/apply_settings.py [<owner>/<repo>] [--dry-run]
    ```
 
-   It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. Last, it protects the default branch with the ruleset of this repository, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
+   It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, makes published releases immutable, so that the tag of a release cannot be moved, and turns on the vulnerability alerts and the security updates of the dependencies. That applies to the releases published afterwards. Last, it protects the default branch with the ruleset of this repository, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
 
    If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, changes the `context` of [`.github/rulesets/main.json`](.github/rulesets/main.json) and runs the script again.
 
@@ -102,7 +103,7 @@ groundwork is a GitHub template repository.
    - **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
    - **Keep** the ADRs in [`docs/adr/`](docs/adr/): they remain accepted decisions of the project, and its own ADRs are numbered from `1000`, since the numbers below are reserved for groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
    - **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
-   - **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, and the indentation rules of its languages to `.editorconfig`. Add the ecosystems of its stack to `.github/dependabot.yml`.
+   - **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, which the CI runs, including the audit of its dependencies ([ADR 0008](docs/adr/0008-automated-checks.md)) or, if its stack has no such tool, the exception in its `AGENTS.md`, and the indentation rules of its languages to `.editorconfig`. Add the ecosystems of its stack to `.github/dependabot.yml`.
    - **Record** the version of groundwork the project started from: create `.groundwork-version` at the root of the project, with one line `X.Y.Z` holding the latest release without the leading `v`, for example `0.2.0`. The update script reads it.
 5. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
 
