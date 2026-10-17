@@ -6,6 +6,10 @@ Closes #<issue-number>
 
 <!-- Optional. The files, tests and risks agreed before the work. -->
 
+## Security
+
+<!-- The rule of ADR 0010 that applies to the trust boundaries of the change, and the dependencies it adds. Write "Not applicable" if there are none. -->
+
 ## Acceptance criteria
 
 <!-- The acceptance criteria of the issue, as a checklist. -->
