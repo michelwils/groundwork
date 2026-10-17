@@ -14,7 +14,7 @@ We will check the repository automatically, in two places, from one configuratio
 - **In CI.** The same checks run on all files for every pull request and for the main branch. Checks of the pull request are added: its title, since it becomes the commit title on the main branch ([ADR 0003](0003-change-workflow.md)), and its branch name and closing line, which tie it to its issue.
 - **One configuration.** The checks are defined once, in a file of the repository, and each tool is used at a pinned version. Both places therefore run the same checks.
 - **A failing check blocks the change.** A commit whose check fails is not made, and a pull request whose check fails is not merged.
-- **No bypass.** A check is never skipped or disabled to get a change through. A check that is wrong or too strict is changed or removed in a pull request that explains why.
+- **No bypass.** A check is never skipped or disabled to get a change through, except for the merge of the fix of a vulnerability that is not public yet, which no check can reach ([ADR 0003](0003-change-workflow.md)). A check that is wrong or too strict is changed or removed in a pull request that explains why.
 - **Baseline checks.** Whatever its stack, a project checks the format of its commit messages, the presence of secrets and the format of its documentation. It adds the checks of its own stack to the same configuration.
 
 ## Consequences

@@ -23,7 +23,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
 - A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py)
 - A workflow that opens every week the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
-- A security policy, in [`SECURITY.md`](SECURITY.md)
+- A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
 - A script that applies the repository settings, in [`.github/scripts/apply_settings.py`](.github/scripts/apply_settings.py)
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack
