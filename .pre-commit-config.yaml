@@ -37,6 +37,16 @@ repos:
       - id: zizmor
         args: [--offline]
 
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.10.1
+    hooks:
+      # ADR 0008: fails when a dependency of the scripts has a known vulnerability. It needs the
+      # network, so it runs when requirements.txt changes and in CI, not on every commit.
+      - id: pip-audit
+        args: [-r, .github/scripts/requirements.txt, --no-deps, --disable-pip]
+        files: ^\.github/scripts/requirements\.txt$
+        stages: [pre-commit, manual]
+
   - repo: local
     hooks:
       # ADR 0001: the ADRs have the sections, the status and the numbering of the template.

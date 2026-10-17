@@ -77,6 +77,7 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 - the ADRs have the title, the status, the sections and the numbering that [ADR 0001](docs/adr/0001-record-architecture-decisions.md) and its template define, checked by [`.github/scripts/check_adrs.py`](.github/scripts/check_adrs.py)
 - the relative links and the anchors of the Markdown files resolve, checked offline by [`.github/scripts/check_links.py`](.github/scripts/check_links.py), which runs in an environment that [`.github/scripts/run_with_requirements.py`](.github/scripts/run_with_requirements.py) makes from the pinned [`requirements.txt`](.github/scripts/requirements.txt) on the first run
 - GitHub Actions workflows have no security mistake such as an expression injection, an unpinned action or excessive permissions, audited offline by [zizmor](https://docs.zizmor.sh) and configured in [`.github/zizmor.yml`](.github/zizmor.yml)
+- the dependencies of the scripts have no known vulnerability, audited by [pip-audit](https://github.com/pypa/pip-audit) when [`.github/scripts/requirements.txt`](.github/scripts/requirements.txt) changes and in the CI, since it needs the network ([ADR 0008](docs/adr/0008-automated-checks.md))
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
 
