@@ -58,6 +58,16 @@ repos:
         always_run: true
         stages: [pre-commit, manual]
 
+      # ADR 0008: the map of the practices names every ADR and every tracked file, and the ADRs
+      # that each one needs.
+      - id: practices
+        name: Check the map of the practices (ADR 0008)
+        language: python
+        entry: python .github/scripts/check_practices.py
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, manual]
+
       # ADR 0008: the relative links and the anchors of the Markdown files resolve. It checks
       # all the files, since a link breaks when the file it points to is renamed.
       - id: markdown-links
