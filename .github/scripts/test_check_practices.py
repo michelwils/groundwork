@@ -190,5 +190,29 @@ class SharedLines(Practices):
         self.only("AGENTS.md", text)
 
 
+class Projects(Practices):
+    def test_an_adr_of_a_project_needs_no_entry(self):
+        self.put("docs/adr/1000-ours.md", ADR.format(n="1000"))
+        self.assertEqual(self.problems(), [])
+
+    def test_an_entry_for_an_adr_of_a_project_is_reported(self):
+        self.put("docs/adr/1000-ours.md", ADR.format(n="1000"))
+        self.only("1000", practices(*self.good_entries(), entry("1000")))
+
+    def test_a_project_may_track_files_that_the_map_does_not_name(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.put("src/app.py", "")
+        self.assertEqual(self.problems(), [])
+
+    def test_a_project_is_told_of_a_file_of_the_map_that_it_removed(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        os.remove(os.path.join(self.root, "tool.py"))
+        self.only("tool.py")
+
+    def test_the_map_still_names_every_file_in_groundwork_itself(self):
+        self.put("src/app.py", "")
+        self.only("src/app.py")
+
+
 if __name__ == "__main__":
     unittest.main()

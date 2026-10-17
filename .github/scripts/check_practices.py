@@ -12,6 +12,10 @@ does not exist, an ADR both needed and mentioned or a cycle of needs, a file nam
 not tracked by git or that two entries name, and a tracked file that the map does not name. The file
 of an ADR is named by its entry. The lines of the shared files are not checked.
 
+The map describes groundwork: it has entries for the ADRs `0001` to `0999` only. In a project, which
+has a `.groundwork-version`, the files of the project are not in the map, so the check leaves out the
+tracked files that the map does not name and reports only what the map names and the project lacks.
+
 Usage: check_practices.py [ROOT]
 """
 
@@ -21,6 +25,8 @@ import subprocess
 import sys
 
 MAP = "docs/practices.md"
+VERSION_FILE = ".groundwork-version"
+FIRST_OF_A_PROJECT = 1000
 ADR_DIRECTORY = "docs/adr"
 ADR_FILE = re.compile(r"^(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*\.md$")
 HEADING = re.compile(r"^### (\d{4})\. \S")
@@ -41,7 +47,8 @@ def adrs_of(root):
     directory = os.path.join(root, ADR_DIRECTORY)
     if not os.path.isdir(directory):
         return set()
-    return {int(match.group(1)) for name in os.listdir(directory) if (match := ADR_FILE.match(name))}
+    numbers = {int(match.group(1)) for name in os.listdir(directory) if (match := ADR_FILE.match(name))}
+    return {number for number in numbers if number < FIRST_OF_A_PROJECT}
 
 
 def parse(lines):
@@ -163,6 +170,8 @@ def check_files(root, entries, shared, apart, files, problems):
             if path not in shared_files:
                 problems.append((line, f"the file {path} of the shared lines of the entry {entry['number']:04d} is not in the shared files"))
     implicit = {path for path in files if path.startswith(ADR_DIRECTORY + "/") and ADR_FILE.match(path[len(ADR_DIRECTORY) + 1:])}
+    if os.path.exists(os.path.join(root, VERSION_FILE)):
+        return
     for path in sorted(files - set(named) - implicit):
         problems.append((1, f"the file {path} is tracked and the map does not name it"))
 
