@@ -8,7 +8,7 @@ groundwork protects the repository of a project: [ADR 0008](0008-automated-check
 
 ## Decision
 
-We will apply these rules to the code of an application, wherever the subject exists in it. A change that breaks one is corrected before it is merged. The rules are written to be checked against a diff, and they name no language, framework or tool.
+We will apply these rules to the code of an application, wherever the subject exists in it. A change that breaks one is corrected before it is merged. The rules are written to be checked against a diff, and they name no language, framework or tool, so that they hold for any project, which names its own where it needs them.
 
 - **Input.** Data from outside the system is validated where it enters: its type, size, range and format.
 - **Interpreters.** A query to a database, a command to a shell or an instruction to any other interpreter is parameterised, and never built by joining strings.
@@ -29,4 +29,4 @@ The rules are applied by the rules for agents ([ADR 0007](0007-ai-assisted-chang
 - The rules remove the most common faults. They do not make an application secure: no rule and no tool proves it, and they replace neither the knowledge of a stack, nor a threat model, nor an audit. An application that follows them can still be taken over.
 - Only the review applies the rules that no tool detects. A rule that is not read in a diff is not applied.
 - A change that touches a trust boundary takes a reading more. That is the cost of the rules.
-- The rules are general. A project that needs more, because of its sort of application or of the data it holds, adds its own in an ADR numbered from 1000.
+- The rules are general. A project that needs more, because of its sort of application or of the data it holds, adds its own in an ADR.
