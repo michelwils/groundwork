@@ -65,7 +65,9 @@ A release increments the version once, by the highest increment among the change
 
 A release is made by the [`release` workflow](.github/workflows/release.yml), which a maintainer starts by hand: it computes the version from the commit titles, tags it and publishes the release notes.
 
-Check a release with `gh release verify <tag>`: it confirms, from the attestation of the platform, that the release exists and is immutable. The source archives are not covered. Only the latest release is maintained.
+Check a release with `gh release verify <tag>`: it confirms, from the attestation of the platform, that the release exists and is immutable. The source archives are not covered.
+
+Only the latest release is maintained.
 
 ## Checks
 
