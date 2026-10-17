@@ -4,16 +4,16 @@
 
 ## Context
 
-The dependencies of a project come with licenses, which set what the project may do with them and what it owes. A dependency added without reading its license can force a project to relicense, to disclose code, or to give the dependency up later, at a cost. Which licenses a project can accept depends on its own license, on the sort of application it builds and on the rules of its organisation, which groundwork does not know. [ADR 0008](0008-automated-checks.md) audits the dependencies for known vulnerabilities, not for their licenses. groundwork gives no legal advice.
+The dependencies of a project come with licenses, which set what the project may do with them and what it owes. A dependency added without reading its license can force a project to relicense, to disclose code, or to give the dependency up later, at a cost. Which licenses a project can accept depends on its own license, on the sort of application it builds and on the rules of its organisation, which groundwork does not know. The audit of the dependencies that a project runs looks for known vulnerabilities, not for licenses. groundwork gives no legal advice.
 
 ## Decision
 
 We will ask each project to state which licenses it accepts in its dependencies, and to apply that statement. The list is the project's own: this ADR names no license, no tool and no law, and it decides none of them.
 
 - **List.** The project writes, in its documentation, the licenses it accepts for its dependencies, or the rule by which it accepts them.
-- **New dependency.** The license of a new dependency is named in the pull request that adds it, with the dependency itself ([ADR 0007](0007-ai-assisted-changes.md)), and is read against the list.
+- **New dependency.** The license of a new dependency is named in the pull request that adds it, with the dependency itself, and is read against the list.
 - **Outside the list.** A dependency whose license is not on the list, or that has none, is not added as it stands. The project extends its list, or records the exception and its reason in an ADR of its own. The decision is always the project's.
-- **Tools.** A project whose stack has a tool that lists licenses may add a check for it to its configuration ([ADR 0008](0008-automated-checks.md)). None is required.
+- **Tools.** A project whose stack has a tool that lists licenses may add a check for it to the configuration of its checks. None is required.
 
 ## Consequences
 

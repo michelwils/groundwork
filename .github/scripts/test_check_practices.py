@@ -13,8 +13,8 @@ SCRIPT = os.path.join(HERE, "check_practices.py")
 ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n"
 
 
-def entry(number, needs="none", mentions="none", files=(), shared=()):
-    lines = [f"### {number}. Decision {number}", "", f"- Needs: {needs}", f"- Mentions: {mentions}", "- Files:"]
+def entry(number, needs="none", files=(), shared=()):
+    lines = [f"### {number}. Decision {number}", "", f"- Needs: {needs}", "- Files:"]
     lines += [f"  - `{path}`" for path in files] or ["  - none"]
     lines += ["- Shared lines:"]
     lines += [f"  - `{path}`, {where}" for path, where in shared] or ["  - none"]
@@ -108,10 +108,6 @@ class Entries(Practices):
         text = self.good().replace("- Needs: ADR 0001\n", "")
         self.only("Needs", text)
 
-    def test_an_entry_without_the_line_mentions_is_reported(self):
-        text = self.good().replace("- Mentions: none\n", "", 1)
-        self.only("Mentions", text)
-
 
 class Dependencies(Practices):
     def test_a_needed_adr_that_does_not_exist_is_reported(self):
@@ -119,9 +115,6 @@ class Dependencies(Practices):
 
     def test_an_adr_that_needs_itself_is_reported(self):
         self.only("itself", self.good().replace("Needs: ADR 0001", "Needs: ADR 0002"))
-
-    def test_an_adr_both_needed_and_mentioned_is_reported(self):
-        self.only("both", self.good().replace("Needs: ADR 0001", "Needs: ADR 0001").replace("### 0002. Decision 0002\n\n- Needs: ADR 0001\n- Mentions: none", "### 0002. Decision 0002\n\n- Needs: ADR 0001\n- Mentions: ADR 0001"))
 
     def test_several_adrs_are_separated_by_commas(self):
         self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
@@ -154,7 +147,7 @@ class Files(Practices):
         self.assertEqual(self.problems(), [])
 
     def test_a_file_named_in_two_practices_is_reported(self):
-        text = self.good().replace("### 0002. Decision 0002\n\n- Needs: ADR 0001\n- Mentions: none\n- Files:\n  - none", "### 0002. Decision 0002\n\n- Needs: ADR 0001\n- Mentions: none\n- Files:\n  - `tool.py`")
+        text = self.good().replace("### 0002. Decision 0002\n\n- Needs: ADR 0001\n- Files:\n  - none", "### 0002. Decision 0002\n\n- Needs: ADR 0001\n- Files:\n  - `tool.py`")
         self.only("tool.py", text)
 
     def test_a_file_class_as_not_part_of_a_practice_is_covered(self):
@@ -188,6 +181,72 @@ class SharedLines(Practices):
     def test_a_shared_file_that_does_not_exist_is_reported(self):
         text = practices(*self.good_entries(), shared=("CONTRIBUTING.md", "AGENTS.md"))
         self.only("AGENTS.md", text)
+
+
+class Text(Practices):
+    """The text of an ADR refers only to the ADRs that its entry lists as needed."""
+
+    def adr_with(self, number, body, name=None):
+        text = ADR.format(n=number).replace("Text.\n\n## Decision", body + "\n\n## Decision", 1)
+        self.put(f"docs/adr/{number}-{name or 'second'}.md", text)
+
+    def test_a_link_to_an_adr_that_is_not_needed_is_reported(self):
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
+        self.adr_with("0002", "See [ADR 0003](0003-third.md).")
+        text = practices(*self.good_entries(), entry("0003"))
+        problem = self.only("0003", text)
+        self.assertRegex(problem, r"^docs/adr/0002-second\.md:\d+: ")
+
+    def test_a_mention_in_plain_text_is_reported(self):
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
+        self.adr_with("0002", "This follows ADR 0003.")
+        self.only("0003", practices(*self.good_entries(), entry("0003")))
+
+    def test_a_link_without_the_words_adr_is_reported(self):
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
+        self.adr_with("0002", "See [the third](0003-third.md).")
+        self.only("0003", practices(*self.good_entries(), entry("0003")))
+
+    def test_a_list_of_adrs_is_reported_for_each_one_that_is_not_needed(self):
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
+        self.put("docs/adr/0004-fourth.md", ADR.format(n="0004"))
+        self.adr_with("0002", "These rules are in ADRs 0001 and 0003, and in ADR 0004.")
+        problems = self.problems(practices(*self.good_entries(), entry("0003"), entry("0004")))
+        self.assertEqual(len(problems), 2)
+        self.assertTrue(any("0003" in problem for problem in problems))
+        self.assertTrue(any("0004" in problem for problem in problems))
+
+    def test_a_needed_adr_may_be_named_and_linked(self):
+        self.adr_with("0002", "See [ADR 0001](0001-first.md), that is, ADR 0001.")
+        self.assertEqual(self.problems(), [])
+
+    def test_an_adr_may_name_itself(self):
+        self.adr_with("0002", "This is ADR 0002.")
+        self.assertEqual(self.problems(), [])
+
+    def test_a_code_block_is_not_read(self):
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
+        self.adr_with("0002", "```text\nSee ADR 0003.\n```")
+        self.assertEqual(self.problems(practices(*self.good_entries(), entry("0003"))), [])
+
+    def test_the_status_of_an_adr_that_is_superseded_may_name_the_new_one(self):
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
+        self.put("docs/adr/0002-second.md", ADR.format(n="0002", ).replace("accepted", "superseded by [0003](0003-third.md)"))
+        self.assertEqual(self.problems(practices(*self.good_entries(), entry("0003"))), [])
+
+    def test_an_adr_of_a_project_may_refer_to_any_adr(self):
+        self.put("docs/adr/1000-ours.md", ADR.format(n="1000").replace("Text.", "See ADR 0002.", 1))
+        self.assertEqual(self.problems(), [])
+
+    def test_an_adr_without_an_entry_is_reported_once(self):
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003").replace("Text.", "See ADR 0001.", 1))
+        problems = self.problems()
+        self.assertEqual(len(problems), 1)
+        self.assertIn("0003", problems[0])
+
+    def test_an_entry_does_not_need_the_line_mentions(self):
+        self.assertNotIn("Mentions", self.good())
+        self.assertEqual(self.problems(), [])
 
 
 class Projects(Practices):

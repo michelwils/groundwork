@@ -4,7 +4,7 @@
 
 ## Context
 
-A deployed project can face an incident that is not a vulnerability reported to it: a leak of data, an outage, a compromised account. [`SECURITY.md`](../../SECURITY.md) tells the maintainer what to do from the report of a vulnerability to its disclosure, and [ADR 0011](0011-protection-of-confidential-and-personal-data.md) makes a leak of personal data an incident. Nothing says who acts, how the people affected are told, and what is learned afterwards. Under pressure, those questions are answered in a hurry, and often by nobody. The tools, the channels and the contacts depend on the project, and groundwork does not choose them.
+A deployed project can face an incident that is not a vulnerability reported to it: a leak of data, an outage, a compromised account. [`SECURITY.md`](../../SECURITY.md) tells the maintainer what to do from the report of a vulnerability to its disclosure. Nothing says who acts, how the people affected are told, and what is learned afterwards. Under pressure, those questions are answered in a hurry, and often by nobody. The tools, the channels and the contacts depend on the project, and groundwork does not choose them.
 
 ## Decision
 
@@ -16,7 +16,7 @@ We will respond to an incident by these principles. They apply to a project of a
 - **Record.** The facts and the decisions are written where the work is tracked, such as the report or an issue, as they happen.
 - **Review.** After the incident, a review that blames no one records what happened and what was missing, and opens an issue for the check or the rule that was missing, if there was one.
 
-A vulnerability that is reported to the project is handled as `SECURITY.md` says, which uses the review below. These principles apply to every other incident, and to a leak of personal data ([ADR 0011](0011-protection-of-confidential-and-personal-data.md)).
+A vulnerability that is reported to the project is handled as `SECURITY.md` says, which uses the review below. These principles apply to every other incident, including a leak of personal data.
 
 ## Consequences
 
