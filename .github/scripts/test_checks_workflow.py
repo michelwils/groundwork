@@ -4,13 +4,13 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WORKFLOW = os.path.join(HERE, "..", "workflows", "checks.yml")
-BOT_BRANCH = "!startsWith(github.head_ref, 'dependabot/')"
+BOT_PULL_REQUEST = "!(startsWith(github.head_ref, 'dependabot/') && github.event.pull_request.user.login == 'dependabot[bot]')"
 
 
 def steps():
-    """Return the text of each step of the workflow, by name."""
+    """Return the text of each step of the workflow, by name, without its comments."""
     with open(WORKFLOW) as handle:
-        text = handle.read()
+        text = re.sub(r"^\s*#.*\n", "", handle.read(), flags=re.MULTILINE)
     parts = re.split(r"^      - (?=name:|uses:)", text, flags=re.MULTILINE)[1:]
     found = {}
     for part in parts:
@@ -24,8 +24,13 @@ class ChecksWorkflow(unittest.TestCase):
         step = steps()["Check the pull request title"]
         condition = re.search(r"^        if: (.+)$", step, flags=re.MULTILINE)
         self.assertIsNotNone(condition)
-        self.assertIn(BOT_BRANCH, condition.group(1))
+        self.assertIn(BOT_PULL_REQUEST, condition.group(1))
         self.assertIn("github.event_name == 'pull_request'", condition.group(1))
+
+    def test_a_branch_named_like_those_of_dependabot_is_not_enough_to_skip_the_check(self):
+        condition = re.search(r"^        if: (.+)$", steps()["Check the pull request title"], flags=re.MULTILINE).group(1)
+        self.assertNotIn("!startsWith(github.head_ref, 'dependabot/') }}", condition)
+        self.assertIn("github.event.pull_request.user.login", condition)
 
     def test_no_other_step_skips_the_pull_requests_of_dependabot(self):
         for name, step in steps().items():

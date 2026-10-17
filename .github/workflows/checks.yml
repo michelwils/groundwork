@@ -40,9 +40,10 @@ jobs:
         run: |
           "$RUNNER_TEMP/scripts/bin/python" -m unittest discover -s .github/scripts -p 'test_*.py'
 
-      # Dependabot starts the title of its pull requests with a capital letter (ADR 0003).
+      # Dependabot starts the title of its pull requests with a capital letter (ADR 0003). The
+      # branch is not enough to be skipped, since anyone can name a branch dependabot/…
       - name: Check the pull request title
-        if: ${{ !cancelled() && github.event_name == 'pull_request' && !startsWith(github.head_ref, 'dependabot/') }}
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && !(startsWith(github.head_ref, 'dependabot/') && github.event.pull_request.user.login == 'dependabot[bot]') }}
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
