@@ -16,7 +16,7 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 
 - Commits you make end with a `Co-Authored-By` trailer naming you. Issues and pull requests you write end with a line stating that they were generated, with the name of the tool.
 - Never include a link to, or an identifier of, your session or conversation.
-- For a change that touches a trust boundary, name in your plan the rule of [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md) that applies, and each new dependency.
+- For a change that touches a trust boundary, name in your plan the rule of [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md) or the principle of [ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md) that applies, and each new dependency.
 - Never merge a pull request without the explicit approval of a maintainer for that pull request.
 - Report the errors you corrected and the deviations from a rule. Do not report that you followed the rules.
 - Check your work before presenting it, committing it or marking a pull request ready, against the [review checklist](CONTRIBUTING.md#review-checklist).

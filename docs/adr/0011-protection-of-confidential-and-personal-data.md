@@ -19,7 +19,7 @@ We will apply these principles to the data of an application. A change that brea
 - **Rights of users.** A user can get, and have deleted, the data that the application holds about them.
 - **Leaks of data.** A leak of personal data is an incident, handled as [`SECURITY.md`](../../SECURITY.md) says. The project checks the legal duties of notification that apply to it, which this ADR does not state.
 
-The principles are applied by the rules for agents ([ADR 0007](0007-ai-assisted-changes.md)) and by the review. The cases where data would be exposed have their tests written first, as [ADR 0009](0009-test-first-development.md) requires.
+The principles are applied by the rules for agents ([ADR 0007](0007-ai-assisted-changes.md)) and by the review.
 
 ## Consequences
 
