@@ -85,7 +85,7 @@ A reviewer, and an agent that checks its own work ([ADR 0007](docs/adr/0007-ai-a
 - the commands that the change documents, by running them
 - the links, by following them
 - the type of the pull request title, against the public contract in the [README](README.md#versioning), since it sets the next version
-- the trust boundaries of the change, against the rules of [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md)
+- the trust boundaries of the change, against the rules of [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md) and the principles of [ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md)
 - wording that can be read in two ways, or that leaves the reader to guess
 
 ## Checks
