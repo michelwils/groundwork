@@ -19,6 +19,8 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Rules for the security of the code of an application ([ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md))
 - Principles for the protection of confidential and personal data ([ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md))
 - Principles for responding to an incident ([ADR 0012](docs/adr/0012-responding-to-an-incident.md))
+- A rule for the licenses of the dependencies, which each project states for itself ([ADR 0013](docs/adr/0013-licenses-of-the-dependencies.md))
+- How a user checks the origin of a release ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md))
 - Issue and pull request templates and a review checklist
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
@@ -62,6 +64,8 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 A release increments the version once, by the highest increment among the changes since the previous release.
 
 A release is made by the [`release` workflow](.github/workflows/release.yml), which a maintainer starts by hand: it computes the version from the commit titles, tags it and publishes the release notes.
+
+Check a release with `gh release verify <tag>`: it confirms, from the attestation of the platform, that the release exists and is immutable. The source archives are not covered.
 
 Only the latest release is maintained.
 
