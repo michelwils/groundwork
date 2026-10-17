@@ -27,7 +27,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
 - A script that applies the repository settings, in [`.github/scripts/apply_settings.py`](.github/scripts/apply_settings.py)
-- Pre-commit checks and baseline CI that do not depend on a language or technology stack, including the audit of the dependencies of the stack ([ADR 0008](docs/adr/0008-automated-checks.md))
+- Pre-commit checks and baseline CI that do not depend on a language or technology stack, and the rule that a project audits the dependencies of its stack ([ADR 0008](docs/adr/0008-automated-checks.md))
 - Vulnerability alerts and security updates of the platform, turned on by the settings script
 
 ## What it does not cover
@@ -93,7 +93,7 @@ groundwork is a GitHub template repository.
    python3 .github/scripts/apply_settings.py [<owner>/<repo>] [--dry-run]
    ```
 
-   It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, makes published releases immutable, so that the tag of a release cannot be moved, and turns on the vulnerability alerts and the security updates of the dependencies. That applies to the releases published afterwards. Last, it protects the default branch with the ruleset of this repository, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
+   It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. It also turns on the vulnerability alerts and the security updates of the dependencies. Last, it protects the default branch with the ruleset of this repository, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
 
    If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, changes the `context` of [`.github/rulesets/main.json`](.github/rulesets/main.json) and runs the script again.
 
