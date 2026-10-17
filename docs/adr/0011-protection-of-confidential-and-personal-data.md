@@ -8,7 +8,7 @@
 
 ## Decision
 
-We will apply these principles to the data of an application. A change that breaks one is corrected before it is merged. They name no language, framework, tool, law or jurisdiction, and they are not legal advice.
+We will apply these principles to the data of an application. A change that breaks one is corrected before it is merged. These principles name no language, framework, tool, law or jurisdiction, so that they hold for any project, which names its own where it needs them. They are not legal advice.
 
 - **Classification.** The project classifies the data of its application as public, internal, confidential or personal, and says so in its documentation.
 - **Minimisation.** Only the data that are needed are collected, for a named purpose, and they are deleted when they are no longer needed.
@@ -27,4 +27,4 @@ The principles are applied by the rules for agents ([ADR 0007](0007-ai-assisted-
 - The principles do not make an application lawful or its data safe. They are not legal advice, they do not replace the knowledge of the law that applies, and a project that follows them can still leak data or break the law.
 - The classification, the purposes and the periods of retention depend on the application. Each project states them, and the principles are only as good as that statement.
 - No tool detects most of these principles. Only the review applies them, and a principle that is not read in a diff is not applied.
-- The principles are general. A project that needs more, because of the data it holds or the law that applies to it, adds its own in an ADR numbered from 1000.
+- The principles are general. A project that needs more, because of the data it holds or the law that applies to it, adds its own in an ADR.
