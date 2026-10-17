@@ -147,6 +147,13 @@ class Launcher(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(half, ".ready")))
         self.assertFalse(os.path.exists(os.path.join(half, "leftover")))
 
+    def test_an_entry_that_vanishes_while_the_cache_is_cleaned_does_not_stop_the_launch(self):
+        self.run_launcher()
+        os.symlink(os.path.join(self.root, "nowhere"), os.path.join(self.cache, "building-vanished-1"))
+        self.write(self.requirements, "# changed\n")
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_an_option_without_its_value_is_reported(self):
         result = subprocess.run([sys.executable, LAUNCHER, "--requirements"], capture_output=True, text=True)
         self.assertEqual(result.returncode, 1)

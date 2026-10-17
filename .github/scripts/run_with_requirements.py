@@ -87,14 +87,32 @@ def build(folder, key, requirements):
     return final
 
 
+def remove(path):
+    if os.path.islink(path):
+        os.unlink(path)
+    else:
+        shutil.rmtree(path, ignore_errors=True)
+
+
+def age(path):
+    """Return the seconds since the path changed, 0 when it is gone: another launch cleans the folder too."""
+    try:
+        return time.time() - os.lstat(path).st_mtime
+    except FileNotFoundError:
+        return 0
+
+
 def prune(folder, keep):
     """Remove the other environments, and the builds that an interrupted run left."""
     for name in os.listdir(folder):
         path = os.path.join(folder, name)
-        if name.startswith("venv-") and name != keep:
-            shutil.rmtree(path, ignore_errors=True)
-        elif name.startswith("building-") and time.time() - os.path.getmtime(path) > STALE_BUILD_SECONDS:
-            shutil.rmtree(path, ignore_errors=True)
+        try:
+            if name.startswith("venv-") and name != keep:
+                remove(path)
+            elif name.startswith("building-") and age(path) > STALE_BUILD_SECONDS:
+                remove(path)
+        except FileNotFoundError:
+            pass
 
 
 def environment_for(requirements):
