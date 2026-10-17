@@ -73,7 +73,7 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 - Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)
 - files follow the settings of [`.editorconfig`](.editorconfig), checked by [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker), for which pre-commit downloads Go if it is not installed
 - the ADRs have the title, the status, the sections and the numbering that [ADR 0001](docs/adr/0001-record-architecture-decisions.md) and its template define, checked by [`.github/scripts/check_adrs.py`](.github/scripts/check_adrs.py)
-- the relative links and the anchors of the Markdown files resolve, checked offline by [`.github/scripts/check_links.py`](.github/scripts/check_links.py)
+- the relative links and the anchors of the Markdown files resolve, checked offline by [`.github/scripts/check_links.py`](.github/scripts/check_links.py), which runs in an environment that [`.github/scripts/run_with_requirements.py`](.github/scripts/run_with_requirements.py) makes from the pinned [`requirements.txt`](.github/scripts/requirements.txt) on the first run
 - GitHub Actions workflows have no security mistake such as an expression injection, an unpinned action or excessive permissions, audited offline by [zizmor](https://docs.zizmor.sh) and configured in [`.github/zizmor.yml`](.github/zizmor.yml)
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.

@@ -24,13 +24,11 @@ class ScriptDependencies(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertRegex(line, PIN)
 
-    def test_the_hook_that_checks_the_links_installs_the_pinned_versions(self):
+    def test_the_hook_that_checks_the_links_has_no_list_of_dependencies_and_uses_the_launcher(self):
         config = read(".pre-commit-config.yaml")
-        hook = config.split("id: markdown-links", 1)[1].split("\n      - id:", 1)[0]
-        match = re.search(r"additional_dependencies:\s*\[([^\]]*)\]", hook)
-        self.assertIsNotNone(match, "the hook has no additional_dependencies")
-        installed = {item.strip().lower() for item in match.group(1).split(",") if item.strip()}
-        self.assertEqual(installed, {line.lower() for line in requirements()})
+        hook = config.split("id: markdown-links", 1)[1].split("\n      - id:", 1)[0].split("\n\n", 1)[0]
+        self.assertNotIn("additional_dependencies", hook)
+        self.assertIn("run_with_requirements.py .github/scripts/check_links.py", hook)
 
     def test_the_workflow_installs_the_requirements_of_the_scripts_before_testing_them(self):
         workflow = read(".github", "workflows", "checks.yml")
