@@ -53,7 +53,7 @@ repos:
       - id: markdown-links
         name: Check the links of the Markdown files
         language: python
-        additional_dependencies: [markdown-it-py==4.0.0, mdurl==0.1.2]
+        additional_dependencies: [markdown-it-py==4.2.0, mdurl==0.1.2]
         entry: python .github/scripts/check_links.py
         pass_filenames: false
         always_run: true
