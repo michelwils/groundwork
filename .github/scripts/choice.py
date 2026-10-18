@@ -1,4 +1,4 @@
-"""The ADRs that a project keeps, and what that makes of the files of groundwork (ADR 1000).
+"""The ADRs that a project keeps, and what that makes of the files of groundwork.
 
 The project lists the ADRs it keeps in `.groundwork-adrs`, one number of four digits (`0003`) or one
 range (`0001-0999`) per line, with comments that start with `#`. A number adopts one ADR, a range adopts

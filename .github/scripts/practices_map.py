@@ -1,4 +1,4 @@
-"""The map of the practices and the numbers of the ADRs that a source reserves (ADR 0008, ADR 0001).
+"""The map of the practices and the numbers of the ADRs that a source reserves (ADR 0001).
 
 `parse` reads the map, `docs/practices.md`: the entries with what each ADR needs, its files and its
 shared lines, the shared files and the files that are not part of a practice. `needs_of` and `owners`
