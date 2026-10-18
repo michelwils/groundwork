@@ -174,7 +174,6 @@ class Side:
     """What a version of groundwork says about the ADRs: the ranges it reserves and the map of the practices."""
 
     def __init__(self, version):
-        self.version = version
         self.has_map = blob(version, practices_map.MAP) is not None
         with tempfile.TemporaryDirectory() as directory:
             for path in (practices_map.MAP, practices_map.RANGES_FILE):
@@ -206,10 +205,10 @@ def text_of(path, content, kept):
 
 
 def plan(old, new):
-    """Return the ADRs that enter the choice, the ones to say, and the paths to apply with how.
+    """Return the numbers of the ADRs to say as added, and the steps to apply.
 
-    A path is (path, base, theirs): the contents are already filtered, and the base is None for a path
-    that starts from nothing."""
+    A step is (path, base, theirs): the contents are already filtered, and the base is None for a path
+    that starts from nothing. It reads the project and the versions and writes nothing."""
     after, before = Side(new), Side(old)
     if after.problems:
         raise Failure("\n".join(f"{practices_map.RANGES_FILE}:{number}: {message}" for number, message in after.problems))
