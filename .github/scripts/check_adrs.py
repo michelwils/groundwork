@@ -7,9 +7,15 @@ Every Markdown file of docs/adr/ except template.md is named `NNNN-title-in-keba
 alone or as the link of the template. It has the sections Context, Decision and Consequences, each
 once, in that order and not empty. Other sections may follow.
 
-The numbers `0001` to `0999` are reserved for the ADRs of groundwork, and those of a project start
-at `1000`. In each range there is no duplicate and no skipped number, since a number is never
-reused. template.md has the title `# NNNN. …` and the three sections.
+A number is never reused, and there is no duplicate. In each range that the source reserves, `0001` to
+`0999` and the ranges of `.groundwork-ranges`, the numbers go from the first of the range without a
+skipped one, except the ones that the choice of the project, `.groundwork-adrs`, leaves out. The ADRs
+of the project go from the first number that no range reserves, skipping only reserved numbers
+(ADR 0001). The two files are read with their line numbers, and a line that is refused is reported here.
+template.md has the title `# NNNN. …` and the three sections.
+
+A community base whose `.groundwork-adrs` does not list its own range has that range left out by the
+choice, so a skipped number in it is not reported: the base lists its range to be checked.
 
 Usage: check_adrs.py [DIR]
 """
@@ -17,6 +23,9 @@ Usage: check_adrs.py [DIR]
 import os
 import re
 import sys
+
+import choice
+import practices_map
 
 DIRECTORY = os.path.join("docs", "adr")
 TEMPLATE = "template.md"
@@ -27,7 +36,6 @@ SUPERSEDED = re.compile(r"^superseded by (?:\[(\d{4})\]\((\d{4})-[a-z0-9]+(?:-[a
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 STATUSES = ("proposed", "accepted", "rejected")
 SECTIONS = ("Context", "Decision", "Consequences")
-FIRST_OF_A_PROJECT = 1000
 
 
 def read(path):
@@ -108,17 +116,31 @@ def check_adr(name, number, lines, numbers, problems):
     check_sections(name, lines, problems)
 
 
-def check_numbers(numbers, problems):
-    groundwork = sorted(n for n in numbers if n < FIRST_OF_A_PROJECT)
-    project = sorted(n for n in numbers if n >= FIRST_OF_A_PROJECT)
-    for start, found in ((1, groundwork), (FIRST_OF_A_PROJECT, project)):
-        if found and found[0] == 0:
-            problems.append(f"{DIRECTORY}: the numbers start at 0001, not at 0000")
-            continue
+def check_numbers(numbers, reserved, kept, problems):
+    if 0 in numbers:
+        problems.append(f"{DIRECTORY}: the numbers start at 0001, not at 0000")
+    for start, end in reserved:
+        found = {number for number in numbers if start <= number <= end}
         if found:
-            for missing in sorted(set(range(start, found[-1] + 1)) - set(found)):
-                kind = "groundwork" if start == 1 else "project"
-                problems.append(f"{DIRECTORY}: the number {missing:04d} of the {kind} ADRs is skipped")
+            owner = "groundwork" if (start, end) == practices_map.BASE else f"the range {start:04d}-{end:04d}"
+            for missing in sorted(set(range(start, max(found) + 1)) - found):
+                if missing in kept:
+                    problems.append(f"{DIRECTORY}: the number {missing:04d} of the {owner} ADRs is skipped")
+    project = {number for number in numbers if number >= 1 and not practices_map.is_reserved(number, reserved)}
+    first = 1
+    while practices_map.is_reserved(first, reserved):
+        first += 1
+    for missing in range(first, max(project, default=0) + 1):
+        if missing not in project and not practices_map.is_reserved(missing, reserved):
+            problems.append(f"{DIRECTORY}: the number {missing:04d} of the project ADRs is skipped")
+
+
+def read_needs(root):
+    path = os.path.join(root, practices_map.MAP)
+    if not os.path.isfile(path):
+        return {}
+    with open(path, encoding="utf-8-sig", errors="replace") as handle:
+        return practices_map.needs_of(practices_map.parse(handle.read().split("\n"))[0])
 
 
 def check(root):
@@ -148,7 +170,12 @@ def check(root):
     for number, entries in files.items():
         for relative, path in entries:
             check_adr(relative, number, read(path), set(files), problems)
-    check_numbers(set(files), problems)
+    reserved, found = practices_map.read_ranges(root)
+    problems.extend(f"{practices_map.RANGES_FILE}:{line}: {message}" for line, message in found)
+    adopted, found = choice.read(root, reserved)
+    problems.extend(f"{choice.CHOICE_FILE}:{line}: {message}" for line, message in found)
+    kept = choice.Kept(adopted, read_needs(root) if adopted is not None else {})
+    check_numbers(set(files), reserved, kept, problems)
     return sorted(problems)
 
 

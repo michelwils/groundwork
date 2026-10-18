@@ -22,9 +22,13 @@ an ADR that have no block, and that no `Shared lines` lists, are not read), and 
 `Shared lines` list that is not the list of the files that have a block of the ADR. In a project, which
 has a `.groundwork-version`, the lines outside the blocks are its own and may name any ADR.
 
-The map describes groundwork: it has entries for the ADRs `0001` to `0999` only. In a project, which
-has a `.groundwork-version`, the files of the project are not in the map, so the check leaves out the
-tracked files that the map does not name and reports only what the map names and the project lacks.
+The map describes the ADRs of the ranges that the source reserves, `0001` to `0999` and the ranges of
+`.groundwork-ranges`, and only those: an ADR of one of these ranges without an entry is reported, and
+an ADR of groundwork may not need one of a community base. In a project, which has a `.groundwork-version`,
+the files of the project are not in the map, so the check leaves out the tracked files that the map does
+not name and reports only what the map names and the project lacks. When the project keeps some of the
+ADRs (`.groundwork-adrs`), the entries of the others and their files are left out, and the lines that
+are refused in the two files are reported by check_adrs.py.
 
 Usage: check_practices.py [ROOT]
 """
@@ -34,11 +38,11 @@ import re
 import subprocess
 import sys
 
+import choice
 import markers
-from practices_map import ADR_DIRECTORY, ADR_FILE, MAP, cycles, parse, references
+from practices_map import ADR_DIRECTORY, ADR_FILE, BASE, MAP, RANGES_FILE, cycles, is_reserved, needs_of, parse, read_ranges, references
 
 VERSION_FILE = ".groundwork-version"
-FIRST_OF_A_PROJECT = 1000
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 NAMED = re.compile(r"\bADRs? \d{4}(?:(?:,| and| or| to)? \d{4})*")
 LINKED = re.compile(r"\]\((?:[^)\s]*/)?(\d{4})-[a-z0-9-]+\.md")
@@ -52,15 +56,16 @@ def tracked(root):
     return {path for path in result.stdout.decode().split("\0") if path}
 
 
-def adrs_of(root):
+def adrs_of(root, reserved, kept):
+    """Return the numbers of the ADRs in docs/adr that the source reserves and the project keeps."""
     directory = os.path.join(root, ADR_DIRECTORY)
     if not os.path.isdir(directory):
         return set()
     numbers = {int(match.group(1)) for name in os.listdir(directory) if (match := ADR_FILE.match(name))}
-    return {number for number in numbers if number < FIRST_OF_A_PROJECT}
+    return {number for number in numbers if is_reserved(number, reserved) and number in kept}
 
 
-def check_entries(entries, numbers, problems):
+def check_entries(entries, numbers, reserved, problems):
     seen = {}
     for entry in entries:
         number = entry["number"]
@@ -68,7 +73,9 @@ def check_entries(entries, numbers, problems):
             problems.append((MAP, entry["line"], f"the ADR {number:04d} has an entry more than once, first at line {seen[number]}"))
         else:
             seen[number] = entry["line"]
-        if number not in numbers:
+        if not is_reserved(number, reserved):
+            problems.append((MAP, entry["line"], f"the entry {number:04d} is for an ADR outside the ranges that the source reserves"))
+        elif number not in numbers:
             problems.append((MAP, entry["line"], f"the entry {number:04d} has no ADR in {ADR_DIRECTORY}"))
     for number in sorted(numbers - set(seen)):
         problems.append((MAP, 1, f"the ADR {number:04d} has no entry"))
@@ -87,6 +94,8 @@ def check_entries(entries, numbers, problems):
                 problems.append((MAP, line, f"the ADR {number:04d} refers to itself"))
             elif other not in numbers:
                 problems.append((MAP, line, f"the ADR {other:04d} that the entry {number:04d} refers to does not exist"))
+            elif BASE[0] <= number <= BASE[1] and not BASE[0] <= other <= BASE[1]:
+                problems.append((MAP, line, f"the ADR {number:04d} of groundwork needs the ADR {other:04d}, which is not of groundwork"))
         needs[number] = [other for other in found if other in numbers and other != number]
     lines = {entry["number"]: entry["line"] for entry in entries}
     for number in cycles(needs):
@@ -131,20 +140,20 @@ def check_texts(root, entries, numbers, problems):
                 problems.append((f"{ADR_DIRECTORY}/{name}", line_number, f"the ADR {number:04d} refers to the ADR {other:04d}, which its entry in the map does not list as needed"))
 
 
-def named_adrs(line):
-    """Return the numbers of the ADRs of groundwork that a line names or links."""
+def named_adrs(line, reserved=(BASE,)):
+    """Return the numbers of the ADRs of the ranges that the source reserves that a line names or links."""
     named = {int(number) for found in NAMED.findall(line) for number in re.findall(r"\d{4}", found)}
     named |= {int(number) for number in LINKED.findall(line)}
-    return {number for number in named if number < FIRST_OF_A_PROJECT}
+    return {number for number in named if is_reserved(number, reserved)}
 
 
-def check_blocks(root, entries, shared, files, numbers, problems):
+def check_blocks(root, entries, owned, reserved, shared, files, numbers, problems):
     """Check the blocks of the files that several ADRs share, and the lines outside them."""
     needs = {}
     for entry in entries:
         if entry["needs"] is not None:
             needs[entry["number"]] = set(references(entry["needs"][0])[0])
-    owner = {path: entry["number"] for entry in entries for path, _ in entry["files"]}
+    owner = {path: entry["number"] for entry in owned for path, _ in entry["files"]}
     shared_files = {path for path, _ in shared}
     listed_anywhere = {path for entry in entries for path, _ in entry["shared"]}
     project = os.path.exists(os.path.join(root, VERSION_FILE))
@@ -179,7 +188,7 @@ def check_blocks(root, entries, shared, files, numbers, problems):
                 allowed, who = {owner[path]} | needs.get(owner[path], set()), f"a line of the ADR {owner[path]:04d}"
             else:
                 allowed, who = set(), "a line outside the blocks"
-            for other in sorted(named_adrs(line) - allowed):
+            for other in sorted(named_adrs(line, reserved) - allowed):
                 problems.append((path, number, f"{who} names the ADR {other:04d}, which it does not need"))
     for entry in entries:
         number = entry["number"]
@@ -208,6 +217,7 @@ def check_files(root, entries, shared, apart, files, problems):
             reason = "is not tracked by git" if os.path.exists(os.path.join(root, path)) else "does not exist"
             problems.append((MAP, line, f"the file {path} {reason}"))
     implicit = {path for path in files if path.startswith(ADR_DIRECTORY + "/") and ADR_FILE.match(path[len(ADR_DIRECTORY) + 1:])}
+    implicit |= {RANGES_FILE} & files
     if os.path.exists(os.path.join(root, VERSION_FILE)):
         return
     for path in sorted(files - set(named) - implicit):
@@ -225,11 +235,14 @@ def check(root):
     with open(path, encoding="utf-8-sig", errors="replace") as handle:
         entries, shared, apart = parse(handle.read().split("\n"))
     problems = []
-    numbers = adrs_of(root)
-    check_entries(entries, numbers, problems)
+    reserved = read_ranges(root)[0]
+    kept = choice.Kept(choice.read(root, reserved)[0], needs_of(entries))
+    owned, entries = entries, [entry for entry in entries if entry["number"] in kept]
+    numbers = adrs_of(root, reserved, kept)
+    check_entries(entries, numbers, reserved, problems)
     check_texts(root, entries, numbers, problems)
     check_files(root, entries, shared, apart, files, problems)
-    check_blocks(root, entries, shared, files, numbers, problems)
+    check_blocks(root, entries, owned, reserved, shared, files, numbers, problems)
     return [f"{name}:{line}: {message}" for name, line, message in sorted(problems)]
 
 

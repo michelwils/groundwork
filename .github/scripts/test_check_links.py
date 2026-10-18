@@ -11,7 +11,7 @@ import check_links  # noqa: E402
 SCRIPT = os.path.join(HERE, "check_links.py")
 
 
-class Links(unittest.TestCase):
+class Fixture(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.root = self.directory.name
@@ -29,6 +29,8 @@ class Links(unittest.TestCase):
     def problems(self):
         return check_links.check(self.root)
 
+
+class Links(Fixture):
     def test_a_link_to_an_existing_file_is_accepted(self):
         self.make({"README.md": "[guide](docs/guide.md) and [config](.editorconfig)\n", "docs/guide.md": "# Guide\n", ".editorconfig": ""})
         self.assertEqual(self.problems(), [])
@@ -197,6 +199,72 @@ class Links(unittest.TestCase):
     def test_a_missing_file_is_reported_once_per_link(self):
         self.make({"README.md": "[a](x.md) [b](x.md)\n"})
         self.assertEqual(len(self.problems()), 2)
+
+
+MAP = """# Practices
+
+See [the ADR](adr/0003-third.md), [its anchor](adr/0003-third.md#decision) and [its script](../three.py).
+
+## Practices
+
+### 0001. [First](adr/0001-first.md)
+
+- Needs: none
+- Files:
+  - none
+- Shared lines:
+  - none
+
+### 0003. [Third](adr/0003-third.md)
+
+- Needs: none
+- Files:
+  - `three.py`
+- Shared lines:
+  - none
+"""
+
+
+class LeftOut(Fixture):
+    """A project that keeps some of the ADRs: the map still links what it left out."""
+
+    def project(self, listed="0001\n", files=None):
+        self.make({"docs/practices.md": MAP, "docs/adr/0001-first.md": "# 0001. First\n", ".groundwork-adrs": listed, **(files or {})})
+
+    def test_a_link_of_the_map_to_the_adr_that_is_left_out_is_not_reported(self):
+        self.project()
+        self.assertEqual(self.problems(), [])
+
+    def test_a_link_of_the_map_to_the_file_of_an_entry_that_is_left_out_is_not_reported(self):
+        self.project()
+        self.assertFalse([problem for problem in self.problems() if "three.py" in problem])
+
+    def test_an_anchor_in_the_adr_that_is_left_out_is_not_reported(self):
+        self.project()
+        self.assertFalse([problem for problem in self.problems() if "decision" in problem])
+
+    def test_a_link_to_what_is_left_out_is_reported_in_any_other_file(self):
+        self.project(files={"SECURITY.md": "[third](docs/adr/0003-third.md)\n"})
+        (problem,) = self.problems()
+        self.assertIn("SECURITY.md:1", problem)
+
+    def test_a_link_of_the_map_to_an_adr_that_is_kept_and_missing_is_reported(self):
+        self.project("0001\n0003\n")
+        self.assertEqual(len(self.problems()), 4)
+
+    def test_a_range_of_the_choice_keeps_the_adrs_it_holds(self):
+        self.project("0001-0999\n")
+        self.assertEqual(len(self.problems()), 4)
+
+    def test_a_link_of_the_map_to_a_file_that_does_not_exist_and_is_not_left_out_is_reported(self):
+        self.project(files={"docs/practices.md": MAP + "\n[nothing](nothing.md)\n"})
+        (problem,) = self.problems()
+        self.assertIn("nothing.md", problem)
+
+    def test_without_a_choice_every_link_of_the_map_is_checked(self):
+        self.project()
+        os.remove(os.path.join(self.root, ".groundwork-adrs"))
+        self.assertEqual(len(self.problems()), 4)
 
 
 class CommandLine(unittest.TestCase):
