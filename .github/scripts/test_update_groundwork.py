@@ -8,6 +8,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import markers  # noqa: E402
+import update_groundwork  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "update_groundwork.py")
 
@@ -29,6 +30,14 @@ V2 = {
 }
 V3 = {name: content for name, content in V2.items() if name != "old.md"}
 V3["SECURITY.md"] = "security 0.3\n"
+
+
+ADDRESS = "https://example.org/base.git"
+
+
+def rewritten_env(address, path):
+    """The environment in which git takes the address for the repository at the path, so that no test needs the network."""
+    return {**os.environ, "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": f"url.{path}.insteadOf", "GIT_CONFIG_VALUE_0": address}
 
 
 def git(cwd, *args):
@@ -279,6 +288,107 @@ class Update(unittest.TestCase):
         second = self.source_that_ran_the_update()
         self.update_from(second, self.project)
         self.assertEqual(self.tags(second), ["groundwork/v0.9.0", "groundwork/v1.0.0"])
+
+
+    def record(self, content):
+        """Commit `.groundwork-source` in the project with this content (text or bytes)."""
+        path = os.path.join(self.project, ".groundwork-source")
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        with open(path, "wb") as handle:
+            handle.write(content if isinstance(content, bytes) else content.encode("utf-8"))
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "chore: record the source")
+
+    def run_from_the_file(self, *args, address=ADDRESS):
+        return subprocess.run(
+            [sys.executable, SCRIPT, "42", *args], cwd=self.project, capture_output=True, text=True, env=rewritten_env(address, self.source)
+        )
+
+    def test_takes_its_updates_from_the_source_that_the_project_recorded(self):
+        self.record(ADDRESS + "\n")
+        result = self.run_from_the_file()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertRegex(result.stdout, rf"(?m)^source: {ADDRESS}$")
+        self.assertEqual(read(self.project, "new.md"), "new\n")
+        self.assertEqual(read(self.project, ".groundwork-version"), "0.3.0\n")
+
+    def test_a_source_given_on_the_command_line_wins_over_the_file_even_a_broken_one(self):
+        self.record("not an address\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"source: {self.source}\n", result.stdout)
+
+    def test_without_a_file_or_a_source_it_is_the_constant_of_the_script(self):
+        result = self.run_from_the_file(address=update_groundwork.SOURCE)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertRegex(result.stdout, rf"(?m)^source: {update_groundwork.SOURCE}$")
+
+    def test_the_messages_name_the_source_that_was_used(self):
+        self.record(ADDRESS + "\n")
+        self.commit_project({".groundwork-version": "0.9.9\n"})
+        result = self.run_from_the_file()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(ADDRESS, result.stderr)
+
+    def test_a_file_that_is_not_one_address_stops_the_update_before_any_fetch(self):
+        refused = [
+            "", "\n", ADDRESS, ADDRESS + "\n\n", ADDRESS + "\r\n", "\ufeff" + ADDRESS + "\n", b"\xff\n",
+            " " + ADDRESS + "\n", "http://example.org/base.git\n", "ssh://example.org/base.git\n", "git://example.org/base.git\n",
+            "/tmp/base\n", "../base\n", "-x\n", "--upload-pack=true\n", "https://\n", "https://user:token@example.org/base.git\n",
+            "https://user@example.org/base.git\n", "https://example.org/base .git\n", "https://example.org/base.git?x=1\n",
+            "https://example.org/base.git#x\n", "https://example.org/" + "a" * 2100 + "\n",
+        ]
+        for content in refused:
+            with self.subTest(content=content[:60] if isinstance(content, str) else content):
+                self.record(content)
+                result = self.run_from_the_file()
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn(".groundwork-source", result.stderr)
+                self.assertEqual(self.branches(), ["main"])
+                self.assertEqual(git(self.project, "tag", "--list").split(), [])
+
+    def test_a_directory_in_place_of_the_file_stops_the_update(self):
+        os.makedirs(os.path.join(self.project, ".groundwork-source"))
+        write(self.project, {".groundwork-source/x": "x\n"})
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "chore: a directory")
+        result = self.run_from_the_file()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(".groundwork-source", result.stderr)
+        self.assertEqual(self.branches(), ["main"])
+
+    def test_an_address_with_a_port_and_a_path_is_accepted(self):
+        address = "https://git.example.org:8443/team/base.git"
+        self.record(address + "\n")
+        result = self.run_from_the_file(address=address)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_the_file_of_a_source_is_not_copied_to_the_project(self):
+        write(self.source, {".groundwork-source": "https://evil.example/x.git\n"})
+        git(self.source, "add", "-A")
+        git(self.source, "commit", "-q", "-m", "feat: release 0.4.0")
+        git(self.source, "tag", "-a", "v0.4.0", "-m", "v0.4.0")
+        self.record(ADDRESS + "\n")
+        result = self.run_from_the_file()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, ".groundwork-source"), ADDRESS + "\n")
+
+    def test_the_tags_of_an_earlier_source_do_not_stay(self):
+        git(self.project, "tag", "groundwork/v9.9.9", "HEAD")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), "chore/42-update-groundwork-to-v0-3-0")
+        self.assertNotIn("groundwork/v9.9.9", git(self.project, "tag", "--list").split())
+
+    def test_an_address_is_never_taken_for_an_option_of_git(self):
+        marker = os.path.join(self.directory.name, "marker")
+        result = subprocess.run(
+            [sys.executable, SCRIPT, "42", f"--source=--upload-pack=touch {marker}"], cwd=self.project, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(os.path.exists(marker))
+        self.assertEqual(self.branches(), ["main"])
 
 
 NAMES = {1: "first", 2: "second", 3: "third", 4: "fourth"}

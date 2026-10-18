@@ -83,7 +83,8 @@ class OpenUpdatePullRequest(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_script(self, pull_requests="[]", closed="[]"):
+    def run_script(self, pull_requests="[]", closed="[]", recorded=None):
+        """Run the script; with `recorded`, the project has recorded this address as its source and git reaches it at the source."""
         env = {
             **os.environ,
             "PATH": self.bin + os.pathsep + os.environ["PATH"],
@@ -91,8 +92,10 @@ class OpenUpdatePullRequest(unittest.TestCase):
             "FAKE_PULL_REQUESTS": pull_requests,
             "FAKE_CLOSED_PULL_REQUESTS": closed,
         }
+        if recorded:
+            env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": f"url.{self.source}.insteadOf", "GIT_CONFIG_VALUE_0": recorded})
         return subprocess.run(
-            [sys.executable, SCRIPT, "--source", self.source], cwd=self.project, capture_output=True, text=True, env=env
+            [sys.executable, SCRIPT, *([] if recorded else ["--source", self.source])], cwd=self.project, capture_output=True, text=True, env=env
         )
 
     def gh_calls(self):
@@ -129,6 +132,16 @@ class OpenUpdatePullRequest(unittest.TestCase):
         self.assertEqual(self.value(call, "--head"), "groundwork/update-to-v0-2-0")
         self.assertIn("0.1.0", self.value(call, "--body"))
         self.assertIn("0.2.0", self.value(call, "--body"))
+
+    def test_the_release_notes_are_those_of_the_source_that_the_project_recorded(self):
+        write(self.project, {".groundwork-source": "https://example.org/team/base.git\n"})
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "chore: record the source")
+        git(self.project, "push", "-q", "origin", "main")
+        result = self.run_script(recorded="https://example.org/team/base.git")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        (call,) = self.created()
+        self.assertIn("Release notes: https://example.org/team/base/releases/tag/v0.2.0", self.value(call, "--body"))
 
     def test_a_conflict_opens_a_draft_that_lists_the_files(self):
         write(self.project, {"CONTRIBUTING.md": "one\ntwo mine\nthree\n"})
