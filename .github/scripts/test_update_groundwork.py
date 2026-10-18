@@ -678,6 +678,39 @@ class Chain(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("- docs/practices.md", result.stdout)
 
+    def test_the_project_gets_the_change_of_groundwork_and_the_range_of_the_base_from_the_base(self):
+        self.found_base([9000, 1, 13])
+        self.assertEqual(self.update(self.base, self.groundwork).returncode, 0)
+        git(self.base, "add", "-A")
+        git(self.base, "commit", "-q", "-m", "fix: update groundwork to v0.2.0")
+        git(self.base, "switch", "-q", "main")
+        git(self.base, "merge", "-q", "--ff-only", "groundwork/update-to-v0-2-0")
+        git(self.base, "tag", "-a", "v1.0.0", "-m", "v1.0.0")
+        self.adopt_from_the_base()
+        result = self.update(self.project, self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, ".groundwork-version"), "1.0.0\n")
+        self.assertEqual(read(self.project, "docs/adr/0014-decision.md"), "# 14\n")
+        self.assertEqual(read(self.project, "docs/adr/9000-decision.md"), "# 9000\n")
+        self.assertEqual(read(self.project, ".groundwork-ranges"), "9000-9999\n")
+        script = read(self.project, ".github/scripts/update_groundwork.py")
+        self.assertIn('"""Prepares the update', script)
+        self.assertIn('SOURCE = "https://example.org/base.git"\n', script)
+
+    def adopt_from_the_base(self):
+        """A project made from the base at v0.9.0, which sets the source of its updates to the base."""
+        init(self.project)
+        archive = subprocess.run(["git", "archive", "--format=tar", "v0.9.0"], cwd=self.base, capture_output=True, check=True).stdout
+        subprocess.run(["tar", "-x", "-C", self.project], input=archive, check=True)
+        path = os.path.join(self.project, ".github/scripts/update_groundwork.py")
+        with open(path) as handle:
+            text = handle.read()
+        with open(path, "w") as handle:
+            handle.write(text.replace('SOURCE = "https://github.com/michelwils/groundwork.git"', 'SOURCE = "https://example.org/base.git"'))
+        self.put(self.project, {".groundwork-version": "0.9.0\n"})
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "Initial commit")
+
 
 if __name__ == "__main__":
     unittest.main()
