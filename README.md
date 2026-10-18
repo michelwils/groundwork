@@ -6,7 +6,10 @@ Best-practice baseline for my projects: repository structure, conventions, autom
 
 ## Who it is for
 
-Me, as the starting point of my desktop and web applications. The repository is public, so anyone can read it or reuse it under the license below.
+Me, as the starting point of my desktop and web applications. The repository is public, so anyone can read it or reuse it under the license below:
+
+- a team that wants the same practices in a project, new or existing, adopts it as described in [Adopting groundwork](#adopting-groundwork) and chooses the ADRs it keeps;
+- a community, such as the teams of an organisation, builds from it a base of decisions of its own that its projects synchronise, as [the guide of the bases](docs/community-base.md) tells.
 
 ## What it covers
 
@@ -25,6 +28,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
 - A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py), which a project always synchronises, whatever it leaves out
+- A guide for a community that builds a base of its own from groundwork, in [`docs/community-base.md`](docs/community-base.md)
 - The choice of the ADRs that a project synchronises, in a file `.groundwork-adrs`, and the ranges of ADR numbers that a community base reserves, in `.groundwork-ranges` ([ADR 1000](docs/adr/1000-choosing-the-adrs-a-project-synchronises.md))
 - A workflow that opens every week the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
 - A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
@@ -110,7 +114,7 @@ groundwork is a GitHub template repository.
    Create the secret `GROUNDWORK_UPDATE_TOKEN` too, which the [automatic update](#automatic-update) of groundwork needs.
 3. **Create** the first milestone, then the first issue, which adapts the template to the project.
 4. **Adapt it** on a branch, in a pull request that closes that issue, since the default branch now rejects direct pushes:
-   - **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
+   - **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license. **Delete** [`docs/community-base.md`](docs/community-base.md) if the project does not build a base of its own.
    - **Keep** the ADRs in [`docs/adr/`](docs/adr/) numbered from `0001` to `0999` that the project follows, as [Choosing the ADRs](#choosing-the-adrs-a-project-synchronises) tells: they remain accepted decisions of the project. **Delete** the ADRs numbered `1000` or more, which are decisions of groundwork itself. The project numbers its own ADRs from the first number that no range reserves, `1000` unless its source reserves more, and it may use any number that no range reserves ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
    - **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
    - **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, which the CI runs, including the audit of its dependencies ([ADR 0008](docs/adr/0008-automated-checks.md)), and the indentation rules of its languages to `.editorconfig`. If its stack has no audit tool, write the exception in its `AGENTS.md`. Add the ecosystems of its stack to `.github/dependabot.yml`.
