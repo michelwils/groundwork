@@ -19,7 +19,8 @@ lines of the other ADRs are in blocks. The check reports a block that is badly f
 that does not exist or for the owner of the file, a block or a line that names an ADR other than its
 own and the ones it needs (a line outside the blocks of a file with no owner names none; the files of
 an ADR that have no block, and that no `Shared lines` lists, are not read), and a
-`Shared lines` list that is not the list of the files that have a block of the ADR.
+`Shared lines` list that is not the list of the files that have a block of the ADR. In a project, which
+has a `.groundwork-version`, the lines outside the blocks are its own and may name any ADR.
 
 The map describes groundwork: it has entries for the ADRs `0001` to `0999` only. In a project, which
 has a `.groundwork-version`, the files of the project are not in the map, so the check leaves out the
@@ -213,6 +214,7 @@ def check_blocks(root, entries, shared, files, numbers, problems):
     owner = {path: entry["number"] for entry in entries for path, _ in entry["files"]}
     shared_files = {path for path, _ in shared}
     listed_anywhere = {path for entry in entries for path, _ in entry["shared"]}
+    project = os.path.exists(os.path.join(root, VERSION_FILE))
     having = {}
     for path in sorted(shared_files | set(owner)):
         syntax = markers.kind(path)
@@ -238,6 +240,8 @@ def check_blocks(root, entries, shared, files, numbers, problems):
             adr = belonging.get(number)
             if adr is not None:
                 allowed, who = {adr} | needs.get(adr, set()), f"the block of the ADR {adr:04d}"
+            elif project:
+                continue
             elif path in owner:
                 allowed, who = {owner[path]} | needs.get(owner[path], set()), f"a line of the ADR {owner[path]:04d}"
             else:

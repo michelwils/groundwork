@@ -60,8 +60,9 @@ repos:
         stages: [pre-commit, manual]
       # /groundwork
 
-      # ADR 0008: the map of the practices names every ADR and every tracked file, and the ADRs
-      # that each one needs.
+      # ADR 0008: the map of the practices names every ADR and every tracked file and the ADRs
+      # that each one needs, and the ADRs and the blocks of lines that several ADRs share name
+      # only the ADRs that they need.
       - id: practices
         name: Check the map of the practices (ADR 0008)
         language: python

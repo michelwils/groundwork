@@ -291,6 +291,26 @@ class Blocks(Practices):
         problem = self.only("outside", self.good())
         self.assertRegex(problem, r"^CONTRIBUTING\.md:7: ")
 
+    def test_a_project_may_name_an_adr_outside_the_blocks_of_a_shared_file(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.contributing("\nSee ADR 0001.\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_a_project_may_name_an_adr_in_the_lines_of_the_owner_of_a_file(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.owned("Text.\n\nADR 0003.\n\n<!-- groundwork:0001 -->\nBlock.\n<!-- /groundwork -->\n")
+        text = practices(
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md", "docs/guide.md"]),
+            entry("0002", needs="ADR 0001", files=["docs/guide.md"]),
+            entry("0003"),
+        )
+        self.assertEqual(self.problems(text), [])
+
+    def test_a_project_is_still_told_of_a_block_that_names_an_adr_it_does_not_need(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.contributing("\n<!-- groundwork:0001 -->\nSee ADR 0002.\n<!-- /groundwork -->\n")
+        self.only("0002", self.good())
+
     def test_a_name_in_a_code_block_is_not_read(self):
         self.contributing("\n```text\nSee ADR 0002.\n```\n")
         self.assertEqual(self.problems(), [])
