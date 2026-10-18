@@ -33,7 +33,8 @@ The workflow `update-groundwork` of the base opens a pull request `chore: update
 ## In a project of the base
 
 - Create the repository from the template of the base and adopt groundwork like any project, following [Adopting groundwork](https://github.com/michelwils/groundwork#adopting-groundwork), with the version of the base in `.groundwork-version`.
-- **Point the updates to the base.** In the project's copy of `update_groundwork.py`, change the constant `SOURCE` to the address of the base, or pass `--source` to the script. The update merges that line with the changes of the base; the workflow reads the constant.
+- **Record the base as the source of the updates.** Create `.groundwork-source` at the root of the project, with one line, the address of the base: `https://host/path`. Without it the project follows groundwork, whose address is the default. The update, and the weekly workflow, read the file, and `--source` still wins for a run by hand. The file is never copied from the base, which therefore cannot overwrite it. A base that follows groundwork needs no such file, and one that follows another base has its own.
+- **A private base needs a credential that can read it.** The weekly workflow fetches the base with the credential of the repository of the project, which is limited to that repository. GitHub's documentation does not say whether the credential kept by the checkout applies to another repository, so grant the token `GROUNDWORK_UPDATE_TOKEN` read access to the contents of the base as well, and look at the first run.
 - The project takes everything that the base reserves, groundwork's `0001` to `0999` that the base kept and the ranges of the base, or chooses with `.groundwork-adrs`. Neither `.groundwork-version` nor `.groundwork-adrs` of the base is copied to it.
 - The project numbers its own ADRs from the first number that no range of the base reserves, and may use any number that no range reserves.
 

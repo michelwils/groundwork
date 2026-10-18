@@ -2,7 +2,9 @@
 """Prepare the update of a project to a later version of groundwork.
 
 The version of groundwork the project is based on is in `.groundwork-version`, at the root of
-the project: one line `X.Y.Z`. The script fetches the tags of groundwork under `groundwork/`,
+the project: one line `X.Y.Z`. The source of the updates is `--source`, or else the address in
+`.groundwork-source` (one line `https://…`), or else groundwork. The script fetches the tags of the
+source under `groundwork/`, after it has deleted the ones an earlier source left there,
 creates the branch `chore/<issue>-update-groundwork-to-v<X-Y-Z>`, or
 `groundwork/update-to-v<X-Y-Z>` when no issue is given, and applies on it what changed
 between the two versions, file by file, keeping the changes of the project. It leaves the result
@@ -21,7 +23,7 @@ Everything is read before the branch is created, so a choice that is refused cha
 
 Exit status: 0 when the project is updated or up to date, 1 on an error, 2 when some files are
 in conflict. A conflict leaves markers in the file, and the script names the files. After the
-lines `branch:`, `from:` and `to:`, the line `added: 0002, 0003` names the ADRs that enter the
+lines `branch:`, `from:` and `to:`, the line `source:` names the source that was used, the line `added: 0002, 0003` names the ADRs that enter the
 choice and that the project does not list, and the lines `- path` name the files in conflict.
 
 Usage: update_groundwork.py [ISSUE] [--to X.Y.Z] [--source URL]
@@ -42,7 +44,10 @@ import practices_map  # noqa: E402
 
 SOURCE = "https://github.com/michelwils/groundwork.git"
 VERSION_FILE = ".groundwork-version"
-EXCLUDED = ("README.md", "LICENSE", VERSION_FILE, choice.CHOICE_FILE)
+SOURCE_FILE = ".groundwork-source"
+EXCLUDED = ("README.md", "LICENSE", VERSION_FILE, choice.CHOICE_FILE, SOURCE_FILE)
+ADDRESS = re.compile(r"https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[A-Za-z0-9._~%/-]*)?")
+ADDRESS_LENGTH = 2048
 PREFIX = "groundwork/"
 VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
@@ -51,8 +56,8 @@ class Failure(Exception):
     pass
 
 
-def git(*args, check=True, text=True):
-    result = subprocess.run(["git", *args], capture_output=True, text=text)
+def git(*args, check=True, text=True, input=None):
+    result = subprocess.run(["git", *args], capture_output=True, text=text, input=input)
     if check and result.returncode != 0:
         message = result.stderr if text else result.stderr.decode(errors="replace")
         raise Failure(f"git {' '.join(args)} failed: {message.strip()}")
@@ -73,6 +78,40 @@ def recorded_version():
     if content != version + "\n" or not VERSION.match(version):
         raise Failure(f"{VERSION_FILE} must hold one line of the form X.Y.Z, without 'v'.")
     return version
+
+
+def recorded_source():
+    """Return the address in `.groundwork-source`, or None when the project has no such file."""
+    try:
+        with open(SOURCE_FILE, "rb") as handle:
+            raw = handle.read()
+    except FileNotFoundError:
+        return None
+    except OSError as error:
+        raise Failure(f"{SOURCE_FILE} cannot be read: {error.strerror}.")
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise Failure(f"{SOURCE_FILE} must be text in UTF-8.")
+    address = content[:-1] if content.endswith("\n") else None
+    if address is None or len(address) > ADDRESS_LENGTH or not ADDRESS.fullmatch(address):
+        raise Failure(
+            f"{SOURCE_FILE} must hold one line with the address of the source, of the form https://host/path, "
+            "with no user, password, space, query or fragment."
+        )
+    return address
+
+
+def source_of(explicit):
+    """Return the source of the updates: the one given, else the one the project recorded, else groundwork."""
+    return explicit or recorded_source() or SOURCE
+
+
+def forget_tags():
+    """Delete the tags of the source that an earlier run copied, so that only the versions of the source in use are known."""
+    refs = git("for-each-ref", "--format=%(refname)", f"refs/tags/{PREFIX}").stdout.split()
+    if refs:
+        git("update-ref", "--stdin", input="".join(f"delete {ref}\n" for ref in refs))
 
 
 def released_versions():
@@ -270,10 +309,12 @@ def run(args):
     if git("status", "--porcelain").stdout.strip():
         raise Failure("The working tree is not clean: commit or stash the changes first.")
 
-    git("fetch", "--quiet", "--no-tags", args.source, f"+refs/tags/v*:refs/tags/{PREFIX}v*")
+    source = source_of(args.source)
+    forget_tags()
+    git("fetch", "--quiet", "--no-tags", "--", source, f"+refs/tags/v*:refs/tags/{PREFIX}v*")
     versions = released_versions()
     if old not in versions:
-        raise Failure(f"The recorded version {old} is not a release of groundwork at {args.source}.")
+        raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.")
 
     if args.to:
         if not VERSION.match(args.to):
@@ -281,7 +322,7 @@ def run(args):
         if as_tuple(args.to) <= as_tuple(old):
             raise Failure(f"{args.to} is not a later version than the recorded {old}.")
         if args.to not in versions:
-            raise Failure(f"{args.to} is not a release of groundwork at {args.source}.")
+            raise Failure(f"{args.to} is not a release of groundwork at {source}.")
         new = args.to
     else:
         new = versions[-1]
@@ -303,6 +344,7 @@ def run(args):
     print(f"branch: {branch}")
     print(f"from: {old}")
     print(f"to: {new}")
+    print(f"source: {source}")
     if said:
         print("added: " + ", ".join(f"{number:04d}" for number in said))
     if conflicts:
@@ -317,7 +359,7 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare the update of a project to a later version of groundwork.")
     parser.add_argument("issue", nargs="?", help="number of the issue of the update, used in the name of the branch")
     parser.add_argument("--to", help="version to update to, without the leading v (default: the latest)")
-    parser.add_argument("--source", default=SOURCE, help="repository of groundwork (default: %(default)s)")
+    parser.add_argument("--source", help=f"repository of groundwork (default: the address in {SOURCE_FILE}, else {SOURCE})")
     try:
         sys.exit(run(parser.parse_args()))
     except Failure as failure:
