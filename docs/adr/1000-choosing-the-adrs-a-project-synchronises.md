@@ -15,7 +15,7 @@ This ADR is a decision of groundwork as a project, numbered from `1000` as [ADR 
 We will let a project choose the ADRs of groundwork it synchronises, in a file, and have the update apply that choice.
 
 - **The choice.** The file `.groundwork-adrs`, at the root of the project, lists the ADRs it keeps, one number of four digits per line, such as `0003`. A line that starts with `#` is a comment. The update refuses a number that is not an ADR of groundwork, and accepts `0001`, which changes nothing. Without the file, everything is synchronised, as before. `.groundwork-version` keeps its name and its format. With the file, only the ADRs it lists are, and the ones they need.
-- **What follows.** An ADR needs the ADRs that the map of the version gives it, and so on in turn. The update adds them to the choice it applies, without changing the file, and says which. The project does not have to list them.
+- **What follows.** An ADR needs the ADRs that the map of the version the project moves to gives it, and so on in turn. The update adds them to the choice it applies, without changing the file, and says which. The project does not have to list them.
 - **ADR 0001.** It is always kept: it defines the ADRs, their numbers and the template that everything else relies on.
 - **The files.** The update copies neither the ADR nor the files that the map gives for an ADR that is left out. The files that the map gives to no ADR, such as `docs/practices.md`, are always synchronised.
 - **The shared files.** The lines of the shared files are delimited by markers per ADR. Before it merges, the update removes the blocks of the ADRs that are left out from both versions of groundwork, so that these blocks, removed or not by the project, raise no conflict. The project deletes them from its files.
@@ -38,4 +38,4 @@ We will let a project choose the ADRs of groundwork it synchronises, in a file, 
 ## Options considered
 
 - **A list of ignored paths.** It is simple and needs no map. It does not see that an ADR needs another, it leaves the lines of the shared files that name what was left out, and each project has to find the paths.
-- **A fork that deletes what it does not want.** It builds nothing, and every update that touches a deleted file is a conflict, which is the problem to solve.
+- **A fork that deletes what it does not want.** It needs no tool, and every update that touches a deleted file is a conflict, which is the problem to solve.
