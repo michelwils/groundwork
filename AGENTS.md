@@ -5,10 +5,14 @@ Rules for coding agents working on this repository. The rules for every contribu
 ## Before a change
 
 - Read the ADRs that concern the change.
-- Follow the workflow, the commit messages and the language rules of `CONTRIBUTING.md`.
+- Follow the rules of `CONTRIBUTING.md`.
+<!-- groundwork:0001 -->
 - A significant decision is recorded as a new ADR, following [`docs/adr/template.md`](docs/adr/template.md). Propose it instead of deciding.
+<!-- /groundwork -->
 - For a change that is not trivial, propose a plan (files, tests, risks, open questions) and wait for the approval of a maintainer before you change any file. Record the approved plan in the "Plan" section of the pull request, and stop and report if the work departs from it ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)).
+<!-- groundwork:0009 -->
 - Write the test of a change of behaviour and see it fail for the expected reason before you write the code ([ADR 0009](docs/adr/0009-test-first-development.md)). Report a test that you could not write first, and why.
+<!-- /groundwork -->
 
 ## Rules for agents
 
@@ -16,7 +20,16 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 
 - Commits you make end with a `Co-Authored-By` trailer naming you. Issues and pull requests you write end with a line stating that they were generated, with the name of the tool.
 - Never include a link to, or an identifier of, your session or conversation.
-- For a change that touches a trust boundary, name in your plan the rule of [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md) or the principle of [ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md) that applies, and each new dependency with its license ([ADR 0013](docs/adr/0013-licenses-of-the-dependencies.md)).
+- For a change that touches a trust boundary, name in your plan the security rule or principle that applies, and each new dependency with its license, in your plan and in the pull request.
+<!-- groundwork:0010 -->
+- The rules for the security of the code are in [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md).
+<!-- /groundwork -->
+<!-- groundwork:0011 -->
+- The principles for confidential and personal data are in [ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md).
+<!-- /groundwork -->
+<!-- groundwork:0013 -->
+- The licenses accepted for the dependencies are those that the project states, as [ADR 0013](docs/adr/0013-licenses-of-the-dependencies.md) asks.
+<!-- /groundwork -->
 - Never merge a pull request without the explicit approval of a maintainer for that pull request.
 - Report the errors you corrected and the deviations from a rule. Do not report that you followed the rules.
 - Check your work before presenting it, committing it or marking a pull request ready, against the [review checklist](CONTRIBUTING.md#review-checklist).

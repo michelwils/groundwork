@@ -18,7 +18,7 @@ We will let a project choose the ADRs of groundwork it synchronises, in a file, 
 - **What follows.** An ADR needs the ADRs that the map of the version the project moves to gives it, and so on in turn. The update adds them to the choice it applies, without changing the file, and says which. The project does not have to list them.
 - **ADR 0001.** It is always kept: it defines the ADRs, their numbers and the template that everything else relies on.
 - **The files.** The update copies neither the ADR nor the files that the map gives for an ADR that is left out. The files that the map gives to no ADR, such as `docs/practices.md`, are always synchronised.
-- **The shared files.** The lines of the shared files are delimited by markers per ADR. Before it merges, the update removes the blocks of the ADRs that are left out from both versions of groundwork, so that these blocks, removed or not by the project, raise no conflict. The project deletes them from its files.
+- **The files that several ADRs share.** A file that carries lines of several ADRs belongs to one of them in the map, and the lines of the other ADRs are delimited by markers per ADR. A file that belongs to no ADR has all its lines of an ADR in blocks. Before it merges, the update removes the blocks of the ADRs that are left out from both versions of groundwork, so that these blocks, removed or not by the project, raise no conflict. The project deletes them from its files.
 - **Later ADRs.** An ADR that groundwork adds after the choice is not adopted until the project lists it. An ADR that enters the choice, whether the project lists it or an ADR it keeps now needs it, is applied whole, from nothing. An ADR that leaves the choice is no longer updated, and its files are not deleted: the project deletes them.
 - **The numbers.** The check of the ADRs accepts a missing number from `0001` to `0999` only when the choice of the project, with what it needs, leaves it out.
 - **Groundwork's own decisions.** An ADR of groundwork numbered `1000` or more is never synchronised.
@@ -29,7 +29,7 @@ We will let a project choose the ADRs of groundwork it synchronises, in a file, 
 - A project adopts practices one at a time and leaves out the others, and the update raises no conflict for what it left out.
 - The unit of the choice is the ADR with its files and its lines. A practice cannot be kept in part.
 - Keeping one ADR can bring others. The update says which, and the project can drop the first one rather than keep what it did not want.
-- The map and the markers must stay true: the check of the map verifies the files, the texts of the ADRs and, when the markers are checked, the shared lines.
+- The map and the markers must stay true: the check of the map verifies the files, the texts of the ADRs, the markers and the blocks of the lines that several ADRs share.
 - The shared files carry markers, which are comments, and which a project that chooses nothing can ignore.
 - A project that lists ADRs does not receive the later ones by itself. It reads the release notes and adds what it wants.
 - The ADRs of a community that builds its own base from groundwork have their own range, which this decision does not set.

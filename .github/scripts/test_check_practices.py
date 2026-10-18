@@ -10,6 +10,8 @@ import check_practices  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "check_practices.py")
 
+CONTRIBUTING = "Rules.\n\n<!-- groundwork:0001 -->\nDecisions.\n<!-- /groundwork -->\n"
+
 ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n"
 
 
@@ -17,7 +19,7 @@ def entry(number, needs="none", files=(), shared=()):
     lines = [f"### {number}. Decision {number}", "", f"- Needs: {needs}", "- Files:"]
     lines += [f"  - `{path}`" for path in files] or ["  - none"]
     lines += ["- Shared lines:"]
-    lines += [f"  - `{path}`, {where}" for path, where in shared] or ["  - none"]
+    lines += [f"  - `{path}`" for path in shared] or ["  - none"]
     return "\n".join(lines) + "\n"
 
 
@@ -36,7 +38,7 @@ class Practices(unittest.TestCase):
         self.put("docs/adr/0001-first.md", ADR.format(n="0001"))
         self.put("docs/adr/0002-second.md", ADR.format(n="0002"))
         self.put("docs/adr/template.md", "# NNNN. Title\n")
-        self.put("CONTRIBUTING.md", "Rules.\n")
+        self.put("CONTRIBUTING.md", CONTRIBUTING)
         self.put("tool.py", "")
         self.put("tool_test.py", "")
 
@@ -54,7 +56,7 @@ class Practices(unittest.TestCase):
 
     def good_entries(self):
         return (
-            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=[("CONTRIBUTING.md", "section 'Rules'")]),
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md"]),
             entry("0002", needs="ADR 0001"),
         )
 
@@ -91,7 +93,7 @@ class Valid(Practices):
 
 class Entries(Practices):
     def test_an_adr_without_an_entry_is_reported(self):
-        self.only("0002", practices(entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"])))
+        self.only("0002", practices(entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md"])))
 
     def test_an_entry_for_an_adr_that_does_not_exist_is_reported(self):
         self.only("0003", practices(*self.good_entries(), entry("0003")))
@@ -119,7 +121,7 @@ class Dependencies(Practices):
     def test_several_adrs_are_separated_by_commas(self):
         self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
         text = practices(
-            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=[("CONTRIBUTING.md", "x")]),
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md"]),
             entry("0002"),
             entry("0003", needs="ADR 0001, ADR 0002"),
         )
@@ -171,12 +173,13 @@ class Files(Practices):
 
 
 class SharedLines(Practices):
-    def test_a_shared_line_in_a_file_that_is_not_a_shared_file_is_reported(self):
+    def test_a_shared_line_in_a_file_that_is_neither_shared_nor_the_file_of_an_adr_is_reported(self):
         text = practices(
-            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=[("CONTRIBUTING.md", "x"), ("tool_test.py", "y")]),
-            entry("0002", needs="ADR 0001"),
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md"]),
+            entry("0002", needs="ADR 0001", shared=["docs/practices.md"]),
         )
-        self.only("tool_test.py", text)
+        problems = self.problems(text)
+        self.assertTrue(any("docs/practices.md" in problem and "neither" in problem for problem in problems))
 
     def test_a_shared_file_that_does_not_exist_is_reported(self):
         text = practices(*self.good_entries(), shared=("CONTRIBUTING.md", "AGENTS.md"))
@@ -246,6 +249,138 @@ class Text(Practices):
 
     def test_an_entry_does_not_need_the_line_mentions(self):
         self.assertNotIn("Mentions", self.good())
+        self.assertEqual(self.problems(), [])
+
+
+class Blocks(Practices):
+    """The blocks of the files that several ADRs share, and the lines outside them."""
+
+    def map_with(self, second_shared=(), second_files=(), first_files=("docs/adr/template.md", "tool.py", "tool_test.py")):
+        return practices(
+            entry("0001", files=first_files, shared=["CONTRIBUTING.md"]),
+            entry("0002", needs="ADR 0001", files=second_files, shared=second_shared),
+        )
+
+    def contributing(self, text):
+        self.put("CONTRIBUTING.md", CONTRIBUTING + text)
+
+    def test_a_block_that_is_not_closed_is_reported_in_its_file_with_its_line(self):
+        self.contributing("\n<!-- groundwork:0001 -->\nMore.\n")
+        problem = self.only("not closed", self.good())
+        self.assertRegex(problem, r"^CONTRIBUTING\.md:7: ")
+
+    def test_a_block_for_an_adr_that_does_not_exist_is_reported(self):
+        self.contributing("\n<!-- groundwork:0009 -->\nMore.\n<!-- /groundwork -->\n")
+        self.only("0009", self.good())
+
+    def test_a_block_that_names_an_adr_it_does_not_need_is_reported_at_the_line(self):
+        self.contributing("\n<!-- groundwork:0001 -->\nSee ADR 0002.\n<!-- /groundwork -->\n")
+        problem = self.only("0002", self.good())
+        self.assertRegex(problem, r"^CONTRIBUTING\.md:8: ")
+
+    def test_a_block_may_name_its_adr_and_the_adrs_it_needs(self):
+        self.contributing("\n<!-- groundwork:0002 -->\nADR 0002 and [ADR 0001](docs/adr/0001-first.md).\n<!-- /groundwork -->\n")
+        self.assertEqual(self.problems(self.map_with(second_shared=["CONTRIBUTING.md"])), [])
+
+    def test_a_link_to_a_file_of_an_adr_is_a_name(self):
+        self.contributing("\n<!-- groundwork:0001 -->\nSee [the second](docs/adr/0002-second.md).\n<!-- /groundwork -->\n")
+        self.only("0002", self.good())
+
+    def test_a_line_outside_the_blocks_of_a_file_with_no_owner_names_no_adr(self):
+        self.contributing("\nSee ADR 0001.\n")
+        problem = self.only("outside", self.good())
+        self.assertRegex(problem, r"^CONTRIBUTING\.md:7: ")
+
+    def test_a_project_may_name_an_adr_outside_the_blocks_of_a_shared_file(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.contributing("\nSee ADR 0001.\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_a_project_may_name_an_adr_in_the_lines_of_the_owner_of_a_file(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.owned("Text.\n\nADR 0003.\n\n<!-- groundwork:0001 -->\nBlock.\n<!-- /groundwork -->\n")
+        text = practices(
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md", "docs/guide.md"]),
+            entry("0002", needs="ADR 0001", files=["docs/guide.md"]),
+            entry("0003"),
+        )
+        self.assertEqual(self.problems(text), [])
+
+    def test_a_project_is_still_told_of_a_block_that_names_an_adr_it_does_not_need(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.contributing("\n<!-- groundwork:0001 -->\nSee ADR 0002.\n<!-- /groundwork -->\n")
+        self.only("0002", self.good())
+
+    def test_a_name_in_a_code_block_is_not_read(self):
+        self.contributing("\n```text\nSee ADR 0002.\n```\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_an_adr_of_a_project_may_be_named_anywhere(self):
+        self.contributing("\nSee ADR 1003.\n")
+        self.assertEqual(self.problems(), [])
+
+    def owned(self, text, name="docs/guide.md"):
+        self.put(name, text)
+        self.put("docs/adr/0003-third.md", ADR.format(n="0003"))
+
+    def map_with_owned(self, name="docs/guide.md"):
+        return practices(
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md"]),
+            entry("0002", needs="ADR 0001", files=[name]),
+            entry("0003"),
+        )
+
+    def test_the_lines_of_the_owner_of_a_file_may_name_it_and_the_adrs_it_needs(self):
+        self.owned("ADR 0002 needs ADR 0001.\n")
+        self.assertEqual(self.problems(self.map_with_owned()), [])
+
+    def test_a_line_of_the_owner_that_names_another_adr_is_reported_in_a_file_that_has_a_block(self):
+        self.owned("Text.\n\nADR 0003.\n\n<!-- groundwork:0001 -->\nBlock.\n<!-- /groundwork -->\n")
+        text = practices(
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md", "docs/guide.md"]),
+            entry("0002", needs="ADR 0001", files=["docs/guide.md"]),
+            entry("0003"),
+        )
+        problem = self.only("0003", text)
+        self.assertRegex(problem, r"^docs/guide\.md:3: ")
+
+    def test_a_file_of_an_adr_with_no_block_that_the_map_does_not_list_is_not_read(self):
+        self.owned("Text.\n\nADR 0003.\n")
+        self.assertEqual(self.problems(self.map_with_owned()), [])
+
+    def test_a_block_of_the_owner_in_its_own_file_is_reported(self):
+        self.owned("<!-- groundwork:0002 -->\nText.\n<!-- /groundwork -->\n")
+        problems = self.problems(self.map_with_owned())
+        self.assertTrue(any("docs/guide.md:1: " in problem and "owns" in problem for problem in problems))
+
+    def test_a_block_of_another_adr_in_a_file_with_an_owner_is_accepted_when_the_map_lists_it(self):
+        self.owned("ADR 0002.\n\n<!-- groundwork:0003 -->\nADR 0003.\n<!-- /groundwork -->\n")
+        text = practices(
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md"]),
+            entry("0002", needs="ADR 0001", files=["docs/guide.md"]),
+            entry("0003", shared=["docs/guide.md"]),
+        )
+        self.assertEqual(self.problems(text), [])
+
+    def test_the_markers_of_a_yaml_file_are_read(self):
+        self.put("hooks.yaml", "repos:\n  # groundwork:0001\n  - id: adrs\n  # /groundwork\n  # ADR 0002\n")
+        text = practices(
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md", "hooks.yaml"]),
+            entry("0002", needs="ADR 0001", files=["hooks.yaml"]),
+        )
+        self.assertEqual(self.problems(text), [])
+
+    def test_a_block_that_the_map_does_not_list_is_reported_at_the_line_of_the_block(self):
+        self.contributing("\n<!-- groundwork:0002 -->\nADR 0002.\n<!-- /groundwork -->\n")
+        problem = self.only("does not list", self.good())
+        self.assertRegex(problem, r"^CONTRIBUTING\.md:7: ")
+
+    def test_a_file_that_the_map_lists_without_a_block_of_the_adr_is_reported_at_the_line_of_the_map(self):
+        problem = self.only("no block", self.map_with(second_shared=["CONTRIBUTING.md"]))
+        self.assertRegex(problem, r"^docs/practices\.md:\d+: ")
+
+    def test_the_markers_of_a_file_of_another_kind_are_not_read(self):
+        self.put("tool.py", "# groundwork:0009\n")
         self.assertEqual(self.problems(), [])
 
 
