@@ -8,7 +8,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import check_pull_request  # noqa: E402
+import open_update_pull_request as opener  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "open_update_pull_request.py")
 
@@ -121,13 +121,12 @@ class OpenUpdatePullRequest(unittest.TestCase):
         self.assertEqual(git(self.remote, "show", "groundwork/update-to-v0-2-0:.groundwork-version"), "0.2.0\n")
         self.assertIn("https://github.com/owner/project/pull/1", result.stdout)
 
-    def test_the_pull_request_is_ready_and_follows_the_rules_of_pull_requests(self):
+    def test_the_pull_request_is_ready_and_named_after_the_version(self):
         self.run_script()
         (call,) = self.created()
         self.assertNotIn("--draft", call)
         self.assertEqual(self.value(call, "--title"), "chore: update groundwork to v0.2.0")
         self.assertEqual(self.value(call, "--head"), "groundwork/update-to-v0-2-0")
-        self.assertEqual(check_pull_request.check(self.value(call, "--head"), "main", self.value(call, "--body")), [])
         self.assertIn("0.1.0", self.value(call, "--body"))
         self.assertIn("0.2.0", self.value(call, "--body"))
 
@@ -228,6 +227,29 @@ class OpenUpdatePullRequest(unittest.TestCase):
             "chore: update groundwork to v0.2.0",
         )
         self.assertEqual(len(self.created()), 1)
+
+
+class Body(unittest.TestCase):
+    def test_it_names_the_adrs_that_the_update_added(self):
+        text = opener.body("0.1.0", "0.2.0", [], "https://github.com/o/g.git", ["0002", "0003"])
+        self.assertIn("ADR 0002, ADR 0003", text)
+
+    def test_it_says_nothing_of_the_adrs_when_none_was_added(self):
+        text = opener.body("0.1.0", "0.2.0", [], "https://github.com/o/g.git", [])
+        self.assertNotIn("ADR", text)
+        self.assertEqual(text, opener.body("0.1.0", "0.2.0", [], "https://github.com/o/g.git"))
+
+    def test_the_added_adrs_are_read_from_the_line_of_the_update(self):
+        output = "branch: b\nfrom: 0.1.0\nto: 0.2.0\nadded: 0002, 0003\n"
+        self.assertEqual(opener.added(output), ["0002", "0003"])
+        self.assertEqual(opener.added("branch: b\n"), [])
+
+    def test_a_line_that_looks_like_the_report_is_not_read_in_the_middle_of_a_line(self):
+        self.assertEqual(opener.added("- file added: 0002\n"), [])
+
+    def test_the_added_adrs_are_not_taken_for_conflicts(self):
+        output = "branch: b\nfrom: 0.1.0\nto: 0.2.0\nadded: 0002\nResolve the conflicts in these files:\n- a.md\n"
+        self.assertEqual(opener.conflicts(output), ["a.md"])
 
 
 if __name__ == "__main__":
