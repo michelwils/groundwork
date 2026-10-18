@@ -134,7 +134,7 @@ def read_ranges(root):
                 continue
             match = RANGE.match(line)
             if not match:
-                problems.append((number, f"'{line}' is not a range such as 9000-9999, a comment or a blank line"))
+                problems.append((number, f"'{line}' is not a range such as NNNN-NNNN, a comment or a blank line"))
                 continue
             start, end = int(match.group(1)), int(match.group(2))
             if start > end:
