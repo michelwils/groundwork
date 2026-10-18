@@ -458,7 +458,10 @@ class RealFiles(unittest.TestCase):
         return source, project
 
     def run_in(self, project, source, *args):
-        return subprocess.run([sys.executable, SCRIPT, "--source", source, *args], cwd=project, capture_output=True, text=True)
+        if os.path.exists(os.path.join(project, ".groundwork-version")):
+            return subprocess.run([sys.executable, SCRIPT, "--source", source, *args], cwd=project, capture_output=True, text=True)
+        env = rewritten_env(update_groundwork.SOURCE, source)
+        return subprocess.run([sys.executable, SCRIPT, *args], cwd=project, capture_output=True, text=True, env=env)
 
     def kept_without(self, number):
         gone = dependents(self.needs, number)
