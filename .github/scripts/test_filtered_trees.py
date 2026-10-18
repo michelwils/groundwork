@@ -89,6 +89,19 @@ class Source(unittest.TestCase):
                     self.assertFalse(is_source(root, {"GROUNDWORK_SOURCE": value}))
 
 
+@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of a source of ADRs, which a project may extend with scripts of its own")
+class NoSuggestedRange(unittest.TestCase):
+    """The range 9000-9999 is a suggestion of the guide of the community bases, and no script or workflow assumes it."""
+
+    def test_no_file_of_the_automation_that_is_not_a_test_writes_it(self):
+        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github"], capture_output=True, text=True, check=True).stdout
+        files = [path for path in listed.split("\0") if path and not os.path.basename(path).startswith("test_")]
+        self.assertTrue(files)
+        for path in files:
+            with self.subTest(path=path), open(os.path.join(ROOT, path), encoding="utf-8", errors="replace") as handle:
+                self.assertNotRegex(handle.read(), r"9000|9999")
+
+
 @unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
 class FilteredTrees(unittest.TestCase):
     """What groundwork gives to a project that keeps some of its ADRs, checked on the real files."""
