@@ -395,6 +395,7 @@ class Choice(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(read(self.project, "two.txt"), "two 1\n")
         self.assertEqual(read(self.project, adr(2)), "# ADR 0002 v1\n")
+        self.assertEqual(read(self.project, "SHARED.md"), markers.remove(first["SHARED.md"], "markdown", {1, 2}))
 
     def test_an_adr_that_leaves_the_choice_is_no_longer_updated_and_its_files_stay(self):
         self.releases(world("1"), world("2"))
@@ -422,7 +423,8 @@ class Choice(unittest.TestCase):
 
     def test_a_file_that_leaves_an_adr_for_the_files_of_no_practice_reaches_a_project_that_left_it_out(self):
         self.releases(world("1", tool=3), world("1", tool=None))
-        self.adopt(trimmed(world("1", tool=3), {1, 2}), "0002\n")
+        left = {name: text for name, text in trimmed(world("1", tool=3), {1, 2}).items() if name != "tool.py"}
+        self.adopt(left, "0002\n")
         self.assertFalse(self.has("tool.py"))
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

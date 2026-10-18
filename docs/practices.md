@@ -39,13 +39,10 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 - Files:
   - `.github/ISSUE_TEMPLATE/change.md`
   - `.github/rulesets/main.json`
-  - `.github/workflows/update-groundwork.yml`
   - `.github/scripts/apply_settings.py`
   - `.github/scripts/check_pull_request.py`
-  - `.github/scripts/open_update_pull_request.py`
   - `.github/scripts/test_apply_settings.py`
   - `.github/scripts/test_check_pull_request.py`
-  - `.github/scripts/test_open_update_pull_request.py`
   - `.github/PULL_REQUEST_TEMPLATE.md`
 - Shared lines:
   - `CONTRIBUTING.md`
@@ -64,9 +61,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 - Files:
   - `.github/workflows/release.yml`
   - `.github/scripts/release.py`
-  - `.github/scripts/update_groundwork.py`
   - `.github/scripts/test_release.py`
-  - `.github/scripts/test_update_groundwork.py`
 - Shared lines:
   - `CONTRIBUTING.md`
 
@@ -166,16 +161,21 @@ This file belongs to no ADR, and all its lines that belong to an ADR are in a bl
 
 ## Not part of a practice
 
-These files concern groundwork itself, or the repository as a whole.
+These files concern groundwork itself, or the repository as a whole, or are the tool that moves a project to a later version, which a project keeps whatever it leaves out.
 
 - `.gitattributes`
 - `.gitignore`
 - `.github/scripts/choice.py`
 - `.github/scripts/markers.py`
+- `.github/scripts/open_update_pull_request.py`
 - `.github/scripts/practices_map.py`
 - `.github/scripts/test_choice.py`
 - `.github/scripts/test_markers.py`
+- `.github/scripts/test_open_update_pull_request.py`
 - `.github/scripts/test_practices_map.py`
+- `.github/scripts/test_update_groundwork.py`
+- `.github/scripts/update_groundwork.py`
+- `.github/workflows/update-groundwork.yml`
 - `LICENSE`
 - `README.md`
 - `docs/practices.md`

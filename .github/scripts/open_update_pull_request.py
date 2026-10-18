@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Open the pull request that moves a project to a later version of groundwork (ADR 0003).
+"""Open the pull request that moves a project to a later version of groundwork.
 
 It runs update_groundwork.py without an issue, commits the result on the branch
 `groundwork/update-to-v<X-Y-Z>`, pushes it and opens the pull request with `gh`. The pull request
@@ -63,10 +63,23 @@ def undo(branch, current, commit):
     run("git", "branch", "-q", "-D", branch)
 
 
-def body(old, new, conflicts, source):
+def added(output):
+    """Return the numbers of the ADRs that the update script says it added to the choice."""
+    match = re.search(r"^added: (.+)$", output, re.MULTILINE)
+    return [number.strip() for number in match.group(1).split(",")] if match else []
+
+
+def conflicts(output):
+    """Return the files that the update script names as in conflict."""
+    return re.findall(r"^- (.+)$", output, re.MULTILINE)
+
+
+def body(old, new, conflicts, source, added=()):
     lines = [f"Moves the project from groundwork {old} to {new}."]
     if source.startswith("https://"):
         lines.append(f"Release notes: {source.removesuffix('.git')}/releases/tag/v{new}")
+    if added:
+        lines += ["", "These ADRs enter the choice of the project because an ADR it keeps needs them: " + ", ".join(f"ADR {number}" for number in added) + "."]
     if conflicts:
         lines += ["", "These files are in conflict. Resolve the markers, then mark the pull request ready:", ""]
         lines += [f"- `{path}`" for path in conflicts]
@@ -95,7 +108,7 @@ def main():
     fields = dict(re.findall(r"^(branch|from|to): (.+)$", update.stdout, re.MULTILINE))
     if "branch" not in fields:
         return 0  # up to date, the update script said so
-    conflicts = re.findall(r"^- (.+)$", update.stdout, re.MULTILINE) if update.returncode == 2 else []
+    files = conflicts(update.stdout) if update.returncode == 2 else []
 
     branch, old, new = fields["branch"], fields["from"], fields["to"]
     if rejected(branch):
@@ -109,8 +122,8 @@ def main():
 
     url = run(
         "gh", "pr", "create", "--head", branch, "--title", title,
-        "--body", body(old, new, conflicts, args.source or SOURCE),
-        *(["--draft"] if conflicts else []),
+        "--body", body(old, new, files, args.source or SOURCE, added(update.stdout)),
+        *(["--draft"] if files else []),
     ).strip()
     print(url)
     return 0
