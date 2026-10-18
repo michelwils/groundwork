@@ -24,7 +24,8 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Issue and pull request templates and a review checklist
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
-- A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py)
+- A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py), which a project always synchronises, whatever it leaves out
+- The choice of the ADRs that a project synchronises, in a file `.groundwork-adrs`, and the ranges of ADR numbers that a community base reserves, in `.groundwork-ranges` ([ADR 1000](docs/adr/1000-choosing-the-adrs-a-project-synchronises.md))
 - A workflow that opens every week the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
 - A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
@@ -49,6 +50,9 @@ groundwork follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html), a
 - the rules in the Decision section of accepted ADRs
 - the files groundwork provides for projects to use, such as hooks, workflows and templates: their names, locations and behaviour
 - the file `.groundwork-version` that a project keeps, and which the update script reads: its name and its format
+- the files `.groundwork-adrs` and `.groundwork-ranges`: their names and their formats
+- for a project that keeps some of the ADRs only: the rules of the ADRs it keeps and of the ones they need, and the files that [`docs/practices.md`](docs/practices.md) gives for them
+- the markers that delimit the lines of an ADR in a file that several ADRs share, `<!-- groundwork:NNNN -->` … `<!-- /groundwork -->` in Markdown and `# groundwork:NNNN` … `# /groundwork` in YAML
 
 The README, the Context and Consequences sections of ADRs, and wording that does not change a rule are not part of it.
 
@@ -107,11 +111,27 @@ groundwork is a GitHub template repository.
 3. **Create** the first milestone, then the first issue, which adapts the template to the project.
 4. **Adapt it** on a branch, in a pull request that closes that issue, since the default branch now rejects direct pushes:
    - **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
-   - **Keep** the ADRs in [`docs/adr/`](docs/adr/) numbered below `1000`: they remain accepted decisions of the project, and its own ADRs are numbered from `1000`, since the numbers below are reserved for groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). **Delete** the ADRs numbered `1000` or more, which are decisions of groundwork itself, so that the first ADR of the project is `1000`. Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
+   - **Keep** the ADRs in [`docs/adr/`](docs/adr/) numbered from `0001` to `0999` that the project follows, as [Choosing the ADRs](#choosing-the-adrs-a-project-synchronises) tells: they remain accepted decisions of the project. **Delete** the ADRs numbered `1000` or more, which are decisions of groundwork itself. The project numbers its own ADRs from the first number that no range reserves, `1000` unless its source reserves more, and it may use any number that no range reserves ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
    - **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
    - **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, which the CI runs, including the audit of its dependencies ([ADR 0008](docs/adr/0008-automated-checks.md)), and the indentation rules of its languages to `.editorconfig`. If its stack has no audit tool, write the exception in its `AGENTS.md`. Add the ecosystems of its stack to `.github/dependabot.yml`.
    - **Record** the version of groundwork the project started from: create `.groundwork-version` at the root of the project, with one line `X.Y.Z` holding the latest release without the leading `v`, for example `0.2.0`. The update script reads it.
 5. **Release** with the `release` workflow once the project has something to release. Its first version is computed from the commits of the project, which start with the `Initial commit` of the template. That commit does not change the version.
+
+### Choosing the ADRs a project synchronises
+
+A project takes all the ADRs that its source reserves, or chooses ([ADR 1000](docs/adr/1000-choosing-the-adrs-a-project-synchronises.md)). The numbers fall in three zones:
+
+- `0001` to `0999` are reserved for groundwork, and a project does not number an ADR of its own there. The checks fail if it does.
+- A community base made from groundwork reserves more ranges, one `NNNN-NNNN` per line (bounds included, `#` for a comment) in a file `.groundwork-ranges`, which the update copies like any other file. A project reserves nothing and does not touch an ADR in a range that its source reserves.
+- Every other number is the project's own. Choose the ranges of a base above the numbers that its projects already use, since a range cannot be reserved over an ADR that exists.
+
+To choose, create `.groundwork-adrs` at the root of the project: one number (`0003`) or one range (`0001-0999`) per line, `#` for a comment. A range adopts the ADRs that the source adds to it later, a number does not. Without the file, the project synchronises everything that the source reserves, as before. A number or a range that the source does not reserve, in the version the project moves to, stops the update, which says which line.
+
+- ADR 0001 is always kept, and so are the ADRs that a listed ADR needs, according to the map [`docs/practices.md`](docs/practices.md). The update says which it adds (`added: 0002, 0003`) without changing the file.
+- For an ADR that is left out, the update copies neither the ADR nor its files, and takes its blocks out of the files that several ADRs share before it merges. Delete them from the files of the project: a block of an ADR that is left out stays in place, and the update no longer changes it.
+- For an ADR that enters the choice, because the project lists it or an ADR it keeps needs it, the update applies it whole. It recognises it when the ADR is kept and the project has no file for its number: an ADR file that the project deletes while it keeps the ADR comes back at the next update.
+- A project writes its own lines outside the blocks of a shared file. Inside a block, a change of the project merges with a change of groundwork like in any other file.
+- The files of the update itself, `update_groundwork.py`, `open_update_pull_request.py` and the workflow, are always synchronised, with `markers.py`, `practices_map.py` and `choice.py` that the script uses. The update never copies `README.md`, `LICENSE`, `.groundwork-version` or `.groundwork-adrs` from its source.
 
 ### Moving to a later version
 
@@ -124,7 +144,7 @@ A copy shares no history with groundwork and does not receive later changes. To 
    python3 .github/scripts/update_groundwork.py <issue-number> [--to X.Y.Z]
    ```
 
-   It reads `.groundwork-version`, fetches the tags of groundwork under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request. A project whose copy of groundwork predates the script takes `.github/scripts/update_groundwork.py` from the release it moves to.
+   It reads `.groundwork-version`, fetches the tags of groundwork under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request. A project whose copy of groundwork predates the script, or the version that reads the choice, takes `.github/scripts/update_groundwork.py` and the modules it uses, `markers.py`, `practices_map.py` and `choice.py`, from the release it moves to, before it chooses.
 
    It ends with status 0 when the project is updated or already up to date, 1 on an error, and 2 when files are in conflict. It names them and leaves markers in them for you to resolve.
 3. Commit the result like any other change, through the issue and a pull request.
