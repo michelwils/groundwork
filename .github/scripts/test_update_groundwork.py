@@ -235,6 +235,51 @@ class Update(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertEqual(self.branches(), ["main"])
 
+    def tags(self, repo):
+        return git(repo, "tag", "--list").split()
+
+    def source_that_ran_the_update(self):
+        """A repository that ran the update and published a version: a project that is the source of another."""
+        git(self.project, "tag", "-a", "v0.9.0", "-m", "v0.9.0")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "fix: update groundwork to v0.3.0")
+        git(self.project, "tag", "-a", "v1.0.0", "-m", "v1.0.0")
+        second = os.path.join(self.directory.name, "second")
+        init(second)
+        write(second, {**V1, ".groundwork-version": "0.9.0\n"})
+        git(second, "add", "-A")
+        git(second, "commit", "-q", "-m", "Initial commit")
+        return second
+
+    def update_from(self, repo, source):
+        return subprocess.run([sys.executable, SCRIPT, "--source", source], cwd=repo, capture_output=True, text=True)
+
+    def test_leaves_the_tags_of_the_source_under_their_own_prefix_only(self):
+        self.run_script()
+        self.assertEqual(self.tags(self.project), ["groundwork/v0.1.0", "groundwork/v0.2.0", "groundwork/v0.3.0"])
+
+    def test_keeps_a_tag_of_the_project_named_like_one_of_the_source(self):
+        git(self.project, "tag", "-a", "v0.1.0", "-m", "the project's own")
+        before = git(self.project, "rev-parse", "v0.1.0").strip()
+        self.run_script()
+        self.assertEqual(git(self.project, "rev-parse", "v0.1.0").strip(), before)
+        self.assertIn("groundwork/v0.1.0", self.tags(self.project))
+
+    def test_a_repository_that_ran_the_update_can_be_the_source_of_another(self):
+        second = self.source_that_ran_the_update()
+        result = self.update_from(second, self.project)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(second, ".groundwork-version"), "1.0.0\n")
+        self.assertEqual(read(second, "new.md"), "new\n")
+        self.assertEqual(read(second, "SECURITY.md"), V3["SECURITY.md"])
+
+    def test_the_tags_of_the_source_that_it_got_from_its_own_source_are_not_copied(self):
+        second = self.source_that_ran_the_update()
+        self.update_from(second, self.project)
+        self.assertEqual(self.tags(second), ["groundwork/v0.9.0", "groundwork/v1.0.0"])
+
 
 NAMES = {1: "first", 2: "second", 3: "third", 4: "fourth"}
 NEEDS = {1: [], 2: [], 3: [2], 4: []}
