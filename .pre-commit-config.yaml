@@ -49,6 +49,7 @@ repos:
 
   - repo: local
     hooks:
+      # groundwork:0001
       # ADR 0001: the ADRs have the sections, the status and the numbering of the template.
       - id: adrs
         name: Check the ADRs (ADR 0001)
@@ -57,6 +58,7 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit, manual]
+      # /groundwork
 
       # ADR 0008: the map of the practices names every ADR and every tracked file, and the ADRs
       # that each one needs.
@@ -78,6 +80,7 @@ repos:
         always_run: true
         stages: [pre-commit, manual]
 
+      # groundwork:0002
       # ADR 0002: <type>[(scope)][!]: <description>, with a single lowercase word
       # as scope, a description that starts with a lowercase letter and no final period.
       - id: commit-title
@@ -86,7 +89,9 @@ repos:
         entry: '\A(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z]+\))?!?: [a-z]([^\n]*[^.\n])?(\n|\Z)'
         args: [--multiline, --negate]
         stages: [commit-msg]
+      # /groundwork
 
+      # groundwork:0007
       # ADR 0007: no link to, and no identifier of, an agent session. It lists the
       # session trailers and the session links of the known agents.
       - id: no-agent-session
@@ -94,3 +99,4 @@ repos:
         language: pygrep
         entry: '(?i)(^[a-z]+-session:|https?://(www\.)?(claude\.ai/(code/)?(session|chat|share)|(chatgpt\.com|chat\.openai\.com)/(c|share)/)|\bsession_[a-z0-9]{16,})'
         stages: [commit-msg]
+      # /groundwork
