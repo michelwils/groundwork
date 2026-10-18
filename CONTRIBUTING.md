@@ -2,6 +2,8 @@
 
 This file summarises how changes are made. The decisions behind it are recorded in [`docs/adr/`](docs/adr/).
 
+A line of this file that belongs to an ADR goes in the block of that ADR, between its markers: see [`docs/practices.md`](docs/practices.md).
+
 <!-- groundwork:0004 -->
 ## Language
 
