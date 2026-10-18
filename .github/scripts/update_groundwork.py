@@ -270,7 +270,7 @@ def run(args):
     if git("status", "--porcelain").stdout.strip():
         raise Failure("The working tree is not clean: commit or stash the changes first.")
 
-    git("fetch", "--quiet", args.source, f"+refs/tags/*:refs/tags/{PREFIX}*")
+    git("fetch", "--quiet", "--no-tags", args.source, f"+refs/tags/v*:refs/tags/{PREFIX}v*")
     versions = released_versions()
     if old not in versions:
         raise Failure(f"The recorded version {old} is not a release of groundwork at {args.source}.")
