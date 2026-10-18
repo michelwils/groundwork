@@ -22,9 +22,6 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
-from update_groundwork import SOURCE  # noqa: E402
-
 UPDATE = os.path.join(HERE, "update_groundwork.py")
 VERSION_FILE = ".groundwork-version"
 PREFIX = "groundwork/"
@@ -105,7 +102,7 @@ def main():
     if update.returncode == 1:
         sys.stderr.write(update.stderr)
         return 1
-    fields = dict(re.findall(r"^(branch|from|to): (.+)$", update.stdout, re.MULTILINE))
+    fields = dict(re.findall(r"^(branch|from|to|source): (.+)$", update.stdout, re.MULTILINE))
     if "branch" not in fields:
         return 0  # up to date, the update script said so
     files = conflicts(update.stdout) if update.returncode == 2 else []
@@ -122,7 +119,7 @@ def main():
 
     url = run(
         "gh", "pr", "create", "--head", branch, "--title", title,
-        "--body", body(old, new, files, args.source or SOURCE, added(update.stdout)),
+        "--body", body(old, new, files, fields.get("source", ""), added(update.stdout)),
         *(["--draft"] if files else []),
     ).strip()
     print(url)
