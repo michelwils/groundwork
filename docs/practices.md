@@ -5,8 +5,8 @@ This map tells what each ADR of groundwork is made of, so that a project can see
 For each ADR, an entry gives:
 
 - **Needs**: the ADRs that it cannot be applied without. The text of an ADR names and links only these, so that the ADRs a project keeps, with the ADRs they need, hold together with no reference to an ADR the project does not have. The check reads the text of the ADRs to verify it.
-- **Files**: the files that apply it. The file of the ADR itself is not listed.
-- **Shared lines**: the files that carry lines of several ADRs, with the section or the bullet of the lines. A section or a bullet, not a line number, since a line moves. The check does not verify them.
+- **Files**: the files that apply it. The file of the ADR itself is not listed. A file that several ADRs share belongs to one of them, which owns it and leaves with it, and only the lines of the other ADRs are in blocks.
+- **Shared lines**: the files where the ADR has a block of lines, delimited by the markers `<!-- groundwork:NNNN -->` … `<!-- /groundwork -->` in Markdown and `# groundwork:NNNN` … `# /groundwork` in YAML. The check verifies that the list is the list of the files that have a block of the ADR, and that a block names only its ADR and the ADRs it needs.
 
 The ADRs of groundwork numbered `1000` or more are its own decisions, not practices, and have no entry. A file belongs to one entry, or to the shared files, or to the files that are not part of a practice. In groundwork, the check fails for a file that is tracked by git and that the map does not name. In a project, which has a `.groundwork-version`, it does not look for such files, since a project has files of its own, and it reports a file of the map that the project lacks.
 
@@ -20,9 +20,9 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
   - `.github/scripts/check_adrs.py`
   - `.github/scripts/test_check_adrs.py`
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Decisions"
-  - `AGENTS.md`, section "Before a change", the bullet on a significant decision
-  - `.pre-commit-config.yaml`, hook `adrs`
+  - `CONTRIBUTING.md`
+  - `AGENTS.md`
+  - `.pre-commit-config.yaml`
 
 ### 0002. [Conventional Commits](adr/0002-conventional-commits.md)
 
@@ -30,8 +30,8 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
 - Files:
   - none
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Commit messages"
-  - `.pre-commit-config.yaml`, hook `commit-title`
+  - `CONTRIBUTING.md`
+  - `.pre-commit-config.yaml`
 
 ### 0003. [Change workflow](adr/0003-change-workflow.md)
 
@@ -46,9 +46,9 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
   - `.github/scripts/test_apply_settings.py`
   - `.github/scripts/test_check_pull_request.py`
   - `.github/scripts/test_open_update_pull_request.py`
+  - `.github/PULL_REQUEST_TEMPLATE.md`
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Workflow"
-  - `.github/PULL_REQUEST_TEMPLATE.md`, the line `Closes` and the sections "Plan" and "Acceptance criteria"
+  - `CONTRIBUTING.md`
 
 ### 0004. [Repository language is English](adr/0004-repository-language-english.md)
 
@@ -56,7 +56,7 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
 - Files:
   - none
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Language"
+  - `CONTRIBUTING.md`
 
 ### 0005. [Semantic Versioning and releases](adr/0005-semantic-versioning-and-releases.md)
 
@@ -68,7 +68,7 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
   - `.github/scripts/test_release.py`
   - `.github/scripts/test_update_groundwork.py`
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Releases"
+  - `CONTRIBUTING.md`
 
 ### 0006. [Trunk-based development](adr/0006-trunk-based-development.md)
 
@@ -76,18 +76,18 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
 - Files:
   - none
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Releases", the backport of a fix
+  - `CONTRIBUTING.md`
+  - `.github/PULL_REQUEST_TEMPLATE.md`
 
 ### 0007. [AI-assisted changes](adr/0007-ai-assisted-changes.md)
 
 - Needs: ADR 0002, ADR 0003
 - Files:
-  - none
+  - `AGENTS.md`
 - Shared lines:
-  - `CONTRIBUTING.md`, sections "Review checklist" and "AI-assisted changes"
-  - `AGENTS.md`, section "Rules for agents", and the bullet on the plan in "Before a change"
-  - `.github/PULL_REQUEST_TEMPLATE.md`, section "Plan"
-  - `.pre-commit-config.yaml`, hook `no-agent-session`
+  - `CONTRIBUTING.md`
+  - `.github/PULL_REQUEST_TEMPLATE.md`
+  - `.pre-commit-config.yaml`
 
 ### 0008. [Automated checks](adr/0008-automated-checks.md)
 
@@ -109,10 +109,10 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
   - `.github/scripts/test_checks_workflow.py`
   - `.github/scripts/test_pre_commit_config.py`
   - `.github/scripts/test_script_dependencies.py`
+  - `.pre-commit-config.yaml`
+  - `.github/scripts/test_shared_files.py`
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Checks"
-  - `AGENTS.md`, section "Project"
-  - `.pre-commit-config.yaml`, the hooks `gitleaks`, `markdownlint`, `editorconfig-checker`, `zizmor`, `pip-audit`, `markdown-links` and the configuration at its top
+  - `CONTRIBUTING.md`
 
 ### 0009. [Test-first development](adr/0009-test-first-development.md)
 
@@ -120,8 +120,8 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
 - Files:
   - none
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Tests"
-  - `AGENTS.md`, section "Before a change", the bullet on the test written first
+  - `CONTRIBUTING.md`
+  - `AGENTS.md`
 
 ### 0010. [Security of the code of an application](adr/0010-security-of-the-code-of-an-application.md)
 
@@ -129,9 +129,8 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
 - Files:
   - none
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Review checklist", the bullet on the trust boundaries
-  - `AGENTS.md`, section "Rules for agents", the bullet on a trust boundary
-  - `.github/PULL_REQUEST_TEMPLATE.md`, section "Security"
+  - `CONTRIBUTING.md`
+  - `AGENTS.md`
 
 ### 0011. [Protection of confidential and personal data](adr/0011-protection-of-confidential-and-personal-data.md)
 
@@ -139,9 +138,8 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
 - Files:
   - none
 - Shared lines:
-  - `CONTRIBUTING.md`, section "Review checklist", the bullet on the trust boundaries
-  - `AGENTS.md`, section "Rules for agents", the bullet on a trust boundary
-  - `.github/PULL_REQUEST_TEMPLATE.md`, section "Security"
+  - `CONTRIBUTING.md`
+  - `AGENTS.md`
 
 ### 0012. [Responding to an incident](adr/0012-responding-to-an-incident.md)
 
@@ -157,16 +155,12 @@ The ADRs of groundwork numbered `1000` or more are its own decisions, not practi
 - Files:
   - none
 - Shared lines:
-  - `AGENTS.md`, section "Rules for agents", the bullet on a trust boundary
-  - `.github/PULL_REQUEST_TEMPLATE.md`, section "Security"
+  - `AGENTS.md`
 
 ## Shared files
 
-These files carry lines of several ADRs, and a project adjusts them to its own.
+This file belongs to no ADR, and all its lines that belong to an ADR are in a block.
 
-- `.github/PULL_REQUEST_TEMPLATE.md`
-- `.pre-commit-config.yaml`
-- `AGENTS.md`
 - `CONTRIBUTING.md`
 
 ## Not part of a practice
@@ -175,6 +169,8 @@ These files concern groundwork itself, or the repository as a whole.
 
 - `.gitattributes`
 - `.gitignore`
+- `.github/scripts/markers.py`
+- `.github/scripts/test_markers.py`
 - `LICENSE`
 - `README.md`
 - `docs/practices.md`
