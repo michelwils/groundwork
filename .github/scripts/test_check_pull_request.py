@@ -6,6 +6,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import check_pull_request  # noqa: E402
+import open_update_pull_request  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "check_pull_request.py")
 TYPES = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
@@ -52,6 +53,20 @@ class Accepted(unittest.TestCase):
         self.assertEqual(
             check(branch="fix/12-handle-empty-input-v1", base="maintenance/v1", body="Refs #12"), []
         )
+
+
+class UpdateOfGroundwork(unittest.TestCase):
+    """The pull request that moves a project to a later groundwork, and the branches of the update script."""
+
+    def test_the_branch_without_an_issue_and_its_body_are_accepted(self):
+        for added in ([], ["0002"]):
+            for conflicts in ([], ["a.md"]):
+                with self.subTest(added=added, conflicts=conflicts):
+                    body = open_update_pull_request.body("0.1.0", "0.2.0", conflicts, "https://github.com/o/g.git", added)
+                    self.assertEqual(check_pull_request.check("groundwork/update-to-v0-2-0", "main", body), [])
+
+    def test_the_branch_with_an_issue_is_accepted_with_its_closing_line(self):
+        self.assertEqual(check_pull_request.check("chore/42-update-groundwork-to-v0-2-0", "main", "Closes #42"), [])
 
 
 class BranchName(unittest.TestCase):
