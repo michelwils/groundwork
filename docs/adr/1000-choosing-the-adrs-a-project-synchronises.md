@@ -14,7 +14,7 @@ This ADR is a decision of groundwork as a project, numbered from `1000` as [ADR 
 
 We will let a project choose the ADRs of groundwork it synchronises, in a file, and have the update apply that choice.
 
-- **The choice.** The file `.groundwork-adrs`, at the root of the project, lists the ADRs it keeps, one number of four digits, such as `0003`, or one range, such as `0001-0999`, per line. A number adopts one ADR. A range adopts every ADR it contains, including the ones that the source adds to it later. A line that starts with `#` is a comment. The update refuses a line that is neither, and a number or a range that does not lie wholly within a range that the source reserves ([ADR 0001](0001-record-architecture-decisions.md)), and says which. It accepts `0001`, which changes nothing. Without the file, everything that the source reserves is synchronised, as before. `.groundwork-version` keeps its name and its format. With the file, only the ADRs it lists are, and the ones they need.
+- **The choice.** The file `.groundwork-adrs`, at the root of the project, lists the ADRs it keeps, one number of four digits, such as `0003`, or one range, such as `0001-0999`, per line. A number adopts one ADR. A range adopts every ADR it contains, including the ones that the source adds to it later. A line that starts with `#` is a comment. The update refuses a line that is not a number, a range, a comment or blank, and a number or a range that does not lie wholly within a range that the source reserves ([ADR 0001](0001-record-architecture-decisions.md)), and says which. It accepts `0001`, which changes nothing. Without the file, everything that the source reserves is synchronised, as before. `.groundwork-version` keeps its name and its format. With the file, only the ADRs it lists are, and the ones they need.
 - **What follows.** An ADR needs the ADRs that the map of the version the project moves to gives it, and so on in turn. An ADR of a community base may need an ADR of groundwork, and an ADR of groundwork never needs one of a community base. The update adds them to the choice it applies, without changing the file, and says which. The project does not have to list them.
 - **ADR 0001.** It is always kept: it defines the ADRs, their numbers and the template that everything else relies on.
 - **The files.** The update copies neither the ADR nor the files that the map gives for an ADR that is left out. The files that the map gives to no ADR, such as `docs/practices.md`, are always synchronised.
@@ -31,8 +31,8 @@ We will let a project choose the ADRs of groundwork it synchronises, in a file, 
 - Keeping one ADR can bring others. The update says which, and the project can drop the first one rather than keep what it did not want.
 - The map and the markers must stay true: the check of the map verifies the files, the texts of the ADRs, the markers and the blocks of the lines that several ADRs share.
 - The shared files carry markers, which are comments, and which a project that chooses nothing can ignore.
-- A project that lists ADRs does not receive the later ones by itself. It reads the release notes and adds what it wants.
-- A community that builds its own base from groundwork reserves its ranges in `.groundwork-ranges`. A project takes the ADRs of its source whole, with a range for each range reserved, or chooses among them. It does not use a number of a reserved range for an ADR of its own.
+- A project that lists numbers does not receive the later ADRs by itself. It reads the release notes and adds what it wants. A project that lists a range does.
+- A community that builds its own base from groundwork reserves its ranges in `.groundwork-ranges`. A project takes everything its source reserves, by listing no file, whole ranges, or single ADRs.
 - The choice is a file of the project, reviewed like any other change. What a project can rely on depends on it.
 
 ## Options considered
