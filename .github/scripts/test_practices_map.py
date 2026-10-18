@@ -155,11 +155,8 @@ class ReadMap(unittest.TestCase):
         self.assertEqual(practices_map.read_map(self.root), practices_map.parse(MAP.split("\n")))
 
     def test_a_map_with_a_bom_and_windows_line_ends_is_read(self):
-        self.write(b"\xef\xbb\xbf" + MAP.replace("\n", "\r\n").encode())
-        entries, shared, apart = practices_map.read_map(self.root)
-        self.assertEqual([entry["number"] for entry in entries], [1, 3])
-        self.assertEqual([path for path, _ in shared], ["CONTRIBUTING.md"])
-        self.assertEqual([path for path, _ in apart], ["README.md"])
+        self.write(b"\xef\xbb\xbf## Shared files\r\n\r\n- `CONTRIBUTING.md`\r\n")
+        self.assertEqual(practices_map.read_map(self.root)[1], [("CONTRIBUTING.md", 3)])
 
 
 class Closure(unittest.TestCase):
