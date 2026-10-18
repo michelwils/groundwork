@@ -35,21 +35,14 @@ import subprocess
 import sys
 
 import markers
+from practices_map import ADR_DIRECTORY, ADR_FILE, MAP, cycles, parse, references
 
-MAP = "docs/practices.md"
 VERSION_FILE = ".groundwork-version"
 FIRST_OF_A_PROJECT = 1000
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 NAMED = re.compile(r"\bADRs? \d{4}(?:(?:,| and| or| to)? \d{4})*")
 LINKED = re.compile(r"\]\((?:[^)\s]*/)?(\d{4})-[a-z0-9-]+\.md")
 STATUS = re.compile(r"^\*\*Status:\*\*")
-ADR_DIRECTORY = "docs/adr"
-ADR_FILE = re.compile(r"^(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*\.md$")
-HEADING = re.compile(r"^### (\d{4})\. \S")
-PATH = re.compile(r"`([^`]+)`")
-LIST_ITEM = re.compile(r"^  - (.+)$")
-REFERENCE = re.compile(r"^ADR (\d{4})$")
-SECTIONS = {"## Practices": "practices", "## Shared files": "shared", "## Not part of a practice": "apart"}
 
 
 def tracked(root):
@@ -65,66 +58,6 @@ def adrs_of(root):
         return set()
     numbers = {int(match.group(1)) for name in os.listdir(directory) if (match := ADR_FILE.match(name))}
     return {number for number in numbers if number < FIRST_OF_A_PROJECT}
-
-
-def parse(lines):
-    """Return the entries, the shared files and the files that are not part of a practice.
-
-    An entry is a dict with its number, its line and the (value, line) of what it holds."""
-    entries, shared, apart = [], [], []
-    section = list_name = entry = None
-    for number, line in enumerate(lines, start=1):
-        line = line.rstrip("\r")
-        if line in SECTIONS:
-            section, entry, list_name = SECTIONS[line], None, None
-        elif line.startswith("## "):
-            section, entry, list_name = None, None, None
-        elif HEADING.match(line):
-            entry = {"number": int(HEADING.match(line).group(1)), "line": number, "needs": None, "files": [], "shared": []}
-            entries.append(entry)
-            list_name = None
-        elif entry is not None and line.startswith("- "):
-            head, _, value = line[2:].partition(":")
-            list_name = {"Files": "files", "Shared lines": "shared"}.get(head)
-            if head == "Needs":
-                entry["needs"] = (value.strip(), number)
-        elif entry is not None and list_name and LIST_ITEM.match(line):
-            item = LIST_ITEM.match(line).group(1)
-            path = PATH.match(item)
-            if path:
-                entry[list_name].append((path.group(1), number))
-        elif section in ("shared", "apart") and line.startswith("- "):
-            path = PATH.match(line[2:])
-            if path:
-                (shared if section == "shared" else apart).append((path.group(1), number))
-    return entries, shared, apart
-
-
-def references(value):
-    """Return the numbers of the ADRs named by a value, and the parts that are not an ADR."""
-    if value == "none":
-        return [], []
-    found, wrong = [], []
-    for part in (part.strip() for part in value.split(",")):
-        match = REFERENCE.match(part)
-        (found if match else wrong).append(int(match.group(1)) if match else part)
-    return found, wrong
-
-
-def cycles(needs):
-    """Return the numbers of the ADRs that are on a cycle of needs."""
-    found = set()
-    for start in needs:
-        stack, seen = list(needs[start]), set()
-        while stack:
-            current = stack.pop()
-            if current == start:
-                found.add(start)
-                break
-            if current not in seen:
-                seen.add(current)
-                stack.extend(needs.get(current, []))
-    return sorted(found)
 
 
 def check_entries(entries, numbers, problems):
