@@ -40,7 +40,7 @@ import sys
 
 import choice
 import markers
-from practices_map import ADR_DIRECTORY, ADR_FILE, BASE, MAP, RANGES_FILE, cycles, is_reserved, needs_of, parse, read_ranges, references
+from practices_map import ADR_DIRECTORY, ADR_FILE, BASE, MAP, RANGES_FILE, cycles, is_reserved, needs_of, parse, read_map, read_ranges, references
 
 VERSION_FILE = ".groundwork-version"
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
@@ -232,8 +232,7 @@ def check(root):
     files = tracked(root)
     if files is None:
         return [f"{root}: not a git repository, the tracked files are unknown"]
-    with open(path, encoding="utf-8-sig", errors="replace") as handle:
-        entries, shared, apart = parse(handle.read().split("\n"))
+    entries, shared, apart = read_map(root)
     problems = []
     reserved = read_ranges(root)[0]
     kept = choice.Kept(choice.read(root, reserved)[0], needs_of(entries))

@@ -135,14 +135,6 @@ def check_numbers(numbers, reserved, kept, problems):
             problems.append(f"{DIRECTORY}: the number {missing:04d} of the project ADRs is skipped")
 
 
-def read_needs(root):
-    path = os.path.join(root, practices_map.MAP)
-    if not os.path.isfile(path):
-        return {}
-    with open(path, encoding="utf-8-sig", errors="replace") as handle:
-        return practices_map.needs_of(practices_map.parse(handle.read().split("\n"))[0])
-
-
 def check(root):
     """Return the problems of the ADRs under the root, as 'file:line: message'."""
     directory = os.path.join(root, DIRECTORY)
@@ -174,7 +166,7 @@ def check(root):
     problems.extend(f"{practices_map.RANGES_FILE}:{line}: {message}" for line, message in found)
     adopted, found = choice.read(root, reserved)
     problems.extend(f"{choice.CHOICE_FILE}:{line}: {message}" for line, message in found)
-    kept = choice.Kept(adopted, read_needs(root) if adopted is not None else {})
+    kept = choice.Kept(adopted, practices_map.needs_of(practices_map.read_map(root)[0]) if adopted is not None else {})
     check_numbers(set(files), reserved, kept, problems)
     return sorted(problems)
 

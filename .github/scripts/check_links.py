@@ -113,11 +113,9 @@ def left_out(root):
     """Return a function that tells whether a file of groundwork is left out by the choice of the project, or None."""
     reserved = practices_map.read_ranges(root)[0]
     adopted = choice.read(root, reserved)[0]
-    path = os.path.join(root, practices_map.MAP)
-    if adopted is None or not os.path.isfile(path):
+    if adopted is None:
         return None
-    with open(path, encoding="utf-8-sig", errors="replace") as handle:
-        entries = practices_map.parse(handle.read().split("\n"))[0]
+    entries = practices_map.read_map(root)[0]
     kept = choice.Kept(adopted, practices_map.needs_of(entries))
     owners = practices_map.owners(entries)
     return lambda file: not choice.included(file, owners, kept, reserved)
