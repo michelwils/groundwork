@@ -84,6 +84,11 @@ class Ranges(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(self.refused("# comment\n" + text, 2), [(1, 999)])
 
+    def test_the_message_of_a_line_that_is_not_a_range_shows_the_format_without_a_number_of_a_community(self):
+        self.declare("abc\n")
+        (problem,) = practices_map.read_ranges(self.root)[1]
+        self.assertIn("NNNN-NNNN", problem[1])
+
     def test_a_range_whose_first_bound_is_above_the_second_is_refused(self):
         self.assertEqual(self.refused("9999-9000\n", 1), [(1, 999)])
 

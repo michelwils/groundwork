@@ -600,5 +600,117 @@ class Choice(unittest.TestCase):
         self.assertFalse(self.has(adr(4)))
 
 
+def ledger(numbers):
+    """A map of the practices that holds an entry for each number, in this order."""
+    entries = "".join(
+        f"### {n:04d}. [Decision {n}](adr/{n:04d}-decision.md)\n\n- Needs: none\n- Files:\n  - none\n- Shared lines:\n  - none\n\n"
+        for n in numbers
+    )
+    footer = "## Shared files\n\n## Not part of a practice\n\n- `.github/scripts/update_groundwork.py`\n- `docs/practices.md`\n"
+    return "# Practices of groundwork\n\n## Practices\n\n" + entries + footer
+
+
+def tree(numbers, script, order=None):
+    files = {"docs/practices.md": ledger(order or numbers), ".github/scripts/update_groundwork.py": script}
+    files.update({f"docs/adr/{n:04d}-decision.md": f"# {n}\n" for n in numbers})
+    return files
+
+
+class Chain(unittest.TestCase):
+    """A change of groundwork reaches a project through a community base, with a pull request on each (the guide of the bases)."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        root = self.directory.name
+        self.groundwork, self.base, self.project = (os.path.join(root, name) for name in ("groundwork", "base", "project"))
+        with open(SCRIPT) as handle:
+            self.script = handle.read()
+        self.assertIn('SOURCE = "https://github.com/michelwils/groundwork.git"\n', self.script)
+        self.later = self.script.replace('"""Prepare the update', '"""Prepares the update', 1)
+        self.assertNotEqual(self.later, self.script)
+        init(self.groundwork)
+        self.release(self.groundwork, "v0.1.0", tree([1, 13], self.script))
+        self.release(self.groundwork, "v0.2.0", tree([1, 13, 14], self.later))
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def put(self, root, files):
+        for name, content in files.items():
+            os.makedirs(os.path.dirname(os.path.join(root, name)) or root, exist_ok=True)
+            with open(os.path.join(root, name), "w") as handle:
+                handle.write(content)
+
+    def release(self, repo, tag, files):
+        for name in os.listdir(repo):
+            if name != ".git":
+                path = os.path.join(repo, name)
+                shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
+        self.put(repo, files)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "--allow-empty", "-m", f"feat: release {tag}")
+        git(repo, "tag", "-a", tag, "-m", tag)
+
+    def found_base(self, order):
+        """The base: groundwork 0.1.0 with a range of its own, an ADR in it and its entry, released as v0.9.0."""
+        init(self.base)
+        self.put(self.base, {**tree([1, 13], self.script, order=[n for n in order if n != 9000]), ".groundwork-version": "0.1.0\n"})
+        git(self.base, "add", "-A")
+        git(self.base, "commit", "-q", "-m", "Initial commit")
+        self.put(self.base, {**tree([1, 13, 9000], self.script, order=order), ".groundwork-ranges": "9000-9999\n"})
+        git(self.base, "add", "-A")
+        git(self.base, "commit", "-q", "-m", "feat: reserve a range")
+        git(self.base, "tag", "-a", "v0.9.0", "-m", "v0.9.0")
+
+    def update(self, repo, source):
+        return subprocess.run([sys.executable, SCRIPT, "--source", source], cwd=repo, capture_output=True, text=True)
+
+    def test_an_entry_of_the_base_before_those_of_groundwork_does_not_conflict_with_a_new_entry_of_groundwork(self):
+        self.found_base([9000, 1, 13])
+        result = self.update(self.base, self.groundwork)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("### 0014.", read(self.base, "docs/practices.md"))
+        self.assertIn("### 9000.", read(self.base, "docs/practices.md"))
+
+    def test_an_entry_of_the_base_after_those_of_groundwork_conflicts_with_a_new_entry_of_groundwork(self):
+        self.found_base([1, 13, 9000])
+        result = self.update(self.base, self.groundwork)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("- docs/practices.md", result.stdout)
+
+    def test_the_project_gets_the_change_of_groundwork_and_the_range_of_the_base_from_the_base(self):
+        self.found_base([9000, 1, 13])
+        self.assertEqual(self.update(self.base, self.groundwork).returncode, 0)
+        git(self.base, "add", "-A")
+        git(self.base, "commit", "-q", "-m", "fix: update groundwork to v0.2.0")
+        git(self.base, "switch", "-q", "main")
+        git(self.base, "merge", "-q", "--ff-only", "groundwork/update-to-v0-2-0")
+        git(self.base, "tag", "-a", "v1.0.0", "-m", "v1.0.0")
+        self.adopt_from_the_base()
+        result = self.update(self.project, self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, ".groundwork-version"), "1.0.0\n")
+        self.assertEqual(read(self.project, "docs/adr/0014-decision.md"), "# 14\n")
+        self.assertEqual(read(self.project, "docs/adr/9000-decision.md"), "# 9000\n")
+        self.assertEqual(read(self.project, ".groundwork-ranges"), "9000-9999\n")
+        script = read(self.project, ".github/scripts/update_groundwork.py")
+        self.assertIn('"""Prepares the update', script)
+        self.assertIn('SOURCE = "https://example.org/base.git"\n', script)
+
+    def adopt_from_the_base(self):
+        """A project made from the base at v0.9.0, which sets the source of its updates to the base."""
+        init(self.project)
+        archive = subprocess.run(["git", "archive", "--format=tar", "v0.9.0"], cwd=self.base, capture_output=True, check=True).stdout
+        subprocess.run(["tar", "-x", "-C", self.project], input=archive, check=True)
+        path = os.path.join(self.project, ".github/scripts/update_groundwork.py")
+        with open(path) as handle:
+            text = handle.read()
+        with open(path, "w") as handle:
+            handle.write(text.replace('SOURCE = "https://github.com/michelwils/groundwork.git"', 'SOURCE = "https://example.org/base.git"'))
+        self.put(self.project, {".groundwork-version": "0.9.0\n"})
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "Initial commit")
+
+
 if __name__ == "__main__":
     unittest.main()
