@@ -8,7 +8,7 @@ For each ADR, an entry gives:
 - **Files**: the files that apply it. The file of the ADR itself is not listed. A file that several ADRs share belongs to one of them, which owns it and leaves with it, and only the lines of the other ADRs are in blocks.
 - **Shared lines**: the files where the ADR has a block of lines, delimited by the markers `<!-- groundwork:NNNN -->` … `<!-- /groundwork -->` in Markdown and `# groundwork:NNNN` … `# /groundwork` in YAML. The check verifies that the list is the list of the files that have a block of the ADR, and that a block names only its ADR and the ADRs it needs. In groundwork, the lines outside the blocks of a shared file name no ADR, and those of an owner name only it and the ADRs it needs; in a project they are its own and may name any ADR.
 
-The ADRs of groundwork numbered `1000` or more are its own decisions, not practices, and have no entry. A file belongs to one entry, or to the shared files, or to the files that are not part of a practice. In groundwork, the check fails for a file that is tracked by git and that the map does not name. In a project, which has a `.groundwork-version`, it does not look for such files, since a project has files of its own, and it reports a file of the map that the project lacks.
+The ADRs outside the ranges that groundwork reserves, which are its own decisions numbered from `1000`, are not practices and have no entry. A file belongs to one entry, or to the shared files, or to the files that are not part of a practice. In groundwork, the check fails for a file that is tracked by git and that the map does not name. In a project, which has a `.groundwork-version`, it does not look for such files, since a project has files of its own, and it reports a file of the map that the project lacks.
 
 ## Practices
 
@@ -169,8 +169,12 @@ These files concern groundwork itself, or the repository as a whole.
 
 - `.gitattributes`
 - `.gitignore`
+- `.github/scripts/choice.py`
 - `.github/scripts/markers.py`
+- `.github/scripts/practices_map.py`
+- `.github/scripts/test_choice.py`
 - `.github/scripts/test_markers.py`
+- `.github/scripts/test_practices_map.py`
 - `LICENSE`
 - `README.md`
 - `docs/practices.md`

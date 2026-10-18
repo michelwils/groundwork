@@ -1,4 +1,4 @@
-"""Blocks of lines per ADR, in the files that several ADRs share (ADR 1000).
+"""Blocks of lines per ADR, in the files that several ADRs share.
 
 A block starts with a marker line and ends with a closing marker line:
 
