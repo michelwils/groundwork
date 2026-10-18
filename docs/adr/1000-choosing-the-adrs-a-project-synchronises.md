@@ -14,10 +14,10 @@ This ADR is a decision of groundwork as a project, numbered from `1000` as [ADR 
 
 We will let a project choose the ADRs of groundwork it synchronises, in a file, and have the update apply that choice.
 
-- **The choice.** The file `.groundwork-adrs`, at the root of the project, lists the ADRs it keeps, one number per line, such as `0003`. A line that starts with `#` is a comment. Without the file, everything is synchronised, as before. `.groundwork-version` keeps its name and its format. With the file, only the ADRs it lists are, and the ones they need.
+- **The choice.** The file `.groundwork-adrs`, at the root of the project, lists the ADRs it keeps, one number of four digits per line, such as `0003`. A line that starts with `#` is a comment. The update refuses a number that is not an ADR of groundwork, and accepts `0001`, which changes nothing. Without the file, everything is synchronised, as before. `.groundwork-version` keeps its name and its format. With the file, only the ADRs it lists are, and the ones they need.
 - **What follows.** An ADR needs the ADRs that the map of the version gives it, and so on in turn. The update adds them to the choice and says which. The project does not have to list them.
 - **ADR 0001.** It is always kept: it defines the ADRs, their numbers and the template that everything else relies on.
-- **The files.** The update copies neither the ADR nor the files that the map gives for an ADR that is left out.
+- **The files.** The update copies neither the ADR nor the files that the map gives for an ADR that is left out. The files that the map gives to no ADR, such as `docs/practices.md`, are always synchronised.
 - **The shared files.** The lines of the shared files are delimited by markers per ADR. Before it merges, the update removes the blocks of the ADRs that are left out from both versions of groundwork, so that the file of the project, which already lacks them, raises no conflict.
 - **Later ADRs.** An ADR that groundwork adds after the choice is not adopted until the project lists it. An ADR that the project adds to the file is applied whole, from nothing.
 - **The numbers.** The check of the ADRs accepts a missing number from `0001` to `0999` only when the choice of the project, with what it needs, leaves it out.
