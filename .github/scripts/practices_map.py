@@ -85,6 +85,15 @@ def cycles(needs):
     return sorted(found)
 
 
+def read_map(root):
+    """Return what `parse` returns for the map under the root, or nothing for each if it does not exist."""
+    path = os.path.join(root, MAP)
+    if not os.path.isfile(path):
+        return [], [], []
+    with open(path, encoding="utf-8-sig", errors="replace") as handle:
+        return parse(handle.read().split("\n"))
+
+
 def needs_of(entries):
     """Return the numbers of the ADRs that each ADR needs, for the entries that have a line 'Needs'."""
     return {entry["number"]: set(references(entry["needs"][0])[0]) for entry in entries if entry["needs"] is not None}

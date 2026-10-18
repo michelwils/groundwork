@@ -134,6 +134,31 @@ class Entries(unittest.TestCase):
         self.assertEqual(practices_map.cycles({1: [2], 2: [1], 3: [1]}), [1, 2])
 
 
+class ReadMap(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.root = self.directory.name
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def write(self, content):
+        os.makedirs(os.path.join(self.root, "docs"), exist_ok=True)
+        with open(os.path.join(self.root, "docs", "practices.md"), "wb") as handle:
+            handle.write(content)
+
+    def test_a_missing_map_has_no_entry_no_shared_file_and_no_other_file(self):
+        self.assertEqual(practices_map.read_map(self.root), ([], [], []))
+
+    def test_the_map_of_a_project_is_read_like_the_text_parsed(self):
+        self.write(MAP.encode())
+        self.assertEqual(practices_map.read_map(self.root), practices_map.parse(MAP.split("\n")))
+
+    def test_a_map_with_a_bom_and_windows_line_ends_is_read(self):
+        self.write(b"\xef\xbb\xbf## Shared files\r\n\r\n- `CONTRIBUTING.md`\r\n")
+        self.assertEqual(practices_map.read_map(self.root)[1], [("CONTRIBUTING.md", 3)])
+
+
 class Closure(unittest.TestCase):
     NEEDS = {1: set(), 2: set(), 3: {2}, 6: {3, 5}, 5: {2}, 7: {2, 3}}
 

@@ -39,5 +39,5 @@ We will develop on a single long-lived branch, `main`. All other branches are sh
 - A revert does not undo changes already applied to data, and a revert of a released breaking change is itself breaking. Changes to data are therefore made in steps as well.
 - Maintaining an older major version doubles the work of every fix, which is applied and released twice. A project should maintain as few as possible.
 - With maintenance branches, the latest tag by date is not always the highest version.
-- The fix of a vulnerability that is not public yet is made outside this workflow, as [`SECURITY.md`](../../SECURITY.md) says. A rollback is a new fix or a `revert`, made like any other change.
+- The fix of a vulnerability that is not public yet is made outside this workflow, as `SECURITY.md` says. A rollback is a new fix or a `revert`, made like any other change.
 - That `main` is releasable relies on the checks of the CI.

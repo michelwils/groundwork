@@ -8,6 +8,10 @@ punctuation, with hyphens for spaces, and `-1`, `-2` for a heading that repeats.
 (`http:`, `mailto:`, `//…`) are not checked, nor are links in code, in HTML comments or in the
 files of EXCLUDED. The check does not use the network.
 
+In a project that keeps some of the ADRs, a link of the map of the practices, `docs/practices.md`, to a
+file that the project left out is not reported, since the map describes groundwork and not the project.
+A link to such a file in any other file is.
+
 The files are read with markdown-it-py, a parser of CommonMark, which requirements.txt pins.
 
 Usage: check_links.py [DIR]
@@ -20,6 +24,9 @@ import sys
 from urllib.parse import unquote
 
 from markdown_it import MarkdownIt
+
+import choice
+import practices_map
 
 # Files whose links are placeholders to be filled in.
 EXCLUDED = ("docs/adr/template.md",)
@@ -102,6 +109,18 @@ def markdown_files(root):
     return sorted(found)
 
 
+def left_out(root):
+    """Return a function that tells whether a file of groundwork is left out by the choice of the project, or None."""
+    reserved = practices_map.read_ranges(root)[0]
+    adopted = choice.read(root, reserved)[0]
+    if adopted is None:
+        return None
+    entries = practices_map.read_map(root)[0]
+    kept = choice.Kept(adopted, practices_map.needs_of(entries))
+    owners = practices_map.owners(entries)
+    return lambda file: not choice.included(file, owners, kept, reserved)
+
+
 def check(root):
     """Return the broken links of the Markdown files under the root, as 'file:line: message'."""
     root = os.path.abspath(root)
@@ -118,20 +137,20 @@ def check(root):
             known[path] = anchors(text_of(path))
         return known[path]
 
-    problems = []
+    problems, exempt = [], left_out(root)
     for source in markdown_files(root):
         relative = os.path.relpath(source, root).replace(os.sep, "/")
         if relative in EXCLUDED or not os.path.isfile(source):
             continue
         for line, target in links(text_of(source)):
-            problem = broken(root, source, target, anchors_of)
+            problem = broken(root, source, target, anchors_of, exempt if relative == practices_map.MAP else None)
             if problem:
                 problems.append(f"{relative}:{line}: {problem}")
     return problems
 
 
-def broken(root, source, target, anchors_of):
-    """Return why the link does not resolve, or None."""
+def broken(root, source, target, anchors_of, exempt=None):
+    """Return why the link does not resolve, or None. A link to a file that `exempt` accepts is not broken."""
     if not target or EXTERNAL.match(target):
         return None
     path, _, fragment = target.partition("#")
@@ -144,6 +163,8 @@ def broken(root, source, target, anchors_of):
         destination = os.path.normpath(os.path.join(os.path.dirname(source), path))
     if os.path.commonpath([root, destination]) != root:
         return f"'{target}' leaves the repository"
+    if exempt and exempt(os.path.relpath(destination, root).replace(os.sep, "/")):
+        return None
     if not os.path.exists(destination):
         return f"'{target}' points to a file that does not exist"
     if fragment and not LINE_ANCHOR.match(fragment) and os.path.isfile(destination) and destination.endswith(".md"):

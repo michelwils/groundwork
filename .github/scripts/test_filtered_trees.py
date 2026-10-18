@@ -1,0 +1,206 @@
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
+sys.path.insert(0, HERE)
+import check_adrs  # noqa: E402
+import check_links  # noqa: E402
+import check_practices  # noqa: E402
+import choice  # noqa: E402
+import practices_map  # noqa: E402
+
+# The files that a project has of its own: the update synchronises neither of them.
+README = "# Project\n\n## Checks\n\nText.\n\n## Versioning\n\nText.\n"
+LICENSE = "License.\n"
+
+ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n"
+MAP = """# Practices
+
+## Practices
+
+### 0001. First
+
+- Needs: none
+- Files:
+  - none
+- Shared lines:
+  - none
+
+### 9000. Of the community
+
+- Needs: ADR 0001
+- Files:
+  - none
+- Shared lines:
+  - none
+
+## Shared files
+
+- `CONTRIBUTING.md`
+
+## Not part of a practice
+
+- `docs/practices.md`
+"""
+
+
+def is_source(root, environ):
+    """Tell whether the repository is a source of ADRs: groundwork, which has no `.groundwork-version`, or a
+    community base, which sets the variable GROUNDWORK_SOURCE to `true`. A project follows a source and is not one."""
+    return environ.get("GROUNDWORK_SOURCE") == "true" or not os.path.exists(os.path.join(root, ".groundwork-version"))
+
+
+def put(root, path, content):
+    full = os.path.join(root, path)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    with open(full, "w", encoding="utf-8") as handle:
+        handle.write(content)
+
+
+def track(root):
+    subprocess.run(["git", "init", "--quiet", root], check=True)
+    subprocess.run(["git", "-C", root, "add", "-A"], check=True)
+
+
+def check_all(root):
+    return check_adrs.check(root) + check_practices.check(root) + check_links.check(root)
+
+
+class Source(unittest.TestCase):
+    def test_a_repository_without_a_version_is_a_source(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.assertTrue(is_source(root, {}))
+
+    def test_a_repository_with_a_version_is_a_project_unless_the_variable_says_it_is_a_source(self):
+        with tempfile.TemporaryDirectory() as root:
+            put(root, ".groundwork-version", "0.6.0\n")
+            self.assertFalse(is_source(root, {}))
+            self.assertTrue(is_source(root, {"GROUNDWORK_SOURCE": "true"}))
+
+    def test_the_variable_must_be_true(self):
+        with tempfile.TemporaryDirectory() as root:
+            put(root, ".groundwork-version", "0.6.0\n")
+            for value in ("", "false", "1", "True", "yes"):
+                with self.subTest(value=value):
+                    self.assertFalse(is_source(root, {"GROUNDWORK_SOURCE": value}))
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
+class FilteredTrees(unittest.TestCase):
+    """What groundwork gives to a project that keeps some of its ADRs, checked on the real files."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(os.path.join(ROOT, practices_map.MAP), encoding="utf-8") as handle:
+            entries, _, _ = practices_map.parse(handle.read().split("\n"))
+        cls.needs = practices_map.needs_of(entries)
+        cls.owners = practices_map.owners(entries)
+        cls.numbers = sorted(entry["number"] for entry in entries)
+        listing = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, check=True)
+        cls.files = [path for path in listing.stdout.decode().split("\0") if path and os.path.isfile(os.path.join(ROOT, path))]
+
+    def dependents(self, number):
+        found, grew = {number}, True
+        while grew:
+            grew = False
+            for other, needs in self.needs.items():
+                if other not in found and needs & found:
+                    found.add(other)
+                    grew = True
+        return found
+
+    def tree(self, left_out):
+        """Return a project that keeps the ADRs but the ones left out: the files of groundwork that it takes."""
+        listed = [number for number in self.numbers if number not in left_out]
+        kept = choice.Kept([(number, number) for number in listed], self.needs)
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = directory.name
+        for path in self.files:
+            if path in ("README.md", "LICENSE") or not choice.included(path, self.owners, kept, [practices_map.BASE]):
+                continue
+            with open(os.path.join(ROOT, path), "rb") as handle:
+                data = handle.read()
+            try:
+                data = choice.content(path, data.decode("utf-8"), kept).encode("utf-8")
+            except UnicodeDecodeError:
+                pass
+            full = os.path.join(root, path)
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            with open(full, "wb") as handle:
+                handle.write(data)
+        put(root, "README.md", README)
+        put(root, "LICENSE", LICENSE)
+        put(root, ".groundwork-version", "0.6.0\n")
+        put(root, ".groundwork-adrs", "# The ADRs kept\n" + "".join(f"{number:04d}\n" for number in listed))
+        track(root)
+        return root
+
+    def test_a_project_that_keeps_every_adr_passes_the_checks(self):
+        self.assertEqual(check_all(self.tree(set())), [])
+
+    def test_a_project_that_leaves_out_an_adr_with_the_adrs_that_need_it_passes_the_checks(self):
+        for number in self.numbers:
+            if number != 1:
+                with self.subTest(left_out=sorted(self.dependents(number))):
+                    self.assertEqual(check_all(self.tree(self.dependents(number))), [])
+
+    def test_a_project_that_keeps_only_adr_0001_passes_the_checks(self):
+        self.assertEqual(check_all(self.tree(set(self.numbers) - {1})), [])
+
+
+class Community(unittest.TestCase):
+    """A community base that reserves a range of its own, and the project that follows it."""
+
+    def base(self, version=False, ranges="9000-9999\n"):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = directory.name
+        put(root, "docs/adr/0001-first.md", ADR.format(n="0001"))
+        put(root, "docs/adr/9000-of-the-community.md", ADR.format(n="9000"))
+        put(root, "docs/practices.md", MAP)
+        put(root, "CONTRIBUTING.md", "Rules.\n")
+        put(root, ".groundwork-ranges", "# The range of the community\n" + ranges)
+        if version:
+            put(root, ".groundwork-version", "0.6.0\n")
+        track(root)
+        return root
+
+    def test_a_base_that_reserves_a_range_passes_the_checks(self):
+        self.assertEqual(check_all(self.base()), [])
+
+    def test_the_file_of_the_ranges_needs_no_entry_in_the_map(self):
+        root = self.base()
+        self.assertFalse([problem for problem in check_practices.check(root) if ".groundwork-ranges" in problem])
+
+    def test_a_project_of_the_base_passes_the_checks(self):
+        self.assertEqual(check_all(self.base(version=True)), [])
+
+    def test_a_project_that_keeps_only_adr_0001_passes_the_checks_without_the_adrs_of_the_community(self):
+        root = self.base(version=True)
+        os.remove(os.path.join(root, "docs/adr/9000-of-the-community.md"))
+        put(root, ".groundwork-adrs", "0001\n")
+        track(root)
+        self.assertEqual(check_all(root), [])
+
+    def test_a_project_that_takes_the_range_of_the_community_whole_passes_the_checks(self):
+        root = self.base(version=True)
+        put(root, ".groundwork-adrs", "0001-0999\n9000-9999\n")
+        self.assertEqual(check_all(root), [])
+
+    def test_an_adr_of_the_project_in_the_range_of_the_community_has_no_entry_in_the_map(self):
+        root = self.base(version=True)
+        put(root, "docs/adr/9001-of-the-project.md", ADR.format(n="9001"))
+        track(root)
+        problems = check_all(root)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("9001", problems[0])
+        self.assertIn("no entry", problems[0])
+
+
+if __name__ == "__main__":
+    unittest.main()

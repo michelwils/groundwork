@@ -43,6 +43,10 @@ class ChecksWorkflow(unittest.TestCase):
         self.assertIn("check_pull_request.py", step)
         self.assertNotIn("startsWith", step)
 
+    def test_the_tests_of_the_scripts_receive_the_variable_of_a_source_of_adrs(self):
+        step = steps()["Test the scripts"]
+        self.assertRegex(step, re.compile(r"^        env:\n          GROUNDWORK_SOURCE: \$\{\{ vars\.GROUNDWORK_SOURCE \}\}$", flags=re.MULTILINE))
+
 
 if __name__ == "__main__":
     unittest.main()

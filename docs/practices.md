@@ -111,6 +111,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `.github/scripts/test_script_dependencies.py`
   - `.pre-commit-config.yaml`
   - `.github/scripts/test_shared_files.py`
+  - `.github/scripts/test_filtered_trees.py`
 - Shared lines:
   - `CONTRIBUTING.md`
 

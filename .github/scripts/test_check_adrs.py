@@ -33,7 +33,7 @@ def adr(number, title="A decision", status="accepted", sections=("Context", "Dec
     return f"# {number}. {title}\n\n**Status:** {status}\n\n{body}".rstrip("\n") + "\n"
 
 
-class Adrs(unittest.TestCase):
+class Fixture(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.root = self.directory.name
@@ -59,6 +59,17 @@ class Adrs(unittest.TestCase):
         self.assertIn(text, problem)
         return problem
 
+    def put_root(self, path, content):
+        with open(os.path.join(self.root, path), "w", encoding="utf-8") as handle:
+            handle.write(content)
+
+    def practices(self, **needs):
+        entries = "".join(f"### {number}. Decision {number}\n\n- Needs: {value}\n- Files:\n  - none\n- Shared lines:\n  - none\n\n" for number, value in needs.items())
+        os.makedirs(os.path.join(self.root, "docs"), exist_ok=True)
+        self.put_root(os.path.join("docs", "practices.md"), "# Practices\n\n## Practices\n\n" + entries)
+
+
+class Adrs(Fixture):
     def test_a_valid_set_and_the_template_pass(self):
         self.adrs(1, 2, 3)
         self.assertEqual(self.problems(), [])
@@ -217,6 +228,120 @@ class Adrs(unittest.TestCase):
         self.put("0002-b.md", adr("0002", status="maybe"))
         problems = self.problems()
         self.assertEqual(problems, sorted(problems))
+
+
+class Reserved(Fixture):
+    """The ranges that a source reserves and the choice of a project (ADR 0001, ADR 1000)."""
+
+    def setUp(self):
+        super().setUp()
+        self.practices(**{"0001": "none", "0002": "none", "0003": "ADR 0002", "0004": "none"})
+
+    def skipped(self, *numbers):
+        problems = self.problems()
+        self.assertEqual(len(problems), len(numbers), problems)
+        for number, problem in zip(numbers, problems):
+            self.assertIn(f"the number {number:04d}", problem)
+            self.assertIn("is skipped", problem)
+
+    def test_a_number_that_the_choice_leaves_out_may_be_missing(self):
+        self.put_root(".groundwork-adrs", "0001\n0002\n0004\n")
+        self.adrs(1, 2, 4)
+        self.assertEqual(self.problems(), [])
+
+    def test_a_number_that_the_choice_keeps_is_reported_when_it_is_missing(self):
+        self.put_root(".groundwork-adrs", "0001\n0003\n0004\n")
+        self.adrs(1, 3, 4)
+        self.skipped(2)
+
+    def test_a_number_that_a_kept_adr_needs_is_kept(self):
+        self.put_root(".groundwork-adrs", "0003\n")
+        self.adrs(1, 3)
+        self.skipped(2)
+
+    def test_a_number_that_a_range_holds_is_kept(self):
+        self.put_root(".groundwork-adrs", "0001-0004\n")
+        self.adrs(1, 2, 4)
+        self.skipped(3)
+
+    def test_a_missing_number_is_reported_without_a_choice(self):
+        self.adrs(1, 2, 4)
+        self.skipped(3)
+
+    def test_a_choice_without_a_map_keeps_what_it_lists(self):
+        os.remove(os.path.join(self.root, "docs", "practices.md"))
+        self.put_root(".groundwork-adrs", "0001\n0004\n")
+        self.adrs(1, 4)
+        self.assertEqual(self.problems(), [])
+
+    def test_a_line_of_the_choice_that_is_refused_is_reported_once_at_its_line(self):
+        self.put_root(".groundwork-adrs", "0001\nabc\n")
+        self.adrs(1)
+        (problem,) = self.problems()
+        self.assertTrue(problem.startswith(".groundwork-adrs:2:"), problem)
+
+    def test_a_number_that_no_range_reserves_is_refused_in_the_choice(self):
+        self.put_root(".groundwork-adrs", "1000\n")
+        self.adrs(1)
+        (problem,) = self.problems()
+        self.assertTrue(problem.startswith(".groundwork-adrs:1:"), problem)
+
+    def test_a_line_of_the_ranges_that_is_refused_is_reported_at_its_line(self):
+        self.put_root(".groundwork-ranges", "# comment\n9999-9000\n")
+        self.adrs(1)
+        (problem,) = self.problems()
+        self.assertTrue(problem.startswith(".groundwork-ranges:2:"), problem)
+
+    def test_a_range_that_the_source_reserves_is_numbered_from_its_first_number(self):
+        self.put_root(".groundwork-ranges", "9000-9999\n")
+        self.adrs(1, 9000, 9001)
+        self.assertEqual(self.problems(), [])
+        self.adrs(9003)
+        self.skipped(9002)
+        self.assertIn("9000-9999", self.problems()[0])
+
+    def test_a_range_that_the_source_reserves_does_not_start_after_its_first_number(self):
+        self.put_root(".groundwork-ranges", "9000-9999\n")
+        self.adrs(1, 9001)
+        self.skipped(9000)
+
+    def test_a_number_of_a_range_that_the_choice_leaves_out_may_be_missing(self):
+        self.put_root(".groundwork-ranges", "9000-9999\n")
+        self.put_root(".groundwork-adrs", "0001\n")
+        self.adrs(1, 9000, 9002)
+        self.assertEqual(self.problems(), [])
+
+    def test_the_adrs_of_a_project_start_after_the_ranges_that_the_source_reserves(self):
+        self.put_root(".groundwork-ranges", "1000-1999\n")
+        self.adrs(1, 2000, 2001)
+        self.assertEqual(self.problems(), [])
+        self.adrs(2003)
+        self.skipped(2002)
+
+    def test_a_project_that_starts_after_the_first_free_number_is_reported(self):
+        self.put_root(".groundwork-ranges", "1000-1999\n")
+        self.adrs(1, 2001)
+        self.skipped(2000)
+
+    def test_the_adrs_of_a_project_skip_only_the_numbers_of_a_reserved_range(self):
+        self.put_root(".groundwork-ranges", "1002-1003\n")
+        self.adrs(1, 1000, 1001, 1004, 1005)
+        self.assertEqual(self.problems(), [])
+        self.adrs(1007)
+        self.skipped(1006)
+
+    def test_the_number_0000_is_still_reported(self):
+        self.put_root(".groundwork-ranges", "9000-9999\n")
+        self.put("0000-a.md", adr("0000"))
+        self.assertTrue(any("0000" in problem for problem in self.problems()))
+
+    def test_the_problems_stay_in_a_stable_order(self):
+        self.put_root(".groundwork-adrs", "abc\n")
+        self.put_root(".groundwork-ranges", "abc\n")
+        self.put("0001-a.md", adr("0001", status="maybe"))
+        problems = self.problems()
+        self.assertEqual(problems, sorted(problems))
+        self.assertEqual(len(problems), 3, problems)
 
 
 class CommandLine(unittest.TestCase):

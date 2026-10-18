@@ -408,5 +408,111 @@ class Projects(Practices):
         self.only("src/app.py")
 
 
+class Ranges(Practices):
+    """The ranges that a source reserves, and the ADRs of a community base."""
+
+    def fork(self, ranges="9000-9999\n"):
+        self.put(".groundwork-ranges", ranges)
+        self.put("docs/adr/9000-community.md", ADR.format(n="9000"))
+
+    def test_an_adr_of_a_range_that_the_source_reserves_has_an_entry(self):
+        self.fork()
+        self.assertEqual(self.problems(practices(*self.good_entries(), entry("9000", needs="ADR 0001"))), [])
+
+    def test_the_file_of_the_ranges_needs_no_entry_in_the_map(self):
+        self.fork()
+        self.assertFalse([problem for problem in self.problems(practices(*self.good_entries())) if "groundwork-ranges" in problem])
+
+    def test_an_adr_of_a_range_that_the_source_reserves_without_an_entry_is_reported(self):
+        self.fork()
+        self.only("9000", practices(*self.good_entries()))
+
+    def test_an_adr_of_that_range_needs_no_entry_when_the_source_does_not_reserve_it(self):
+        self.put("docs/adr/9000-ours.md", ADR.format(n="9000"))
+        self.assertEqual(self.problems(), [])
+
+    def test_an_adr_of_groundwork_that_needs_an_adr_of_a_community_base_is_reported(self):
+        self.fork()
+        entries = (self.good_entries()[0], entry("0002", needs="ADR 9000"), entry("9000", needs="ADR 0001"))
+        problem = self.only("0002", practices(*entries))
+        self.assertIn("9000", problem)
+        self.assertIn("not of groundwork", problem)
+
+    def test_an_adr_of_a_community_base_may_need_an_adr_of_groundwork_and_another_of_its_own(self):
+        self.fork()
+        self.put("docs/adr/9001-more.md", ADR.format(n="9001"))
+        entries = (*self.good_entries(), entry("9000", needs="ADR 0001"), entry("9001", needs="ADR 0002, ADR 9000"))
+        self.assertEqual(self.problems(practices(*entries)), [])
+
+    def test_a_block_that_names_an_adr_of_the_community_that_it_does_not_need_is_reported(self):
+        self.fork()
+        self.put("CONTRIBUTING.md", "Rules.\n\n<!-- groundwork:0001 -->\nSee ADR 9000.\n<!-- /groundwork -->\n")
+        problem = self.only("9000", practices(*self.good_entries(), entry("9000", needs="ADR 0001")))
+        self.assertIn("block of the ADR 0001", problem)
+
+    def test_a_block_may_name_an_adr_number_that_no_range_reserves(self):
+        self.put("CONTRIBUTING.md", "Rules.\n\n<!-- groundwork:0001 -->\nSee ADR 9000.\n<!-- /groundwork -->\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_a_line_of_the_ranges_that_is_refused_is_left_to_the_check_of_the_adrs(self):
+        self.fork("abc\n9000-9999\n")
+        self.assertEqual(self.problems(practices(*self.good_entries(), entry("9000", needs="ADR 0001"))), [])
+
+
+class Choices(Practices):
+    """A project that keeps some of the ADRs: the entries of the others are not its concern."""
+
+    def project(self, listed="0001\n"):
+        self.put(".groundwork-version", "0.6.0\n")
+        self.put(".groundwork-adrs", listed)
+
+    def test_the_entry_of_an_adr_that_is_left_out_is_ignored_with_its_files(self):
+        self.project("0001\n0002\n")
+        self.assertEqual(self.problems(practices(*self.good_entries(), entry("0003", files=["gone.txt"], shared=["CONTRIBUTING.md"]))), [])
+
+    def test_the_file_of_an_adr_that_is_left_out_may_still_be_there(self):
+        self.project("0001\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_the_entry_of_an_adr_that_is_kept_is_still_checked(self):
+        self.project("0001\n0002\n")
+        os.remove(os.path.join(self.root, "docs/adr/0002-second.md"))
+        self.only("0002")
+
+    def test_a_file_of_a_kept_adr_that_the_project_lacks_is_reported(self):
+        self.project("0001\n")
+        os.remove(os.path.join(self.root, "tool.py"))
+        self.only("tool.py")
+
+    def test_an_adr_that_a_kept_adr_needs_is_kept(self):
+        self.project("0002\n")
+        os.remove(os.path.join(self.root, "tool.py"))
+        self.only("tool.py")
+
+    def test_a_range_of_the_choice_keeps_the_adrs_it_holds(self):
+        self.project("0001-0999\n")
+        os.remove(os.path.join(self.root, "docs/adr/0002-second.md"))
+        self.only("0002")
+
+    def test_a_shared_file_whose_owner_is_left_out_is_not_a_problem_for_the_adr_that_has_a_block_in_it(self):
+        self.project("0001\n0002\n")
+        self.put("CONTRIBUTING.md", "Rules.\n\n<!-- groundwork:0001 -->\nOne.\n<!-- /groundwork -->\n")
+        entries = (
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md", "conf.yaml"]),
+            entry("0002", needs="ADR 0001"),
+            entry("0003", files=["conf.yaml"], needs="ADR 0001"),
+        )
+        self.assertEqual(self.problems(practices(*entries)), [])
+
+    def test_a_line_of_the_choice_that_is_refused_is_left_to_the_check_of_the_adrs(self):
+        self.project("abc\n0001\n0002\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_without_a_choice_the_entries_are_all_checked(self):
+        self.put(".groundwork-version", "0.6.0\n")
+        os.remove(os.path.join(self.root, "docs/adr/0002-second.md"))
+        self.only("0002")
+
+
 if __name__ == "__main__":
     unittest.main()
