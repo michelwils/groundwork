@@ -13,26 +13,26 @@ This page tells what a community does. The rules are in [ADR 0001](adr/0001-reco
 ## Start a base
 
 1. **Create the repository from the template** of groundwork, rather than forking it. A repository created from a template starts with one commit and does not carry the history of groundwork; a fork carries it. The documentation of GitHub does not say what a fork does with the tags, and the projects of the base read the tags of the base, so check that a fork has no tag `vX.Y.Z` of groundwork before it publishes its own versions.
-2. **Adopt groundwork like any project**, following [Adopting groundwork](https://github.com/michelwils/groundwork#adopting-groundwork): apply the settings, replace the README and the license, create the secret `GROUNDWORK_UPDATE_TOKEN`, and record in `.groundwork-version` the version of groundwork the base starts from.
-3. **Choose what to keep** of groundwork. Without a file, the base keeps everything. To drop ADRs, list the ones to keep in `.groundwork-adrs`, one number or range per line: ADR 0001 stays, and so do the ADRs that the ones listed need. Its projects can only choose among what the base holds.
+2. **Adopt groundwork like any project**, following [Adopting groundwork](https://github.com/michelwils/groundwork#adopting-groundwork): apply the settings, replace the README, adjust the license as [the last section](#the-license) tells, create the secret `GROUNDWORK_UPDATE_TOKEN`, and record in `.groundwork-version` the version of groundwork the base starts from.
+3. **Choose what to keep** of groundwork. Without a file, the base keeps everything. To drop ADRs, list the ones to keep in `.groundwork-adrs`, one number or range per line: ADR 0001 stays, and so do the ADRs that the ones listed need. The update does not delete anything for ADRs that are left out, so delete their files and their blocks yourself, which the map lists. Its projects can only choose among what the base holds.
 4. **Reserve the ranges** in `.groundwork-ranges`, one `NNNN-NNNN` per line (bounds included, the first not above the second, `#` for a comment). A range may not overlap `0001-0999` or another range, and a line that is not a range is refused by the checks. `9000` to `9999` is a suggestion, not a default: any range that no project already uses will do, since a range cannot be reserved over an ADR that exists. Reserve it above the numbers the projects use.
 5. **Write the ADRs of the base** in its ranges, from the first number of the range and without skipping one, with the template of groundwork. An ADR of the base may need an ADR of groundwork, never the reverse.
-6. **Add to the map** an entry in `docs/practices.md` for each ADR of a range: the ADRs it needs, the files that apply it, and the files where its lines are, in blocks delimited by `<!-- groundwork:9000 -->` and `<!-- /groundwork -->` (or `# groundwork:9000` and `# /groundwork` in YAML). Put the entries before the entry of ADR 0001, where groundwork never writes.
+6. **Add to the map** an entry in `docs/practices.md` for each ADR of a range: the ADRs it needs, the files that apply it, and the files where its lines are, in blocks delimited by `<!-- groundwork:9000 -->` and `<!-- /groundwork -->` (or `# groundwork:9000` and `# /groundwork` in YAML). Put the entries before the entry of ADR 0001, where groundwork does not write.
 7. **Set the variable `GROUNDWORK_SOURCE` to `true`** in the settings of the repository (`gh variable set GROUNDWORK_SOURCE --body true`). The base then runs the test that builds, from its own files, the tree of a project for each ADR left out and checks it. The variable is not synchronised, so each repository decides for itself.
 8. **Publish a version** with the `release` workflow, and make the repository a template repository in its settings, so that the projects are created from it.
 
 ## Follow groundwork
 
-The workflow `update-groundwork` of the base opens a pull request `chore: update groundwork to vX.Y.Z` for each version of groundwork, with a draft status if files are in conflict.
+The workflow `update-groundwork` of the base opens a pull request `chore: update groundwork to vX.Y.Z` to the latest version of groundwork when there is a later one than the base follows, as a draft if files are in conflict.
 
-- Review it as any change: the update says in the pull request which ADRs it adds to the choice of the base.
+- Review it as any change: if the base has a choice, the pull request says which ADRs enter it because an ADR it keeps needs them.
 - **Change its title before the merge.** A `chore` does not change the version, and the release workflow publishes nothing for it, so the projects would not see the change. Use `fix:` or `feat:` according to the effect on the projects, and `feat!:` if it makes them change something.
 - Conflicts come when both sides change lines that are close. The entries of the base placed before the entry of ADR 0001, and its blocks placed away from the lines that groundwork changes, do not conflict with the entries and the lines that groundwork adds.
 - Publish a version once the pull request is merged. The numbers of the versions of the base and of groundwork have nothing in common: `.groundwork-version` of the base holds a version of groundwork, and that of a project a version of the base.
 
 ## In a project of the base
 
-- Create the repository from the template of the base and adopt groundwork as the base tells, with the version of the base in `.groundwork-version`.
+- Create the repository from the template of the base and adopt groundwork like any project, following [Adopting groundwork](https://github.com/michelwils/groundwork#adopting-groundwork), with the version of the base in `.groundwork-version`.
 - **Point the updates to the base.** In the project's copy of `update_groundwork.py`, change the constant `SOURCE` to the address of the base, or pass `--source` to the script. The update merges that line with the changes of the base; the workflow reads the constant.
 - The project takes everything that the base reserves, groundwork's `0001` to `0999` that the base kept and the ranges of the base, or chooses with `.groundwork-adrs`. Neither `.groundwork-version` nor `.groundwork-adrs` of the base is copied to it.
 - The project numbers its own ADRs from the first number that no range of the base reserves, and may use any number that no range reserves.
