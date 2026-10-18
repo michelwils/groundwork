@@ -48,6 +48,12 @@ MAP = """# Practices
 """
 
 
+def is_source(root, environ):
+    """Tell whether the repository is a source of ADRs: groundwork, which has no `.groundwork-version`, or a
+    community base, which sets the variable GROUNDWORK_SOURCE to `true`. A project follows a source and is not one."""
+    return environ.get("GROUNDWORK_SOURCE") == "true" or not os.path.exists(os.path.join(root, ".groundwork-version"))
+
+
 def put(root, path, content):
     full = os.path.join(root, path)
     os.makedirs(os.path.dirname(full), exist_ok=True)
@@ -64,6 +70,26 @@ def check_all(root):
     return check_adrs.check(root) + check_practices.check(root) + check_links.check(root)
 
 
+class Source(unittest.TestCase):
+    def test_a_repository_without_a_version_is_a_source(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.assertTrue(is_source(root, {}))
+
+    def test_a_repository_with_a_version_is_a_project_unless_the_variable_says_it_is_a_source(self):
+        with tempfile.TemporaryDirectory() as root:
+            put(root, ".groundwork-version", "0.6.0\n")
+            self.assertFalse(is_source(root, {}))
+            self.assertTrue(is_source(root, {"GROUNDWORK_SOURCE": "true"}))
+
+    def test_the_variable_must_be_true(self):
+        with tempfile.TemporaryDirectory() as root:
+            put(root, ".groundwork-version", "0.6.0\n")
+            for value in ("", "false", "1", "True", "yes"):
+                with self.subTest(value=value):
+                    self.assertFalse(is_source(root, {"GROUNDWORK_SOURCE": value}))
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
 class FilteredTrees(unittest.TestCase):
     """What groundwork gives to a project that keeps some of its ADRs, checked on the real files."""
 
