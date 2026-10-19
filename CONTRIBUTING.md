@@ -2,7 +2,7 @@
 
 This file summarises how changes are made. The decisions behind it are recorded in [`docs/adr/`](docs/adr/).
 
-A line of this file that belongs to an ADR goes in the block of that ADR, between its markers: see [`docs/practices.md`](docs/practices.md).
+A line of this file that belongs to an ADR goes in the block of that ADR, between its markers: see [`.groundwork/practices.md`](.groundwork/practices.md).
 
 <!-- groundwork:0004 -->
 ## Language
@@ -85,7 +85,7 @@ feat(reset): enable password reset by email
 <!-- groundwork:0009 -->
 ## Tests
 
-Write the test of a change of behaviour before the code that makes it pass, and see it fail ([ADR 0009](docs/adr/0009-test-first-development.md)). A bug is first reproduced by a test. A test changes only when the requirement changes, never to make code pass. A change of behaviour that has no new test says why in its pull request. Run the tests of the scripts with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
+Write the test of a change of behaviour before the code that makes it pass, and see it fail ([ADR 0009](docs/adr/0009-test-first-development.md)). A bug is first reproduced by a test. A test changes only when the requirement changes, never to make code pass. A change of behaviour that has no new test says why in its pull request. Run the tests of the scripts with `python3 -m unittest discover -s .groundwork/scripts -p 'test_*.py'`.
 <!-- /groundwork -->
 
 ## Review checklist

@@ -9,7 +9,7 @@ A template copies files, not settings. The script applies, to a repository on Gi
 - immutable releases, which apply to the releases published afterwards
 - the vulnerability alerts, which also turn on the dependency graph, then the security updates of
   the dependencies, which open a pull request for a vulnerable dependency (ADR 0008)
-- the ruleset of .github/rulesets/main.json, last, since it rejects direct pushes: it is updated if
+- the ruleset of .groundwork/rulesets/main.json, last, since it rejects direct pushes: it is updated if
   a ruleset of that name exists and created otherwise
 
 Run it again and the repository stays in the same state. It needs admin rights on the repository,

@@ -23,7 +23,7 @@ def entry(number, needs="none", files=(), shared=()):
     return "\n".join(lines) + "\n"
 
 
-def practices(*entries, shared=("CONTRIBUTING.md",), apart=("docs/practices.md",)):
+def practices(*entries, shared=("CONTRIBUTING.md",), apart=(".groundwork/practices.md",)):
     text = "# Practices of groundwork\n\nIntroduction.\n\n## Practices\n\n" + "\n".join(entries)
     text += "\n## Shared files\n\n" + "".join(f"- `{path}`\n" for path in shared)
     text += "\n## Not part of a practice\n\n" + "".join(f"- `{path}`\n" for path in apart)
@@ -64,7 +64,7 @@ class Practices(unittest.TestCase):
         return practices(*self.good_entries())
 
     def problems(self, text=None):
-        self.put("docs/practices.md", self.good() if text is None else text)
+        self.put(".groundwork/practices.md", self.good() if text is None else text)
         self.track()
         return check_practices.check(self.root)
 
@@ -87,7 +87,7 @@ class Valid(Practices):
         self.problems(practices(entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"])))
         result = subprocess.run([sys.executable, SCRIPT, self.root], capture_output=True, text=True)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("error: docs/practices.md", result.stderr)
+        self.assertIn("error: .groundwork/practices.md", result.stderr)
         self.assertIn("0002", result.stderr)
 
 
@@ -104,7 +104,7 @@ class Entries(Practices):
 
     def test_the_problem_gives_the_line_of_the_map(self):
         problem = self.only("0003", practices(*self.good_entries(), entry("0003")))
-        self.assertRegex(problem, r"^docs/practices\.md:\d+: ")
+        self.assertRegex(problem, r"^\.groundwork/practices\.md:\d+: ")
 
     def test_an_entry_without_the_line_needs_is_reported(self):
         text = self.good().replace("- Needs: ADR 0001\n", "")
@@ -154,11 +154,11 @@ class Files(Practices):
 
     def test_a_file_class_as_not_part_of_a_practice_is_covered(self):
         self.put("LICENSE", "text\n")
-        text = practices(*self.good_entries(), apart=("docs/practices.md", "LICENSE"))
+        text = practices(*self.good_entries(), apart=(".groundwork/practices.md", "LICENSE"))
         self.assertEqual(self.problems(text), [])
 
     def test_a_file_listed_in_the_section_not_part_of_a_practice_that_does_not_exist_is_reported(self):
-        text = practices(*self.good_entries(), apart=("docs/practices.md", "gone.md"))
+        text = practices(*self.good_entries(), apart=(".groundwork/practices.md", "gone.md"))
         self.only("gone.md", text)
 
     def test_the_map_must_be_in_a_git_repository(self):
@@ -169,17 +169,17 @@ class Files(Practices):
     def test_the_map_must_exist(self):
         self.track()
         problems = check_practices.check(self.root)
-        self.assertTrue(any("docs/practices.md" in problem and "does not exist" in problem for problem in problems))
+        self.assertTrue(any(".groundwork/practices.md" in problem and "does not exist" in problem for problem in problems))
 
 
 class SharedLines(Practices):
     def test_a_shared_line_in_a_file_that_is_neither_shared_nor_the_file_of_an_adr_is_reported(self):
         text = practices(
             entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md"]),
-            entry("0002", needs="ADR 0001", shared=["docs/practices.md"]),
+            entry("0002", needs="ADR 0001", shared=[".groundwork/practices.md"]),
         )
         problems = self.problems(text)
-        self.assertTrue(any("docs/practices.md" in problem and "neither" in problem for problem in problems))
+        self.assertTrue(any(".groundwork/practices.md" in problem and "neither" in problem for problem in problems))
 
     def test_a_shared_file_that_does_not_exist_is_reported(self):
         text = practices(*self.good_entries(), shared=("CONTRIBUTING.md", "AGENTS.md"))
@@ -377,7 +377,7 @@ class Blocks(Practices):
 
     def test_a_file_that_the_map_lists_without_a_block_of_the_adr_is_reported_at_the_line_of_the_map(self):
         problem = self.only("no block", self.map_with(second_shared=["CONTRIBUTING.md"]))
-        self.assertRegex(problem, r"^docs/practices\.md:\d+: ")
+        self.assertRegex(problem, r"^\.groundwork/practices\.md:\d+: ")
 
     def test_the_markers_of_a_file_of_another_kind_are_not_read(self):
         self.put("tool.py", "# groundwork:0009\n")

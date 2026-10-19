@@ -9,7 +9,7 @@ Best-practice baseline for my projects: repository structure, conventions, autom
 Me, as the starting point of my desktop and web applications. The repository is public, so anyone can read it or reuse it under the license below:
 
 - a team that wants the same practices in a project adopts it as described in [Adopting groundwork](#adopting-groundwork), or [in an existing project](#adopting-in-an-existing-project), and chooses the ADRs it keeps;
-- a community, such as the teams of an organisation, builds from it a base of decisions of its own that its projects synchronise, as [the guide of the bases](docs/groundwork-community-base.md) tells.
+- a community, such as the teams of an organisation, builds from it a base of decisions of its own that its projects synchronise, as [the guide of the bases](.groundwork/community-base.md) tells.
 
 ## What it covers
 
@@ -27,14 +27,15 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Issue and pull request templates and a review checklist
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
-- A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py), which a project always synchronises, whatever it leaves out
+- A script that prepares the update of a project to a later version of groundwork, in [`.groundwork/scripts/update_groundwork.py`](.groundwork/scripts/update_groundwork.py), which a project always synchronises, whatever it leaves out
+- The place of the files of groundwork: those that have no conventional name, such as the scripts, their tests and the map of the practices, are in the directory `.groundwork/`, so that a project can tell them from its own ([ADR 1001](docs/adr/1001-naming-the-files-of-groundwork.md))
 - The path to adopt groundwork in an existing project, one practice at a time, and the rule that records the gaps, in [Adopting in an existing project](#adopting-in-an-existing-project)
-- A guide for a community that builds a base of its own from groundwork, in [`docs/groundwork-community-base.md`](docs/groundwork-community-base.md)
+- A guide for a community that builds a base of its own from groundwork, in [`.groundwork/community-base.md`](.groundwork/community-base.md)
 - The choice of the ADRs that a project synchronises, in a file `.groundwork-adrs`, and the ranges of ADR numbers that a community base reserves, in `.groundwork-ranges` ([ADR 1000](docs/adr/1000-choosing-the-adrs-a-project-synchronises.md))
 - A workflow that opens every week the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
 - A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
-- Protection of the default branch with a ruleset, in [`.github/rulesets/main.json`](.github/rulesets/main.json)
-- A script that applies the repository settings, in [`.github/scripts/apply_settings.py`](.github/scripts/apply_settings.py)
+- Protection of the default branch with a ruleset, in [`.groundwork/rulesets/main.json`](.groundwork/rulesets/main.json)
+- A script that applies the repository settings, in [`.groundwork/scripts/apply_settings.py`](.groundwork/scripts/apply_settings.py)
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack, and the rule that a project audits the dependencies of its stack ([ADR 0008](docs/adr/0008-automated-checks.md))
 - Vulnerability alerts and security updates of the platform, turned on by the settings script
 
@@ -53,10 +54,10 @@ groundwork follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html), a
 **Public contract.** What adopting projects rely on:
 
 - the rules in the Decision section of accepted ADRs
-- the files groundwork provides for projects to use, such as hooks, workflows and templates: their names, locations and behaviour
+- the files groundwork provides for projects to use, such as hooks, workflows and templates: their names, locations and behaviour, and the directory `.groundwork/` with what it holds
 - the file `.groundwork-version` that a project keeps, and which the update script reads: its name and its format
 - the files `.groundwork-adrs`, `.groundwork-ranges` and `.groundwork-source`: their names and their formats
-- for a project that keeps some of the ADRs only: the rules of the ADRs it keeps and of the ones they need, and the files that [`docs/practices.md`](docs/practices.md) gives for them
+- for a project that keeps some of the ADRs only: the rules of the ADRs it keeps and of the ones they need, and the files that [`.groundwork/practices.md`](.groundwork/practices.md) gives for them
 - the markers that delimit the lines of an ADR in a file that several ADRs share, `<!-- groundwork:NNNN -->` … `<!-- /groundwork -->` in Markdown and `# groundwork:NNNN` … `# /groundwork` in YAML
 
 The README, the Context and Consequences sections of ADRs, and wording that does not change a rule are not part of it.
@@ -87,11 +88,11 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 - no secret is committed, detected by [gitleaks](https://github.com/gitleaks/gitleaks) in the staged changes before a commit and in the whole history on demand
 - Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)
 - files follow the settings of [`.editorconfig`](.editorconfig), checked by [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker), for which pre-commit downloads Go if it is not installed
-- the ADRs have the title, the status, the sections and the numbering that [ADR 0001](docs/adr/0001-record-architecture-decisions.md) and its template define, checked by [`.github/scripts/check_adrs.py`](.github/scripts/check_adrs.py)
-- the map of the practices names every ADR and every file of groundwork and the ADRs that each one needs, the text of each ADR and the blocks of the files that several ADRs share name only the ADRs that they need, and the blocks are where the map says, checked by [`.github/scripts/check_practices.py`](.github/scripts/check_practices.py) against [`docs/practices.md`](docs/practices.md)
-- the relative links and the anchors of the Markdown files resolve, checked offline by [`.github/scripts/check_links.py`](.github/scripts/check_links.py), which runs in an environment that [`.github/scripts/run_with_requirements.py`](.github/scripts/run_with_requirements.py) makes from the pinned [`requirements.txt`](.github/scripts/requirements.txt) on the first run
+- the ADRs have the title, the status, the sections and the numbering that [ADR 0001](docs/adr/0001-record-architecture-decisions.md) and its template define, checked by [`.groundwork/scripts/check_adrs.py`](.groundwork/scripts/check_adrs.py)
+- the map of the practices names every ADR and every file of groundwork and the ADRs that each one needs, the text of each ADR and the blocks of the files that several ADRs share name only the ADRs that they need, and the blocks are where the map says, checked by [`.groundwork/scripts/check_practices.py`](.groundwork/scripts/check_practices.py) against [`.groundwork/practices.md`](.groundwork/practices.md)
+- the relative links and the anchors of the Markdown files resolve, checked offline by [`.groundwork/scripts/check_links.py`](.groundwork/scripts/check_links.py), which runs in an environment that [`.groundwork/scripts/run_with_requirements.py`](.groundwork/scripts/run_with_requirements.py) makes from the pinned [`requirements.txt`](.groundwork/scripts/requirements.txt) on the first run
 - GitHub Actions workflows have no security mistake such as an expression injection, an unpinned action or excessive permissions, audited offline by [zizmor](https://docs.zizmor.sh) and configured in [`.github/zizmor.yml`](.github/zizmor.yml)
-- the dependencies of the scripts have no known vulnerability, audited by [pip-audit](https://github.com/pypa/pip-audit) when [`.github/scripts/requirements.txt`](.github/scripts/requirements.txt) changes and in the CI, since it needs the network ([ADR 0008](docs/adr/0008-automated-checks.md))
+- the dependencies of the scripts have no known vulnerability, audited by [pip-audit](https://github.com/pypa/pip-audit) when [`.groundwork/scripts/requirements.txt`](.groundwork/scripts/requirements.txt) changes and in the CI, since it needs the network ([ADR 0008](docs/adr/0008-automated-checks.md))
 
 Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
 
@@ -105,18 +106,18 @@ groundwork is a GitHub template repository.
 2. **Configure it.** A template copies files, not repository settings. Clone the repository, then run the script from it, logged in with `gh` and with admin rights on the repository:
 
    ```sh
-   python3 .github/scripts/apply_settings.py [<owner>/<repo>] [--dry-run]
+   python3 .groundwork/scripts/apply_settings.py [<owner>/<repo>] [--dry-run]
    ```
 
    It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. It also turns on the vulnerability alerts and the security updates of the dependencies. Last, it protects the default branch with the ruleset of this repository, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
 
-   If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, changes the `context` of [`.github/rulesets/main.json`](.github/rulesets/main.json) and runs the script again.
+   If the project adds jobs to its CI, it requires one job that waits for all the others and fails if one failed, changes the `context` of [`.groundwork/rulesets/main.json`](.groundwork/rulesets/main.json) and runs the script again.
 
    Create the secret `GROUNDWORK_UPDATE_TOKEN` too, which the [automatic update](#automatic-update) of groundwork needs.
 3. **Create** the first milestone, then the first issue, which adapts the template to the project.
 4. **Adapt it** on a branch, in a pull request that closes that issue, since the default branch now rejects direct pushes:
    - **Replace** what is specific to groundwork: this README, with the project's own description and public contract ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md)), and the license.
-   - **Choose** the ADRs of groundwork that the project follows, as [Choosing the ADRs](#choosing-the-adrs-a-project-synchronises) tells, and run `python3 .github/scripts/apply_choice.py [--source URL] [ADR …]` from a branch with a clean working tree, naming the ADRs to keep, for example `0001 0003 0006-0008` (`--dry-run` shows what it would do). It writes `.groundwork-adrs`, records the latest release of the source in `.groundwork-version` (and `--source` in `.groundwork-source`), and deletes the ADRs and the files of the others, the blocks of their lines, and the ADRs numbered `1000` or more, which are decisions of groundwork itself. The project numbers its own ADRs from the first number that no range reserves, `1000` unless its source reserves more, and it may use any number that no range reserves ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
+   - **Choose** the ADRs of groundwork that the project follows, as [Choosing the ADRs](#choosing-the-adrs-a-project-synchronises) tells, and run `python3 .groundwork/scripts/apply_choice.py [--source URL] [ADR …]` from a branch with a clean working tree, naming the ADRs to keep, for example `0001 0003 0006-0008` (`--dry-run` shows what it would do). It writes `.groundwork-adrs`, records the latest release of the source in `.groundwork-version` (and `--source` in `.groundwork-source`), and deletes the ADRs and the files of the others, the blocks of their lines, and the ADRs numbered `1000` or more, which are decisions of groundwork itself. The project numbers its own ADRs from the first number that no range reserves, `1000` unless its source reserves more, and it may use any number that no range reserves ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)). Keep `CONTRIBUTING.md` and `SECURITY.md` and adjust them to the project: the supported versions, for `SECURITY.md`.
    - **Fill in** the Project section of `AGENTS.md` with the commands and layout of the project, including its test commands and, if it wants one, its coverage threshold. If you add a `CLAUDE.md` or a `CLAUDE.local.md`, import `AGENTS.md` from it with `@AGENTS.md`, because Claude Code then stops reading `AGENTS.md`.
    - **Install** [pre-commit](https://pre-commit.com), for example with `pipx install pre-commit`, then run `pre-commit install`. Add the checks of the project's stack to `.pre-commit-config.yaml`, which the CI runs, including the audit of its dependencies ([ADR 0008](docs/adr/0008-automated-checks.md)), and the indentation rules of its languages to `.editorconfig`. If its stack has no audit tool, write the exception in its `AGENTS.md`. Add the ecosystems of its stack to `.github/dependabot.yml`.
    - **Record** the version of groundwork the project started from: create `.groundwork-version` at the root of the project, with one line `X.Y.Z` holding the latest release without the leading `v`, for example `0.2.0`. The update script reads it. If the project follows a community base and not groundwork, record the address of that base too: create `.groundwork-source` at the root of the project, with one line `https://host/path`, for example `https://github.com/team/base.git`. The update refuses an address that is not of that form, and a project without the file follows groundwork.
@@ -132,10 +133,10 @@ A project takes all the ADRs that its source reserves, or chooses ([ADR 1000](do
 
 To choose, create `.groundwork-adrs` at the root of the project: one number (`0003`) or one range (`0001-0999`) per line, `#` for a comment. A range adopts the ADRs that the source adds to it later, a number does not. Without the file, the project synchronises everything that the source reserves, as before. A number or a range that the source does not reserve, in the version the project moves to, stops the update, which says which line.
 
-- ADR 0001 is always kept, and so are the ADRs that a listed ADR needs, according to the map [`docs/practices.md`](docs/practices.md). The update says which it adds (`added: 0002, 0003`) without changing the file.
+- ADR 0001 is always kept, and so are the ADRs that a listed ADR needs, according to the map [`.groundwork/practices.md`](.groundwork/practices.md). The update says which it adds (`added: 0002, 0003`) without changing the file.
 - For an ADR that is left out, the update copies neither the ADR nor its files, and takes its blocks out of the files that several ADRs share before it merges. Delete them from the files of the project with `apply_choice.py`, or by hand: a block of an ADR that is left out stays in place, and the update no longer changes it.
 - For an ADR that enters the choice, because the project lists it or an ADR it keeps needs it, the update applies it whole. It recognises it when the ADR is kept and the project has no file for its number: an ADR file that the project deletes while it keeps the ADR comes back at the next update.
-- After it changes its choice, whether it adds ADRs or drops some, a project runs `python3 .github/scripts/apply_choice.py` on a branch with a clean working tree. It brings, from the version the project records, the files and the blocks of the ADRs that entered, the files that belong to no practice and that the project lacks (the scripts that the others need, the map `docs/practices.md`, the workflow of the update), and deletes those of the ADRs that left. A file of that kind that the project already has is left as it is. A file or a block that the project changed is kept and listed, and the command exits with status 2. `--dry-run` shows the same list and changes no file of the working tree, nor the index or the branches; it refreshes the copy of the tags of the source. Nothing is done without a `.groundwork-adrs`.
+- After it changes its choice, whether it adds ADRs or drops some, a project runs `python3 .groundwork/scripts/apply_choice.py` on a branch with a clean working tree. It brings, from the version the project records, the files and the blocks of the ADRs that entered, the files that belong to no practice and that the project lacks (the scripts that the others need, the map `.groundwork/practices.md`, the workflow of the update), and deletes those of the ADRs that left. A file of that kind that the project already has is left as it is. A file or a block that the project changed is kept and listed, and the command exits with status 2. `--dry-run` shows the same list and changes no file of the working tree, nor the index or the branches; it refreshes the copy of the tags of the source. Nothing is done without a `.groundwork-adrs`.
 - A project writes its own lines outside the blocks of a shared file. Inside a block, a change of the project merges with a change of groundwork like in any other file.
 - The files of the update itself, `update_groundwork.py`, `apply_choice.py`, `open_update_pull_request.py` and the workflow, are always synchronised, with `markers.py`, `practices_map.py` and `choice.py` that the scripts use. The update never copies `README.md`, `LICENSE`, `.groundwork-version` or `.groundwork-adrs` from its source.
 
@@ -152,22 +153,22 @@ For each step:
 
 1. **Record** the version once: create `.groundwork-version` with one line `X.Y.Z`, the latest release that has `apply_choice.py`, and `.groundwork-source` with one line `https://host/path` if the project follows a community base and not groundwork.
 2. **List** the ADRs of the step in `.groundwork-adrs`, with those of the steps before, one number or range per line, and commit the files you wrote: the command needs a clean working tree.
-3. **Run** `python3 .github/scripts/apply_choice.py --dry-run`, then without `--dry-run`. The first time the project has no script yet: run the one of a clone of groundwork at the tag `vX.Y.Z` that you recorded, from the directory of the project: `python3 <clone>/.github/scripts/apply_choice.py`. It brings the scripts that the others need, and the project then has its own. It brings the workflow of the update too, which fails every week until the secret `GROUNDWORK_UPDATE_TOKEN` exists (see [Adopting groundwork](#adopting-groundwork)).
+3. **Run** `python3 .groundwork/scripts/apply_choice.py --dry-run`, then without `--dry-run`. The first time the project has no script yet: run the one of a clone of groundwork at the tag `vX.Y.Z` that you recorded, from the directory of the project: `python3 <clone>/.groundwork/scripts/apply_choice.py`. It brings the scripts that the others need, and the project then has its own. It brings the workflow of the update too, which fails every week until the secret `GROUNDWORK_UPDATE_TOKEN` exists (see [Adopting groundwork](#adopting-groundwork)).
 4. **Read** the output. `add:` is a new file, `merge:` a file merged into yours, `conflict:` a file that could not be merged, which holds markers to resolve or, for a file that is not text, is left as it is for you to choose between the two versions, `keep:` a file of the project that has the name of a file of groundwork and is kept as it is, which is expected until the ADR that owns that file is adopted; the status is 2 while some remain.
 5. **Check** what the step says to check, resolve the conflicts, commit through a pull request, and start again with the next step.
 
 A project that has its own mechanism for a practice, such as the check of its branch names, its sign-off of commits or the scripts of its CI, chooses for each practice: adopt the one of groundwork and remove its own, or keep its own and leave the ADR out of `.groundwork-adrs`.
 
-The order, from the dependencies of the map [`docs/practices.md`](docs/practices.md). In the first phase, the records and the names:
+The order, from the dependencies of the map [`.groundwork/practices.md`](.groundwork/practices.md). In the first phase, the records and the names:
 
-- **ADR 0001**, record architecture decisions. It brings the template of the ADRs and `check_adrs.py`. Expect the gaps of the ADRs of the project: the number, the title `# NNNN. …` and the line `**Status:**`. Check with `python3 .github/scripts/check_adrs.py`.
+- **ADR 0001**, record architecture decisions. It brings the template of the ADRs and `check_adrs.py`. Expect the gaps of the ADRs of the project: the number, the title `# NNNN. …` and the line `**Status:**`. Check with `python3 .groundwork/scripts/check_adrs.py`.
 - **ADR 0002**, Conventional Commits. It brings its lines of `CONTRIBUTING.md`; the hook that checks the titles comes with ADR 0008. The history is not rewritten, and `release.py` counts a past title that does not follow it as no change. Check that the new commits follow it.
 - **ADR 0004**, English. A rule with lines of `CONTRIBUTING.md` and no check. Documents already written in another language stay; the new content is in English. Check by review.
 
 The second phase, the workflow:
 
 - **ADR 0003**, change workflow. It brings the templates of issues and pull requests, the ruleset of the default branch, `apply_settings.py` and `check_pull_request.py`. After `apply_settings.py` the default branch rejects direct pushes. Check that a pull request from a branch `<type>/<issue>-<slug>` that closes its issue passes `check_pull_request.py`.
-- **ADR 0005**, versions and releases. It brings the `release` workflow and `release.py`. The first version is computed from the commits since the last tag reachable from `HEAD`. State the public contract in the README of the project. Check with `python3 .github/scripts/release.py`, which prints the version it would publish and tags nothing.
+- **ADR 0005**, versions and releases. It brings the `release` workflow and `release.py`. The first version is computed from the commits since the last tag reachable from `HEAD`. State the public contract in the README of the project. Check with `python3 .groundwork/scripts/release.py`, which prints the version it would publish and tags nothing.
 - **ADR 0006**, trunk-based development. Lines of `CONTRIBUTING.md` and of the template of pull requests. A branch of the project that lives long is merged or split. Check by review.
 - **ADR 0007**, changes made with an agent. It brings `AGENTS.md`. The `AGENTS.md` of the project is kept until the ADR is adopted, then merged by hand. Check by review.
 
@@ -213,17 +214,17 @@ A copy shares no history with groundwork and does not receive later changes. To 
 2. Open an issue for the update, then run the script from a clean working tree, with the number of that issue:
 
    ```sh
-   python3 .github/scripts/update_groundwork.py <issue-number> [--to X.Y.Z]
+   python3 .groundwork/scripts/update_groundwork.py <issue-number> [--to X.Y.Z]
    ```
 
-   It reads `.groundwork-version`, fetches the tags of its source, which is the address in `.groundwork-source` or else groundwork, under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and says the source it used (`source:`), and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request. A project whose copy of groundwork predates the script, or the version that reads the choice, takes `.github/scripts/update_groundwork.py` and the modules it uses, `markers.py`, `practices_map.py` and `choice.py`, from the release it moves to, before it chooses.
+   It reads `.groundwork-version`, fetches the tags of its source, which is the address in `.groundwork-source` or else groundwork, under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and says the source it used (`source:`), and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request. A project whose copy of groundwork predates the script, or the version that reads the choice, takes `.groundwork/scripts/update_groundwork.py` and the modules it uses, `markers.py`, `practices_map.py` and `choice.py`, from the release it moves to, before it chooses.
 
    It ends with status 0 when the project is updated or already up to date, 1 on an error, and 2 when files are in conflict. It names them and leaves markers in them for you to resolve.
 3. Commit the result like any other change, through the issue and a pull request.
 
 #### Automatic update
 
-The [`update-groundwork` workflow](.github/workflows/update-groundwork.yml) does this every week, and when started by hand. It runs [`.github/scripts/open_update_pull_request.py`](.github/scripts/open_update_pull_request.py), which runs the script above without an issue, commits the result on the branch `groundwork/update-to-v<X-Y-Z>`, pushes it and opens the pull request `chore: update groundwork to v<X.Y.Z>`. Like those of Dependabot, that pull request has no issue ([ADR 0003](docs/adr/0003-change-workflow.md)), and the check of the branch name and closing line skips the prefix `groundwork/`.
+The [`update-groundwork` workflow](.github/workflows/update-groundwork.yml) does this every week, and when started by hand. It runs [`.groundwork/scripts/open_update_pull_request.py`](.groundwork/scripts/open_update_pull_request.py), which runs the script above without an issue, commits the result on the branch `groundwork/update-to-v<X-Y-Z>`, pushes it and opens the pull request `chore: update groundwork to v<X.Y.Z>`. Like those of Dependabot, that pull request has no issue ([ADR 0003](docs/adr/0003-change-workflow.md)), and the check of the branch name and closing line skips the prefix `groundwork/`.
 
 - It opens nothing when the project is up to date, when a pull request from a branch `groundwork/…` is already open, or when the pull request of that version was closed without being merged. Close the pull request to skip a version: a later version is proposed again.
 - When files are in conflict, the pull request is a draft that lists them, with the markers left in the files. Resolve them, then mark it ready.

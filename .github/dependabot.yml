@@ -13,7 +13,7 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: pip
-    directory: /.github/scripts
+    directory: /.groundwork/scripts
     schedule:
       interval: weekly
     cooldown:

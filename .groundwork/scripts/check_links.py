@@ -8,7 +8,7 @@ punctuation, with hyphens for spaces, and `-1`, `-2` for a heading that repeats.
 (`http:`, `mailto:`, `//…`) are not checked, nor are links in code, in HTML comments or in the
 files of EXCLUDED. The check does not use the network.
 
-In a project that keeps some of the ADRs, a link of the map of the practices, `docs/practices.md`, to a
+In a project that keeps some of the ADRs, a link of the map of the practices, `.groundwork/practices.md`, to a
 file that the project left out is not reported, since the map describes groundwork and not the project.
 A link to such a file in any other file is.
 

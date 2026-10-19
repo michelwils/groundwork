@@ -4,8 +4,8 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(HERE, "..", "..", ".pre-commit-config.yaml")
-WORKFLOW = os.path.join(HERE, "..", "workflows", "checks.yml")
-REQUIREMENTS = ".github/scripts/requirements.txt"
+WORKFLOW = os.path.join(HERE, "..", "..", ".github", "workflows", "checks.yml")
+REQUIREMENTS = ".groundwork/scripts/requirements.txt"
 
 
 def read(path):
@@ -38,7 +38,7 @@ class AuditOfTheDependencies(unittest.TestCase):
         self.assertIsNotNone(found)
         pattern = re.compile(found.group(1).strip("'\""))
         self.assertTrue(pattern.search(REQUIREMENTS))
-        for other in ("README.md", ".pre-commit-config.yaml", ".github/scripts/release.py"):
+        for other in ("README.md", ".pre-commit-config.yaml", ".groundwork/scripts/release.py"):
             self.assertFalse(pattern.search(other), other)
 
     def test_it_runs_before_a_commit_and_in_the_stage_that_the_ci_runs(self):

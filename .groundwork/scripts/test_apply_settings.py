@@ -81,7 +81,7 @@ class ApplySettings(unittest.TestCase):
         self.run_script("owner/repo")
         create = next(call for call in self.writes() if "POST" in call)
         path = create[create.index("--input") + 1]
-        self.assertTrue(path.endswith(os.path.join(".github", "rulesets", "main.json")))
+        self.assertTrue(path.endswith(os.path.join(".groundwork", "rulesets", "main.json")))
         self.assertTrue(os.path.exists(path))
 
     def test_applies_the_ruleset_last(self):

@@ -425,7 +425,7 @@ def world(v, tool=None, adr3="third"):
         "four.txt": f"four {v}\n",
         "tool.py": "tool\n",
         "SHARED.md": shared,
-        "docs/practices.md": practices(owned, [] if tool else ["tool.py"]),
+        ".groundwork/practices.md": practices(owned, [] if tool else ["tool.py"]),
     }
     for number in NAMES:
         files[adr(number, adr3 if number == 3 else None)] = f"# ADR {number:04d} v{v}\n"
@@ -671,25 +671,25 @@ class Choice(unittest.TestCase):
         self.assertEqual(read(self.project, ".groundwork-version"), "0.2.0\n")
 
     def test_a_version_without_a_map_is_refused_when_the_project_has_a_choice(self):
-        self.releases(world("1"), {name: text for name, text in world("2").items() if name != "docs/practices.md"})
+        self.releases(world("1"), {name: text for name, text in world("2").items() if name != ".groundwork/practices.md"})
         self.adopt(trimmed(world("1"), {1, 2}), "0002\n")
         result = self.run_script()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("docs/practices.md", result.stderr)
+        self.assertIn(".groundwork/practices.md", result.stderr)
         self.assertEqual(self.branches(), ["main"])
 
     def test_a_version_without_a_map_is_still_applied_without_a_choice(self):
-        self.releases(world("1"), {name: text for name, text in world("2").items() if name != "docs/practices.md"})
+        self.releases(world("1"), {name: text for name, text in world("2").items() if name != ".groundwork/practices.md"})
         self.adopt(world("1"))
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_a_move_of_owner_is_not_looked_for_when_the_old_version_has_no_map(self):
-        self.releases({name: text for name, text in world("1").items() if name != "docs/practices.md"}, world("2"))
+        self.releases({name: text for name, text in world("1").items() if name != ".groundwork/practices.md"}, world("2"))
         self.adopt(trimmed(world("1"), {1, 2}), "0002\n")
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertTrue(self.has("docs/practices.md"))
+        self.assertTrue(self.has(".groundwork/practices.md"))
         self.assertFalse(self.has("three.txt"))
 
     def test_without_a_choice_a_file_that_the_project_removed_is_in_conflict_as_before(self):
@@ -716,12 +716,12 @@ def ledger(numbers):
         f"### {n:04d}. [Decision {n}](adr/{n:04d}-decision.md)\n\n- Needs: none\n- Files:\n  - none\n- Shared lines:\n  - none\n\n"
         for n in numbers
     )
-    footer = "## Shared files\n\n## Not part of a practice\n\n- `.github/scripts/update_groundwork.py`\n- `docs/practices.md`\n"
+    footer = "## Shared files\n\n## Not part of a practice\n\n- `.groundwork/scripts/update_groundwork.py`\n- `.groundwork/practices.md`\n"
     return "# Practices of groundwork\n\n## Practices\n\n" + entries + footer
 
 
 def tree(numbers, script, order=None):
-    files = {"docs/practices.md": ledger(order or numbers), ".github/scripts/update_groundwork.py": script}
+    files = {".groundwork/practices.md": ledger(order or numbers), ".groundwork/scripts/update_groundwork.py": script}
     files.update({f"docs/adr/{n:04d}-decision.md": f"# {n}\n" for n in numbers})
     return files
 
@@ -779,14 +779,14 @@ class Chain(unittest.TestCase):
         self.found_base([9000, 1, 13])
         result = self.update(self.base, self.groundwork)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("### 0014.", read(self.base, "docs/practices.md"))
-        self.assertIn("### 9000.", read(self.base, "docs/practices.md"))
+        self.assertIn("### 0014.", read(self.base, ".groundwork/practices.md"))
+        self.assertIn("### 9000.", read(self.base, ".groundwork/practices.md"))
 
     def test_an_entry_of_the_base_after_those_of_groundwork_conflicts_with_a_new_entry_of_groundwork(self):
         self.found_base([1, 13, 9000])
         result = self.update(self.base, self.groundwork)
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn("- docs/practices.md", result.stdout)
+        self.assertIn("- .groundwork/practices.md", result.stdout)
 
     def test_the_project_gets_the_change_of_groundwork_and_the_range_of_the_base_from_the_base(self):
         self.found_base([9000, 1, 13])
@@ -803,7 +803,7 @@ class Chain(unittest.TestCase):
         self.assertEqual(read(self.project, "docs/adr/0014-decision.md"), "# 14\n")
         self.assertEqual(read(self.project, "docs/adr/9000-decision.md"), "# 9000\n")
         self.assertEqual(read(self.project, ".groundwork-ranges"), "9000-9999\n")
-        script = read(self.project, ".github/scripts/update_groundwork.py")
+        script = read(self.project, ".groundwork/scripts/update_groundwork.py")
         self.assertIn('"""Prepares the update', script)
         self.assertIn('SOURCE = "https://example.org/base.git"\n', script)
 
@@ -812,7 +812,7 @@ class Chain(unittest.TestCase):
         init(self.project)
         archive = subprocess.run(["git", "archive", "--format=tar", "v0.9.0"], cwd=self.base, capture_output=True, check=True).stdout
         subprocess.run(["tar", "-x", "-C", self.project], input=archive, check=True)
-        path = os.path.join(self.project, ".github/scripts/update_groundwork.py")
+        path = os.path.join(self.project, ".groundwork/scripts/update_groundwork.py")
         with open(path) as handle:
             text = handle.read()
         with open(path, "w") as handle:

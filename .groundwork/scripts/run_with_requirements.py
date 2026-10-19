@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a script of .github/scripts in an environment made from requirements.txt.
+"""Run a script of .groundwork/scripts in an environment made from requirements.txt.
 
 The pinned dependencies of the scripts are written once, in requirements.txt, where Dependabot
 updates them. This launcher makes an environment named after the hash of that file and of the

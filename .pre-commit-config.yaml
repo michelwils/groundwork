@@ -43,8 +43,8 @@ repos:
       # ADR 0008: fails when a dependency of the scripts has a known vulnerability. It needs the
       # network, so it runs when requirements.txt changes and in CI, not on every commit.
       - id: pip-audit
-        args: [-r, .github/scripts/requirements.txt, --no-deps, --disable-pip]
-        files: ^\.github/scripts/requirements\.txt$
+        args: [-r, .groundwork/scripts/requirements.txt, --no-deps, --disable-pip]
+        files: ^\.groundwork/scripts/requirements\.txt$
         stages: [pre-commit, manual]
 
   - repo: local
@@ -54,7 +54,7 @@ repos:
       - id: adrs
         name: Check the ADRs (ADR 0001)
         language: python
-        entry: python .github/scripts/check_adrs.py
+        entry: python .groundwork/scripts/check_adrs.py
         pass_filenames: false
         always_run: true
         stages: [pre-commit, manual]
@@ -66,7 +66,7 @@ repos:
       - id: practices
         name: Check the map of the practices (ADR 0008)
         language: python
-        entry: python .github/scripts/check_practices.py
+        entry: python .groundwork/scripts/check_practices.py
         pass_filenames: false
         always_run: true
         stages: [pre-commit, manual]
@@ -76,7 +76,7 @@ repos:
       - id: markdown-links
         name: Check the links of the Markdown files
         language: python
-        entry: python .github/scripts/run_with_requirements.py .github/scripts/check_links.py
+        entry: python .groundwork/scripts/run_with_requirements.py .groundwork/scripts/check_links.py
         pass_filenames: false
         always_run: true
         stages: [pre-commit, manual]

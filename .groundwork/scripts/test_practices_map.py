@@ -148,8 +148,8 @@ class ReadMap(unittest.TestCase):
         self.directory.cleanup()
 
     def write(self, content):
-        os.makedirs(os.path.join(self.root, "docs"), exist_ok=True)
-        with open(os.path.join(self.root, "docs", "practices.md"), "wb") as handle:
+        os.makedirs(os.path.join(self.root, ".groundwork"), exist_ok=True)
+        with open(os.path.join(self.root, ".groundwork", "practices.md"), "wb") as handle:
             handle.write(content)
 
     def test_a_missing_map_has_no_entry_no_shared_file_and_no_other_file(self):

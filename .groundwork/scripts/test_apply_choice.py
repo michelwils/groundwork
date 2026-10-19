@@ -173,7 +173,7 @@ class NewProject(Fixture):
             with self.subTest(path=hostile):
                 shutil.rmtree(self.project, ignore_errors=True)
                 files = self.template()
-                files["docs/practices.md"] = files["docs/practices.md"].replace("`four.txt`", f"`{hostile}`")
+                files[".groundwork/practices.md"] = files[".groundwork/practices.md"].replace("`four.txt`", f"`{hostile}`")
                 self.adopt(files)
                 result = self.run_new("0001")
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -218,7 +218,7 @@ class Narrowed(Fixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for name in ("three.txt", "four.txt", adr(3), adr(4)):
             self.assertFalse(self.has(name), name)
-        for name in ("two.txt", adr(1), adr(2), "tool.py", "docs/practices.md"):
+        for name in ("two.txt", adr(1), adr(2), "tool.py", ".groundwork/practices.md"):
             self.assertTrue(self.has(name), name)
         self.assertEqual(read(self.project, "SHARED.md"), markers.remove(world("1")["SHARED.md"], "markdown", {1, 2}))
         self.assertEqual(read(self.project, ".groundwork-adrs"), "0001\n0002\n")
@@ -284,7 +284,7 @@ class Narrowed(Fixture):
 
     def test_a_path_of_the_map_of_the_recorded_version_that_leaves_the_repository_is_refused(self):
         files = world("1")
-        files["docs/practices.md"] = files["docs/practices.md"].replace("`four.txt`", "`../outside.txt`")
+        files[".groundwork/practices.md"] = files[".groundwork/practices.md"].replace("`four.txt`", "`../outside.txt`")
         shutil.rmtree(self.source)
         init(self.source)
         self.release(files)
@@ -412,7 +412,7 @@ class FilesOfNoPractice(Fixture):
 
     def existing(self, choice, own=None):
         self.adopt({**trimmed(world("1"), {1}), **(own or {}), "app.py": "print(1)\n"}, version="0.2.0", choice=choice)
-        for name in ("tool.py", "SHARED.md", "docs/practices.md"):
+        for name in ("tool.py", "SHARED.md", ".groundwork/practices.md"):
             if (own or {}).get(name) is None and os.path.exists(os.path.join(self.project, name)):
                 os.remove(os.path.join(self.project, name))
         commit(self.project)
@@ -422,7 +422,7 @@ class FilesOfNoPractice(Fixture):
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(read(self.project, "tool.py"), "tool\n")
-        self.assertEqual(read(self.project, "docs/practices.md"), world("1")["docs/practices.md"])
+        self.assertEqual(read(self.project, ".groundwork/practices.md"), world("1")[".groundwork/practices.md"])
         self.assertIn("tool.py", self.lines(result, "add: "))
 
     def test_a_shared_file_with_no_owner_arrives_without_the_blocks_of_the_adrs_left_out(self):
@@ -432,13 +432,13 @@ class FilesOfNoPractice(Fixture):
         self.assertEqual(read(self.project, "SHARED.md"), markers.remove(world("1")["SHARED.md"], "markdown", {1, 2}))
 
     def test_a_file_that_the_project_has_is_neither_touched_nor_listed(self):
-        self.existing("0001\n", own={"tool.py": "mine\n", "docs/practices.md": "# my practices\n"})
+        self.existing("0001\n", own={"tool.py": "mine\n", ".groundwork/practices.md": "# my practices\n"})
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(read(self.project, "tool.py"), "mine\n")
-        self.assertEqual(read(self.project, "docs/practices.md"), "# my practices\n")
+        self.assertEqual(read(self.project, ".groundwork/practices.md"), "# my practices\n")
         self.assertNotIn("tool.py", result.stdout)
-        self.assertNotIn("docs/practices.md", result.stdout)
+        self.assertNotIn(".groundwork/practices.md", result.stdout)
 
     def test_the_files_of_groundwork_itself_and_of_the_project_are_never_added(self):
         self.existing("0001\n")

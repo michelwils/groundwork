@@ -48,7 +48,7 @@ MAP = """# Practices
 
 ## Not part of a practice
 
-- `docs/practices.md`
+- `.groundwork/practices.md`
 """
 
 
@@ -119,15 +119,71 @@ class Source(unittest.TestCase):
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of a source of ADRs, which a project may extend with scripts of its own")
 class NoSuggestedRange(unittest.TestCase):
-    """The range 9000-9999 is a suggestion of the guide of the community bases, and no script or workflow assumes it."""
+    """The range 9000-9999 is a suggestion of the guide of the community bases, which is the only file that gives it, and no script or workflow assumes it."""
 
     def test_no_file_of_the_automation_that_is_not_a_test_writes_it(self):
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github"], capture_output=True, text=True, check=True).stdout
-        files = [path for path in listed.split("\0") if path and not os.path.basename(path).startswith("test_")]
+        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github", ".groundwork"], capture_output=True, text=True, check=True).stdout
+        files = [path for path in listed.split("\0") if path and not os.path.basename(path).startswith("test_") and path != ".groundwork/community-base.md"]
         self.assertTrue(files)
         for path in files:
             with self.subTest(path=path), open(os.path.join(ROOT, path), encoding="utf-8", errors="replace") as handle:
                 self.assertNotRegex(handle.read(), r"9000|9999")
+
+
+CONVENTIONAL = {
+    "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "README.md", "LICENSE", ".editorconfig", ".gitignore", ".gitattributes",
+    ".github/dependabot.yml", ".github/PULL_REQUEST_TEMPLATE.md", ".github/ISSUE_TEMPLATE/change.md", ".github/zizmor.yml",
+    ".github/workflows/checks.yml", ".github/workflows/release.yml", ".github/workflows/update-groundwork.yml",
+    ".markdownlint.yaml", ".markdownlintignore", ".pre-commit-config.yaml", "docs/adr/template.md",
+}
+FORMER_PATHS = (
+    ".github/scripts", ".github/rulesets", "docs/practices.md", "docs/groundwork-community-base.md",
+    '".github", "scripts"', '".github", "rulesets"', '"docs", "practices.md"',
+)
+DESCRIBES_THE_FORMER_STATE = ("docs/adr/1001-naming-the-files-of-groundwork.md", ".github/scripts/test_filtered_trees.py", ".groundwork/scripts/test_filtered_trees.py")
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with files of its own")
+class PlacesOfTheFiles(unittest.TestCase):
+    """The files of groundwork that have no conventional name are in `.groundwork/` (ADR 1001)."""
+
+    def named(self):
+        entries, shared, apart = practices_map.read_map(ROOT)
+        return {path for entry in entries for path, _ in entry["files"]} | {path for path, _ in shared + apart}
+
+    def test_every_file_of_the_map_is_in_the_directory_unless_its_name_and_place_are_fixed(self):
+        for path in sorted(self.named() - CONVENTIONAL):
+            with self.subTest(path=path):
+                self.assertTrue(path.startswith(".groundwork/"), f"{path} has no conventional name and is not in .groundwork/")
+
+    def test_the_list_of_the_conventional_names_names_only_files_of_the_map(self):
+        self.assertEqual(sorted(CONVENTIONAL - self.named()), [])
+
+    def test_no_file_names_a_former_path(self):
+        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, text=True, check=True).stdout
+        for path in sorted(path for path in listed.split("\0") if path and path not in DESCRIBES_THE_FORMER_STATE):
+            full = os.path.join(ROOT, path)
+            if not os.path.isfile(full):
+                continue
+            with open(full, encoding="utf-8", errors="replace") as handle:
+                text = handle.read()
+            for former in FORMER_PATHS:
+                with self.subTest(path=path, former=former):
+                    self.assertNotIn(former, text)
+
+    def test_no_hook_and_no_ignore_file_leaves_the_directory_out(self):
+        samples = [".groundwork/practices.md", ".groundwork/community-base.md", ".groundwork/scripts/check_adrs.py", ".groundwork/rulesets/main.json"]
+        with open(os.path.join(ROOT, ".pre-commit-config.yaml"), encoding="utf-8") as handle:
+            config = re.sub(r"^\s*#.*\n", "", handle.read(), flags=re.MULTILINE)
+        for pattern in re.findall(r"^\s*exclude: ['\"]?(.+?)['\"]?\s*$", config, flags=re.MULTILINE):
+            for sample in samples:
+                with self.subTest(exclude=pattern, path=sample):
+                    self.assertIsNone(re.search(pattern, sample))
+        with open(os.path.join(ROOT, ".markdownlintignore"), encoding="utf-8") as handle:
+            ignored = [line.strip() for line in handle if line.strip() and not line.startswith("#")]
+        for line in ignored:
+            with self.subTest(ignored=line):
+                self.assertFalse(line.lstrip("/").startswith(".groundwork") or line.startswith("*"))
 
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with files of its own")
@@ -137,7 +193,7 @@ class ImportsOfTheFiles(unittest.TestCase):
     def test_a_script_imports_only_its_own_adr_the_adrs_it_needs_adr_0001_and_the_files_of_no_adr(self):
         entries = practices_map.read_map(ROOT)[0]
         owners, needs = practices_map.owners(entries), practices_map.needs_of(entries)
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github/scripts"], capture_output=True, text=True, check=True).stdout
+        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".groundwork/scripts"], capture_output=True, text=True, check=True).stdout
         scripts = {path: os.path.basename(path)[:-3] for path in listed.split("\0") if path.endswith(".py")}
         modules = {name: path for path, name in scripts.items()}
         for path in sorted(scripts):
@@ -284,7 +340,7 @@ class Community(unittest.TestCase):
         root = directory.name
         put(root, "docs/adr/0001-first.md", ADR.format(n="0001"))
         put(root, "docs/adr/9000-of-the-community.md", ADR.format(n="9000"))
-        put(root, "docs/practices.md", MAP)
+        put(root, ".groundwork/practices.md", MAP)
         put(root, "CONTRIBUTING.md", "Rules.\n")
         put(root, ".groundwork-ranges", "# The range of the community\n" + ranges)
         if version:

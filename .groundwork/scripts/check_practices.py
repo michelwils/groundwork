@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the map of the practices of groundwork, `docs/practices.md` (ADR 0008).
+"""Check the map of the practices of groundwork, `.groundwork/practices.md` (ADR 0008).
 
 The map has an entry `### NNNN. Title` for each ADR of `docs/adr/`, under `## Practices`, with
 the line `- Needs:` (`none`, or the ADRs that it cannot be applied without, such as `ADR 0001, ADR 0003`),

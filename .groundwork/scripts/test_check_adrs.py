@@ -65,8 +65,8 @@ class Fixture(unittest.TestCase):
 
     def practices(self, **needs):
         entries = "".join(f"### {number}. Decision {number}\n\n- Needs: {value}\n- Files:\n  - none\n- Shared lines:\n  - none\n\n" for number, value in needs.items())
-        os.makedirs(os.path.join(self.root, "docs"), exist_ok=True)
-        self.put_root(os.path.join("docs", "practices.md"), "# Practices\n\n## Practices\n\n" + entries)
+        os.makedirs(os.path.join(self.root, ".groundwork"), exist_ok=True)
+        self.put_root(os.path.join(".groundwork", "practices.md"), "# Practices\n\n## Practices\n\n" + entries)
 
 
 class Adrs(Fixture):
@@ -269,7 +269,7 @@ class Reserved(Fixture):
         self.skipped(3)
 
     def test_a_choice_without_a_map_keeps_what_it_lists(self):
-        os.remove(os.path.join(self.root, "docs", "practices.md"))
+        os.remove(os.path.join(self.root, ".groundwork", "practices.md"))
         self.put_root(".groundwork-adrs", "0001\n0004\n")
         self.adrs(1, 4)
         self.assertEqual(self.problems(), [])
