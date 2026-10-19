@@ -403,5 +403,74 @@ class Safety(Fixture):
         self.assertEqual(self.status(), "")
 
 
+class FilesOfNoPractice(Fixture):
+    """The files that belong to no practice reach a project that exists, which the update would not bring."""
+
+    def setUp(self):
+        super().setUp()
+        self.release({**world("1"), "README.md": "# groundwork\n", "LICENSE": "MIT\n", ".groundwork-ranges": "9000-9999\n"}, version="0.2.0")
+
+    def existing(self, choice, own=None):
+        self.adopt({**trimmed(world("1"), {1}), **(own or {}), "app.py": "print(1)\n"}, version="0.2.0", choice=choice)
+        for name in ("tool.py", "SHARED.md", "docs/practices.md"):
+            if (own or {}).get(name) is None and os.path.exists(os.path.join(self.project, name)):
+                os.remove(os.path.join(self.project, name))
+        commit(self.project)
+
+    def test_a_file_of_no_practice_that_the_project_lacks_is_added(self):
+        self.existing("0001\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "tool.py"), "tool\n")
+        self.assertEqual(read(self.project, "docs/practices.md"), world("1")["docs/practices.md"])
+        self.assertIn("tool.py", self.lines(result, "add: "))
+
+    def test_a_shared_file_with_no_owner_arrives_without_the_blocks_of_the_adrs_left_out(self):
+        self.existing("0002\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "SHARED.md"), markers.remove(world("1")["SHARED.md"], "markdown", {1, 2}))
+
+    def test_a_file_that_the_project_has_is_neither_touched_nor_listed(self):
+        self.existing("0001\n", own={"tool.py": "mine\n", "docs/practices.md": "# my practices\n"})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "tool.py"), "mine\n")
+        self.assertEqual(read(self.project, "docs/practices.md"), "# my practices\n")
+        self.assertNotIn("tool.py", result.stdout)
+        self.assertNotIn("docs/practices.md", result.stdout)
+
+    def test_the_files_of_groundwork_itself_and_of_the_project_are_never_added(self):
+        self.existing("0001\n")
+        result = self.run_script()
+        for name in ("README.md", "LICENSE"):
+            self.assertFalse(self.has(name), name)
+            self.assertNotIn(name, result.stdout)
+        self.assertEqual(read(self.project, ".groundwork-ranges"), "9000-9999\n")
+
+    def test_a_file_of_an_adr_left_out_is_not_added(self):
+        self.existing("0001\n")
+        self.run_script()
+        for name in ("four.txt", adr(4), "two.txt"):
+            self.assertFalse(self.has(name), name)
+
+    def test_a_dry_run_lists_the_files_and_adds_none(self):
+        self.existing("0001\n")
+        result = self.run_script("--dry-run")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("tool.py", self.lines(result, "add: "))
+        self.assertFalse(self.has("tool.py"))
+        self.assertEqual(self.status(), "")
+
+    def test_a_second_run_changes_nothing(self):
+        self.existing("0001\n")
+        self.run_script()
+        commit(self.project)
+        again = self.run_script()
+        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
+        self.assertEqual(self.lines(again, "add: "), [])
+        self.assertEqual(self.status(), "")
+
+
 if __name__ == "__main__":
     unittest.main()

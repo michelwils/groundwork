@@ -77,6 +77,52 @@ class RealFiles(unittest.TestCase):
         gone = dependents(self.needs, number)
         return [n for n in self.numbers if n not in gone]
 
+    def existing_project(self, directory, kept):
+        """A project that exists: files of its own, a recorded version and the choice."""
+        project = os.path.join(directory, "existing")
+        init(project)
+        put(project, {
+            "README.md": README, "LICENSE": LICENSE, ".gitignore": "build/\n", "src/app.py": "print(1)\n",
+            ".groundwork-version": "0.1.0\n", ".groundwork-adrs": "".join(f"{number:04d}\n" for number in kept),
+        })
+        commit(project, "Initial commit")
+        git(project, "switch", "-q", "-c", "feat/1-adopt")
+        return project
+
+    def files_of(self, project):
+        found = {}
+        for directory, names, files in os.walk(project):
+            names[:] = [name for name in names if name != ".git"]
+            for name in files:
+                path = os.path.join(directory, name)
+                with open(path, "rb") as handle:
+                    found[os.path.relpath(path, project)] = handle.read()
+        return found
+
+    def test_a_project_that_exists_gets_the_files_of_the_template_and_its_own_checks_run(self):
+        own = {"README.md", "LICENSE", ".gitignore", "src/app.py", ".groundwork-version", ".groundwork-adrs"}
+        sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
+        for name, kept in sets:
+            with self.subTest(left_out=name):
+                source, template = self.world()
+                self.assertEqual(self.run_in(template, source, *[f"{n:04d}" for n in kept]).returncode, 0)
+                project = self.existing_project(os.path.dirname(source), kept)
+                result = self.run_in(project, source)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                wanted = {path: text for path, text in self.files_of(template).items() if path not in own}
+                got = {path: text for path, text in self.files_of(project).items() if path not in own}
+                self.assertEqual(sorted(got), sorted(wanted))
+                self.assertEqual([path for path in wanted if got[path] != wanted[path]], [])
+                git(project, "add", "-A")
+                for script in ("check_adrs.py", "check_practices.py"):
+                    run = subprocess.run([sys.executable, f".github/scripts/{script}"], cwd=project, capture_output=True, text=True)
+                    self.assertEqual(run.returncode, 0, f"{script}: {run.stdout}{run.stderr}")
+                imports = subprocess.run(
+                    [sys.executable, "-m", "unittest", "discover", "-s", ".github/scripts", "-p", "test_*.py", "-k", "no_test_has_this_name"],
+                    cwd=project, capture_output=True, text=True,
+                )
+                self.assertNotIn("_FailedTest", imports.stdout + imports.stderr, imports.stderr[-600:])
+
     def test_the_checks_pass_after_the_command_for_each_adr_left_out_and_for_adr_0001_alone(self):
         sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
         for name, kept in sets:
