@@ -94,12 +94,17 @@ def recorded_source():
     except UnicodeDecodeError:
         raise Failure(f"{SOURCE_FILE} must be text in UTF-8.")
     address = content[:-1] if content.endswith("\n") else None
-    if address is None or len(address) > ADDRESS_LENGTH or not ADDRESS.fullmatch(address):
+    if address is None or not is_address(address):
         raise Failure(
             f"{SOURCE_FILE} must hold one line with the address of the source, of the form https://host/path, "
             "with no user, password, space, query or fragment."
         )
     return address
+
+
+def is_address(address):
+    """Tell whether the text is an address of a source that a project may record."""
+    return len(address) <= ADDRESS_LENGTH and ADDRESS.fullmatch(address) is not None
 
 
 def source_of(explicit):
@@ -112,6 +117,13 @@ def forget_tags():
     refs = git("for-each-ref", "--format=%(refname)", f"refs/tags/{PREFIX}").stdout.split()
     if refs:
         git("update-ref", "--stdin", input="".join(f"delete {ref}\n" for ref in refs))
+
+
+def fetch_releases(source):
+    """Copy the tags of the source under `groundwork/` and return its versions, the oldest first."""
+    forget_tags()
+    git("fetch", "--quiet", "--no-tags", "--", source, f"+refs/tags/v*:refs/tags/{PREFIX}v*")
+    return released_versions()
 
 
 def released_versions():
@@ -180,23 +192,31 @@ def merge(ours, base, theirs):
     return result.stdout, result.returncode > 0
 
 
+def decide(base, theirs, ours):
+    """Tell what applying the change from the base to theirs does to a file that holds ours.
+
+    Return ("none",), ("write", content), ("remove",), ("conflict",) when nothing can be merged, or
+    ("merged", content, conflict)."""
+    if theirs == ours:
+        return ("none",)
+    if ours == base:
+        return ("remove",) if theirs is None else ("write", theirs)
+    if ours is None or theirs is None:
+        return ("conflict",)
+    if any(b"\0" in content for content in (ours, theirs, base or b"")):
+        return ("conflict",)
+    merged, conflict = merge(ours, base, theirs)
+    return ("merged", merged, conflict)
+
+
 def apply_path(path, base, theirs, ours, file_mode):
     """Apply what changed in the path from the base to theirs. Return True when it is in conflict."""
-    if theirs == ours:
-        return False
-    if ours == base:
-        if theirs is None:
-            remove(path)
-        else:
-            write(path, theirs, file_mode)
-        return False
-    if ours is None or theirs is None:
-        return True
-    if any(b"\0" in content for content in (ours, theirs, base or b"")):
-        return True
-    merged, conflict = merge(ours, base, theirs)
-    write(path, merged, file_mode)
-    return conflict
+    action = decide(base, theirs, ours)
+    if action[0] == "remove":
+        remove(path)
+    elif action[0] in ("write", "merged"):
+        write(path, action[1], file_mode)
+    return action[0] == "conflict" or (action[0] == "merged" and action[2])
 
 
 class Without:
@@ -212,15 +232,22 @@ class Without:
 class Side:
     """What a version of groundwork says about the ADRs: the ranges it reserves and the map of the practices."""
 
-    def __init__(self, version):
-        self.has_map = blob(version, practices_map.MAP) is not None
-        with tempfile.TemporaryDirectory() as directory:
-            for path in (practices_map.MAP, practices_map.RANGES_FILE):
-                content = blob(version, path)
-                if content is not None:
-                    write(os.path.join(directory, path), content, 0o644)
-            self.reserved, self.problems = practices_map.read_ranges(directory)
-            entries = practices_map.read_map(directory)[0]
+    def __init__(self, version=None, root=None):
+        """Read a version of groundwork, or the tree at the root."""
+        if root is None:
+            with tempfile.TemporaryDirectory() as directory:
+                for path in (practices_map.MAP, practices_map.RANGES_FILE):
+                    content = blob(version, path)
+                    if content is not None:
+                        write(os.path.join(directory, path), content, 0o644)
+                self.read(directory)
+        else:
+            self.read(root)
+
+    def read(self, root):
+        self.has_map = os.path.isfile(os.path.join(root, practices_map.MAP))
+        self.reserved, self.problems = practices_map.read_ranges(root)
+        entries = practices_map.read_map(root)[0]
         self.needs = practices_map.needs_of(entries)
         self.owners = practices_map.owners(entries)
 
@@ -243,11 +270,18 @@ def text_of(path, content, kept):
         raise Failure(f"{path}: {error}")
 
 
-def plan(old, new):
-    """Return the numbers of the ADRs to say as added, and the steps to apply.
+class Plan:
+    """What the choice of the project asks for at a version: `said` are the ADRs that enter the choice and that the
+    project does not list, `steps` are (path, base, theirs) with the contents already filtered and the base None for
+    a path that starts from nothing, `side` is what the version says of the ADRs and `kept` the ADRs the project keeps."""
 
-    A step is (path, base, theirs): the contents are already filtered, and the base is None for a path
-    that starts from nothing. It reads the project and the versions and writes nothing."""
+    def __init__(self, said, steps, side, kept):
+        self.said, self.steps, self.side, self.kept = said, steps, side, kept
+
+
+def plan(old, new):
+    """Return the plan to move the project from the version old to the version new (the same one to apply the
+    choice only). It reads the project and the versions and writes nothing."""
     after, before = Side(new), Side(old)
     if after.problems:
         raise Failure("\n".join(f"{practices_map.RANGES_FILE}:{number}: {message}" for number, message in after.problems))
@@ -298,7 +332,7 @@ def plan(old, new):
         if wanted(path):
             base = None if path in new_set and fresh(path) else blob(old, path)
             steps.append((path, text_of(path, base, Without(kept_after, entering)), text_of(path, blob(new, path), kept_after)))
-    return said, steps
+    return Plan(said, steps, after, kept_after)
 
 
 def run(args):
@@ -310,9 +344,7 @@ def run(args):
         raise Failure("The working tree is not clean: commit or stash the changes first.")
 
     source = source_of(args.source)
-    forget_tags()
-    git("fetch", "--quiet", "--no-tags", "--", source, f"+refs/tags/v*:refs/tags/{PREFIX}v*")
-    versions = released_versions()
+    versions = fetch_releases(source)
     if old not in versions:
         raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.")
 
@@ -334,7 +366,8 @@ def run(args):
     branch = f"chore/{args.issue}-{slug}" if args.issue else f"groundwork/update-to-v{new.replace('.', '-')}"
     if git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
         raise Failure(f"The branch {branch} already exists.")
-    said, steps = plan(old, new)
+    made = plan(old, new)
+    said, steps = made.said, made.steps
     git("switch", "--quiet", "-c", branch)
 
     conflicts = [path for path, base, theirs in steps if apply_path(path, base, theirs, read(path), mode(new, path))]

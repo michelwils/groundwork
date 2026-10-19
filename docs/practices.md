@@ -165,10 +165,12 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 
 - `.gitattributes`
 - `.gitignore`
+- `.github/scripts/apply_choice.py`
 - `.github/scripts/choice.py`
 - `.github/scripts/markers.py`
 - `.github/scripts/open_update_pull_request.py`
 - `.github/scripts/practices_map.py`
+- `.github/scripts/test_apply_choice.py`
 - `.github/scripts/test_choice.py`
 - `.github/scripts/test_markers.py`
 - `.github/scripts/test_open_update_pull_request.py`
