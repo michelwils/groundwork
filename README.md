@@ -146,13 +146,13 @@ A project that already exists has code that does not follow the rules, a history
 groundwork does not make a project compatible: the checks report what is not, and the project corrects it. The project has, before it starts:
 
 - a branch of its own and a clean working tree, and [pre-commit](https://pre-commit.com) for the checks of ADR 0008;
-- its own ADRs, if it has any, numbered from `1000` and following the template of [ADR 0001](docs/adr/0001-record-architecture-decisions.md), since `0001` to `0999` are reserved for groundwork. `check_adrs.py` lists each one that does not.
+- its own ADRs, if it has any, numbered from `1000` and following the template of [ADR 0001](docs/adr/0001-record-architecture-decisions.md), since `0001` to `0999` are reserved for groundwork. Once ADR 0001 is adopted, `check_adrs.py` lists each one that does not.
 
 For each step:
 
 1. **Record** the version once: create `.groundwork-version` with one line `X.Y.Z`, the latest release that has `apply_choice.py`, and `.groundwork-source` with one line `https://host/path` if the project follows a community base and not groundwork.
 2. **List** the ADRs of the step in `.groundwork-adrs`, with those of the steps before, one number or range per line, and commit the files you wrote: the command needs a clean working tree.
-3. **Run** `python3 .github/scripts/apply_choice.py --dry-run`, then without `--dry-run`. The first time the project has no script yet: run the one of a clone of groundwork from the directory of the project, `python3 <clone>/.github/scripts/apply_choice.py`. It brings the scripts that the others need, and the project then has its own.
+3. **Run** `python3 .github/scripts/apply_choice.py --dry-run`, then without `--dry-run`. The first time the project has no script yet: run the one of a clone of groundwork at the tag `vX.Y.Z` that you recorded, from the directory of the project: `python3 <clone>/.github/scripts/apply_choice.py`. It brings the scripts that the others need, and the project then has its own. It brings the workflow of the update too, which fails every week until the secret `GROUNDWORK_UPDATE_TOKEN` exists (see [Adopting groundwork](#adopting-groundwork)).
 4. **Read** the output. `add:` is a new file, `merge:` a file merged into yours, `conflict:` a file with markers to resolve, `keep:` a file of the project that has the name of a file of groundwork and is kept as it is, which is expected until the ADR that owns that file is adopted; the status is 2 while some remain.
 5. **Check** what the step says to check, resolve the conflicts, commit through a pull request, and start again with the next step.
 
