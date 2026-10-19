@@ -42,7 +42,6 @@ jobs:
       - name: Find whether the scripts changed
         id: scripts
         env:
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           changed=true

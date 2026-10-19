@@ -126,6 +126,10 @@ class ScriptsChanged(unittest.TestCase):
         self.commit("change")
         self.assertEqual(self.changed(), "changed=false")
 
+    def test_a_base_that_cannot_be_compared_measures(self):
+        self.git("update-ref", "-d", "refs/remotes/origin/main")
+        self.assertEqual(self.changed(), "changed=true")
+
     def test_a_base_that_moved_on_is_not_a_change_of_the_pull_request(self):
         """The CI tests the merge of the pull request into the base, as it is when the CI runs."""
         self.git("switch", "-q", "-c", "pr")
@@ -167,9 +171,9 @@ class CoverageGate(unittest.TestCase):
         self.assertEqual(self.condition(COVERAGE_STEP), "${{ " + MEASURE + " }}")
         self.assertEqual(self.condition("Test the scripts"), "${{ !(" + MEASURE + ") }}")
 
-    def test_the_step_that_decides_receives_the_event_and_the_base_by_the_environment_only(self):
+    def test_the_step_that_decides_receives_the_base_by_the_environment_only(self):
         step = steps()[SCRIPTS_STEP]
-        self.assertRegex(step, re.compile(r"^          GITHUB_EVENT_NAME: \$\{\{ github\.event_name \}\}$", flags=re.MULTILINE))
+        self.assertNotIn("GITHUB_EVENT_NAME:", step)  # a default variable: GitHub ignores an assignment of it
         self.assertRegex(step, re.compile(r"^          BASE_REF: \$\{\{ github\.base_ref \}\}$", flags=re.MULTILINE))
         self.assertNotIn("${{", command(SCRIPTS_STEP))
 
