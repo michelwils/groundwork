@@ -42,3 +42,13 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 ## Project
 
 This repository contains documentation, configuration and the scripts, with their tests. Run every check with `pre-commit run --all-files --hook-stage manual` and the tests with `python3 -m unittest discover -s .groundwork/scripts -p 'test_*.py'` before committing. The scripts have dependencies, pinned in `.groundwork/scripts/requirements.txt`: install them once in a virtual environment, with `python3 -m venv .venv && .venv/bin/pip install -r .groundwork/scripts/requirements.txt`, and run the tests with `.venv/bin/python`. The same checks and tests run in CI on every pull request.
+
+The scripts must be covered by their tests, in the statements and the branches, at least at 95 % of the total. CI requires it of a source of ADRs, which is groundwork or a community base; a project runs the plain tests. Measure it with these commands, run with `.venv/bin/python` in place of `python3`; the report fails below the threshold, which is written in `.groundwork/scripts/coveragerc`:
+
+```sh
+python3 -m coverage run --rcfile=.groundwork/scripts/coveragerc -m unittest discover -s .groundwork/scripts -p 'test_*.py'
+python3 -m coverage combine --rcfile=.groundwork/scripts/coveragerc
+python3 -m coverage report --rcfile=.groundwork/scripts/coveragerc
+```
+
+The licenses accepted for the dependencies of the scripts are MIT, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC and PSF-2.0.
