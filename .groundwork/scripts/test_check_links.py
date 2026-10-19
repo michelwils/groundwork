@@ -231,17 +231,10 @@ class LeftOut(Fixture):
     def project(self, listed="0001\n", files=None):
         self.make({".groundwork/practices.md": MAP, "docs/adr/0001-first.md": "# 0001. First\n", ".groundwork-adrs": listed, **(files or {})})
 
-    def test_a_link_of_the_map_to_the_adr_that_is_left_out_is_not_reported(self):
+    def test_the_links_of_the_map_to_what_is_left_out_are_not_reported(self):
+        """The ADR, its anchors and the file of an entry: no problem at all."""
         self.project()
         self.assertEqual(self.problems(), [])
-
-    def test_a_link_of_the_map_to_the_file_of_an_entry_that_is_left_out_is_not_reported(self):
-        self.project()
-        self.assertFalse([problem for problem in self.problems() if "three.py" in problem])
-
-    def test_an_anchor_in_the_adr_that_is_left_out_is_not_reported(self):
-        self.project()
-        self.assertFalse([problem for problem in self.problems() if "decision" in problem])
 
     def test_a_link_to_what_is_left_out_is_reported_in_any_other_file(self):
         self.project(files={"SECURITY.md": "[third](docs/adr/0003-third.md)\n"})

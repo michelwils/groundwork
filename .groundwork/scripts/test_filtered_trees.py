@@ -351,10 +351,6 @@ class Community(unittest.TestCase):
     def test_a_base_that_reserves_a_range_passes_the_checks(self):
         self.assertEqual(check_all(self.base()), [])
 
-    def test_the_file_of_the_ranges_needs_no_entry_in_the_map(self):
-        root = self.base()
-        self.assertFalse([problem for problem in check_practices.check(root) if ".groundwork-ranges" in problem])
-
     def test_a_project_of_the_base_passes_the_checks(self):
         self.assertEqual(check_all(self.base(version=True)), [])
 

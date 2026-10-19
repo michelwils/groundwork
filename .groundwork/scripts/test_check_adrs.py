@@ -244,25 +244,41 @@ class Reserved(Fixture):
             self.assertIn(f"the number {number:04d}", problem)
             self.assertIn("is skipped", problem)
 
+    def reset(self):
+        """Take away the ADRs, the choice and the ranges that a case put, before the next case."""
+        for name in os.listdir(os.path.join(self.root, "docs", "adr")):
+            if name != "template.md":
+                os.remove(os.path.join(self.root, "docs", "adr", name))
+        for name in (".groundwork-adrs", ".groundwork-ranges"):
+            if os.path.exists(os.path.join(self.root, name)):
+                os.remove(os.path.join(self.root, name))
+
     def test_a_number_that_the_choice_leaves_out_may_be_missing(self):
-        self.put_root(".groundwork-adrs", "0001\n0002\n0004\n")
-        self.adrs(1, 2, 4)
-        self.assertEqual(self.problems(), [])
+        cases = {
+            "an ADR of groundwork": (None, "0001\n0002\n0004\n", (1, 2, 4)),
+            "an ADR of a range of the source": ("9000-9999\n", "0001\n", (1, 9000, 9002)),
+        }
+        for name, (ranges, choice, present) in cases.items():
+            with self.subTest(name):
+                self.reset()
+                if ranges:
+                    self.put_root(".groundwork-ranges", ranges)
+                self.put_root(".groundwork-adrs", choice)
+                self.adrs(*present)
+                self.assertEqual(self.problems(), [])
 
     def test_a_number_that_the_choice_keeps_is_reported_when_it_is_missing(self):
-        self.put_root(".groundwork-adrs", "0001\n0003\n0004\n")
-        self.adrs(1, 3, 4)
-        self.skipped(2)
-
-    def test_a_number_that_a_kept_adr_needs_is_kept(self):
-        self.put_root(".groundwork-adrs", "0003\n")
-        self.adrs(1, 3)
-        self.skipped(2)
-
-    def test_a_number_that_a_range_holds_is_kept(self):
-        self.put_root(".groundwork-adrs", "0001-0004\n")
-        self.adrs(1, 2, 4)
-        self.skipped(3)
+        cases = {
+            "listed": ("0001\n0003\n0004\n", (1, 3, 4), 2),
+            "needed by a listed ADR": ("0003\n", (1, 3), 2),
+            "held by a range": ("0001-0004\n", (1, 2, 4), 3),
+        }
+        for name, (choice, present, missing) in cases.items():
+            with self.subTest(name):
+                self.reset()
+                self.put_root(".groundwork-adrs", choice)
+                self.adrs(*present)
+                self.skipped(missing)
 
     def test_a_missing_number_is_reported_without_a_choice(self):
         self.adrs(1, 2, 4)
@@ -275,16 +291,14 @@ class Reserved(Fixture):
         self.assertEqual(self.problems(), [])
 
     def test_a_line_of_the_choice_that_is_refused_is_reported_once_at_its_line(self):
-        self.put_root(".groundwork-adrs", "0001\nabc\n")
-        self.adrs(1)
-        (problem,) = self.problems()
-        self.assertTrue(problem.startswith(".groundwork-adrs:2:"), problem)
-
-    def test_a_number_that_no_range_reserves_is_refused_in_the_choice(self):
-        self.put_root(".groundwork-adrs", "1000\n")
-        self.adrs(1)
-        (problem,) = self.problems()
-        self.assertTrue(problem.startswith(".groundwork-adrs:1:"), problem)
+        cases = {"not a number": ("0001\nabc\n", 2), "a number that no range reserves": ("1000\n", 1)}
+        for name, (choice, line) in cases.items():
+            with self.subTest(name):
+                self.reset()
+                self.put_root(".groundwork-adrs", choice)
+                self.adrs(1)
+                (problem,) = self.problems()
+                self.assertTrue(problem.startswith(f".groundwork-adrs:{line}:"), problem)
 
     def test_a_line_of_the_ranges_that_is_refused_is_reported_at_its_line(self):
         self.put_root(".groundwork-ranges", "# comment\n9999-9000\n")
@@ -304,12 +318,6 @@ class Reserved(Fixture):
         self.put_root(".groundwork-ranges", "9000-9999\n")
         self.adrs(1, 9001)
         self.skipped(9000)
-
-    def test_a_number_of_a_range_that_the_choice_leaves_out_may_be_missing(self):
-        self.put_root(".groundwork-ranges", "9000-9999\n")
-        self.put_root(".groundwork-adrs", "0001\n")
-        self.adrs(1, 9000, 9002)
-        self.assertEqual(self.problems(), [])
 
     def test_the_adrs_of_a_project_start_after_the_ranges_that_the_source_reserves(self):
         self.put_root(".groundwork-ranges", "1000-1999\n")
