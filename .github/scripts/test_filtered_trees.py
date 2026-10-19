@@ -105,7 +105,7 @@ class NoSuggestedRange(unittest.TestCase):
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the README of groundwork, which a project replaces")
 class ReadmeOfGroundwork(unittest.TestCase):
-    """The README never tells a project to delete a file that the map names: the check of the map reports it as missing."""
+    """The README never tells a project to delete or remove a file that the map names: the check of the map reports it as missing."""
 
     def test_no_sentence_tells_to_delete_a_file_of_the_map(self):
         entries, shared, apart = practices_map.read_map(ROOT)
@@ -114,7 +114,7 @@ class ReadmeOfGroundwork(unittest.TestCase):
         with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as handle:
             lines = handle.read().split("\n")
         for path in sorted(named):
-            pattern = re.compile(r"\*\*Delete\*\*(?:(?!\. )[^\n])*?" + re.escape(path))
+            pattern = re.compile(r"\b(?:delete|remove)\b(?:(?!\. )[^\n])*?" + re.escape(path), re.IGNORECASE)
             for number, line in enumerate(lines, start=1):
                 with self.subTest(path=path, line=number):
                     self.assertIsNone(pattern.search(line), f"README.md:{number} tells to delete {path}, which the map names")
