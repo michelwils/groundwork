@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -47,6 +48,30 @@ MAP = """# Practices
 
 - `docs/practices.md`
 """
+
+
+PATH_HEADING = "### Adopting in an existing project"
+GAPS_HEADING = "### Recording the gaps"
+
+
+def readme_section(heading):
+    """Return the lines of a section of the README of groundwork, from its heading to the next heading of the same level or above."""
+    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as handle:
+        lines = handle.read().split("\n")
+    level = len(heading.split(" ")[0])
+    start = lines.index(heading) + 1 if heading in lines else len(lines)
+    found = []
+    for line in lines[start:]:
+        marks = re.match(r"^(#+) ", line)
+        if marks and len(marks.group(1)) <= level:
+            break
+        found.append(line)
+    return found
+
+
+def adoption_order():
+    """Return the numbers of the ADRs in the order of the path to adopt groundwork in an existing project."""
+    return [int(number) for line in readme_section(PATH_HEADING) for number in re.findall(r"^- \*\*ADR ([0-9]{4})\*\*", line)]
 
 
 def is_source(root, environ):
@@ -118,6 +143,46 @@ class ReadmeOfGroundwork(unittest.TestCase):
             for number, line in enumerate(lines, start=1):
                 with self.subTest(path=path, line=number):
                     self.assertIsNone(pattern.search(line), f"README.md:{number} tells to delete {path}, which the map names")
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the README of groundwork, which a project replaces")
+class AdoptionPath(unittest.TestCase):
+    """The path to adopt groundwork in an existing project, and the rule of the gaps, in the README of groundwork."""
+
+    def test_the_path_lists_each_adr_of_the_map_once_after_the_adrs_it_needs(self):
+        needs = practices_map.needs_of(practices_map.read_map(ROOT)[0])
+        order = adoption_order()
+        self.assertEqual(sorted(order), sorted(needs), "each ADR of the map appears once in the path")
+        for position, number in enumerate(order):
+            with self.subTest(adr=number):
+                self.assertLessEqual(needs[number], set(order[:position]), f"ADR {number:04d} comes before an ADR it needs")
+
+    def example(self):
+        text = "\n".join(readme_section(GAPS_HEADING))
+        found = re.search(r"```yaml\n(.+?)\n```", text, flags=re.DOTALL)
+        self.assertIsNotNone(found, "the rule of the gaps gives an example of configuration")
+        return found.group(1) + "\n"
+
+    def test_the_example_of_the_gaps_is_a_valid_configuration_of_the_checks(self):
+        if not shutil.which("pre-commit"):
+            self.skipTest("pre-commit is not installed")
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, ".pre-commit-config.yaml")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(self.example())
+            result = subprocess.run(["pre-commit", "validate-config", path], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_an_exclusion_of_the_example_names_one_file_and_not_the_same_name_elsewhere(self):
+        patterns = re.findall(r"^\s+exclude: '(.+)'$", self.example(), flags=re.MULTILINE)
+        self.assertTrue(patterns, "the example excludes a file")
+        for pattern in patterns:
+            with self.subTest(pattern=pattern):
+                self.assertRegex(pattern, r"^\^(?:[A-Za-z0-9_/-]|\\\.)+\$$", "anchored at both ends, the dots escaped")
+                name = pattern[1:-1].replace("\\.", ".")
+                self.assertIsNotNone(re.search(pattern, name))
+                self.assertIsNone(re.search(pattern, "other/" + name))
+                self.assertIsNone(re.search(pattern, name + "x"))
 
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
