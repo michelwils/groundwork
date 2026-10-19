@@ -8,7 +8,7 @@ Best-practice baseline for my projects: repository structure, conventions, autom
 
 Me, as the starting point of my desktop and web applications. The repository is public, so anyone can read it or reuse it under the license below:
 
-- a team that wants the same practices in a project, new or existing, adopts it as described in [Adopting groundwork](#adopting-groundwork) and chooses the ADRs it keeps;
+- a team that wants the same practices in a project adopts it as described in [Adopting groundwork](#adopting-groundwork), or [in an existing project](#adopting-in-an-existing-project), and chooses the ADRs it keeps;
 - a community, such as the teams of an organisation, builds from it a base of decisions of its own that its projects synchronise, as [the guide of the bases](docs/groundwork-community-base.md) tells.
 
 ## What it covers
@@ -153,7 +153,7 @@ For each step:
 1. **Record** the version once: create `.groundwork-version` with one line `X.Y.Z`, the latest release that has `apply_choice.py`, and `.groundwork-source` with one line `https://host/path` if the project follows a community base and not groundwork.
 2. **List** the ADRs of the step in `.groundwork-adrs`, with those of the steps before, one number or range per line, and commit the files you wrote: the command needs a clean working tree.
 3. **Run** `python3 .github/scripts/apply_choice.py --dry-run`, then without `--dry-run`. The first time the project has no script yet: run the one of a clone of groundwork at the tag `vX.Y.Z` that you recorded, from the directory of the project: `python3 <clone>/.github/scripts/apply_choice.py`. It brings the scripts that the others need, and the project then has its own. It brings the workflow of the update too, which fails every week until the secret `GROUNDWORK_UPDATE_TOKEN` exists (see [Adopting groundwork](#adopting-groundwork)).
-4. **Read** the output. `add:` is a new file, `merge:` a file merged into yours, `conflict:` a file with markers to resolve, `keep:` a file of the project that has the name of a file of groundwork and is kept as it is, which is expected until the ADR that owns that file is adopted; the status is 2 while some remain.
+4. **Read** the output. `add:` is a new file, `merge:` a file merged into yours, `conflict:` a file that could not be merged, which holds markers to resolve or, for a file that is not text, is left as it is for you to choose between the two versions, `keep:` a file of the project that has the name of a file of groundwork and is kept as it is, which is expected until the ADR that owns that file is adopted; the status is 2 while some remain.
 5. **Check** what the step says to check, resolve the conflicts, commit through a pull request, and start again with the next step.
 
 A project that has its own mechanism for a practice, such as the check of its branch names, its sign-off of commits or the scripts of its CI, chooses for each practice: adopt the one of groundwork and remove its own, or keep its own and leave the ADR out of `.groundwork-adrs`.
