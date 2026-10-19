@@ -1,3 +1,4 @@
+import ast
 import os
 import re
 import subprocess
@@ -101,6 +102,30 @@ class NoSuggestedRange(unittest.TestCase):
         for path in files:
             with self.subTest(path=path), open(os.path.join(ROOT, path), encoding="utf-8", errors="replace") as handle:
                 self.assertNotRegex(handle.read(), r"9000|9999")
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with files of its own")
+class ImportsOfTheFiles(unittest.TestCase):
+    """A script of groundwork imports only files that are kept whenever it is kept."""
+
+    def test_a_script_imports_only_its_own_adr_the_adrs_it_needs_adr_0001_and_the_files_of_no_adr(self):
+        entries = practices_map.read_map(ROOT)[0]
+        owners, needs = practices_map.owners(entries), practices_map.needs_of(entries)
+        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github/scripts"], capture_output=True, text=True, check=True).stdout
+        scripts = {path: os.path.basename(path)[:-3] for path in listed.split("\0") if path.endswith(".py")}
+        modules = {name: path for path, name in scripts.items()}
+        for path in sorted(scripts):
+            with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
+                tree = ast.parse(handle.read())
+            imported = {alias.name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
+            imported |= {node.module.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module and node.level == 0}
+            mine = owners.get(path)
+            allowed = {1} | ({mine} | practices_map.closure([mine], needs) if mine else set())
+            for name in sorted(imported & set(modules) - {scripts[path]}):
+                owner = owners.get(modules[name])
+                with self.subTest(script=path, imports=name):
+                    if owner is not None and owner not in allowed:
+                        self.fail(f"{path} imports {modules[name]}, which ADR {owner:04d} owns")
 
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the README of groundwork, which a project replaces")
