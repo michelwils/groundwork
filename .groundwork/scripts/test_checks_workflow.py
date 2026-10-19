@@ -1,7 +1,9 @@
 import configparser
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -54,9 +56,94 @@ class ChecksWorkflow(unittest.TestCase):
         self.assertRegex(step, re.compile(r"^        env:\n          GROUNDWORK_SOURCE: \$\{\{ vars\.GROUNDWORK_SOURCE \}\}$", flags=re.MULTILINE))
 
 
+SCRIPTS_STEP = "Find whether the scripts changed"
+
+
+def command(name):
+    """Return the shell script of the `run:` block of a step."""
+    block = re.search(r"^        run: \|\n((?:          .*\n?)+)", steps()[name], flags=re.MULTILINE).group(1)
+    return "\n".join(line[10:] for line in block.splitlines()) + "\n"
+
+
+class ScriptsChanged(unittest.TestCase):
+    """The step that tells the steps of the tests whether the coverage can have changed."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.root = self.directory.name
+        self.git("init", "-q", "-b", "main")
+        self.write({".groundwork/scripts/tool.py": "a\n", "README.md": "a\n", ".github/workflows/checks.yml": "a\n"})
+        self.commit("initial")
+        self.git("update-ref", "refs/remotes/origin/main", "HEAD")
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def git(self, *arguments):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *arguments], cwd=self.root, check=True, capture_output=True, text=True)
+
+    def write(self, files):
+        for name, content in files.items():
+            path = os.path.join(self.root, name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as handle:
+                handle.write(content)
+
+    def commit(self, message):
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", message)
+
+    def changed(self, event="pull_request"):
+        output = os.path.join(self.root, "..", os.path.basename(self.root) + ".output")
+        env = {**os.environ, "GITHUB_EVENT_NAME": event, "BASE_REF": "main", "GITHUB_OUTPUT": output}
+        subprocess.run(["bash", "-e", "-c", command(SCRIPTS_STEP)], cwd=self.root, env=env, check=True, capture_output=True, text=True)
+        try:
+            with open(output) as handle:
+                return handle.read().strip()
+        finally:
+            os.remove(output)
+
+    def test_a_push_to_main_always_measures(self):
+        self.assertEqual(self.changed("push"), "changed=true")
+
+    def test_a_change_of_a_script_measures(self):
+        self.write({".groundwork/scripts/tool.py": "b\n"})
+        self.commit("change")
+        self.assertEqual(self.changed(), "changed=true")
+
+    def test_a_change_of_the_workflow_measures(self):
+        self.write({".github/workflows/checks.yml": "b\n"})
+        self.commit("change")
+        self.assertEqual(self.changed(), "changed=true")
+
+    def test_a_script_moved_out_of_the_folder_measures(self):
+        self.git("mv", ".groundwork/scripts/tool.py", "tool.py")
+        self.commit("move")
+        self.assertEqual(self.changed(), "changed=true")
+
+    def test_a_change_of_a_text_does_not_measure(self):
+        self.write({"README.md": "b\n", "docs/adr/0001-x.md": "# x\n"})
+        self.commit("change")
+        self.assertEqual(self.changed(), "changed=false")
+
+    def test_a_base_that_moved_on_is_not_a_change_of_the_pull_request(self):
+        """The CI tests the merge of the pull request into the base, as it is when the CI runs."""
+        self.git("switch", "-q", "-c", "pr")
+        self.write({"README.md": "b\n"})
+        self.commit("the pull request")
+        self.git("switch", "-q", "main")
+        self.write({".groundwork/scripts/tool.py": "c\n"})
+        self.commit("the base moves on")
+        self.git("update-ref", "refs/remotes/origin/main", "HEAD")
+        self.git("switch", "-q", "-c", "merge")
+        self.git("merge", "-q", "--no-edit", "pr")
+        self.assertEqual(self.changed(), "changed=false")
+
+
 SOURCE_CONDITION = "hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true'"
 RCFILE = ".groundwork/scripts/coveragerc"
 COVERAGE_STEP = "Test the scripts and measure the coverage"
+MEASURE = f"({SOURCE_CONDITION}) && steps.scripts.outputs.changed == 'true'"
 COMMANDS = [
     f"-m coverage run --rcfile={RCFILE} -m unittest discover -s .groundwork/scripts -p 'test_*.py'",
     f"-m coverage combine --rcfile={RCFILE}",
@@ -76,9 +163,20 @@ class CoverageGate(unittest.TestCase):
     def condition(self, name):
         return re.search(r"^        if: (.+)$", steps()[name], flags=re.MULTILINE).group(1)
 
-    def test_the_measure_runs_in_a_source_and_the_plain_tests_everywhere_else(self):
-        self.assertEqual(self.condition(COVERAGE_STEP), "${{ " + SOURCE_CONDITION + " }}")
-        self.assertEqual(self.condition("Test the scripts"), "${{ !(" + SOURCE_CONDITION + ") }}")
+    def test_the_measure_runs_in_a_source_when_the_scripts_changed_and_the_plain_tests_everywhere_else(self):
+        self.assertEqual(self.condition(COVERAGE_STEP), "${{ " + MEASURE + " }}")
+        self.assertEqual(self.condition("Test the scripts"), "${{ !(" + MEASURE + ") }}")
+
+    def test_the_step_that_decides_receives_the_event_and_the_base_by_the_environment_only(self):
+        step = steps()[SCRIPTS_STEP]
+        self.assertRegex(step, re.compile(r"^          GITHUB_EVENT_NAME: \$\{\{ github\.event_name \}\}$", flags=re.MULTILINE))
+        self.assertRegex(step, re.compile(r"^          BASE_REF: \$\{\{ github\.base_ref \}\}$", flags=re.MULTILINE))
+        self.assertNotIn("${{", command(SCRIPTS_STEP))
+
+    def test_the_step_that_decides_runs_before_the_tests(self):
+        names = list(steps())
+        self.assertLess(names.index(SCRIPTS_STEP), names.index(COVERAGE_STEP))
+        self.assertLess(names.index(SCRIPTS_STEP), names.index("Test the scripts"))
 
     def test_the_two_steps_receive_the_variable_of_a_source_of_adrs(self):
         for name in (COVERAGE_STEP, "Test the scripts"):
