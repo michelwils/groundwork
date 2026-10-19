@@ -15,7 +15,7 @@ import check_practices  # noqa: E402
 import practices_map  # noqa: E402
 import update_groundwork  # noqa: E402
 from test_apply_choice import SCRIPT, commit, put  # noqa: E402
-from test_filtered_trees import LICENSE, README, is_source  # noqa: E402
+from test_filtered_trees import LICENSE, README, adoption_order, is_source  # noqa: E402
 from test_update_groundwork import git, init, read, rewritten_env  # noqa: E402
 
 
@@ -31,8 +31,8 @@ def dependents(needs, number):
 
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
-class RealFiles(unittest.TestCase):
-    """What the command does to the files of groundwork itself."""
+class RealTree(unittest.TestCase):
+    """The files of groundwork itself, copied into a source and into a project."""
 
     @classmethod
     def setUpClass(cls):
@@ -99,6 +99,11 @@ class RealFiles(unittest.TestCase):
                     found[os.path.relpath(path, project)] = handle.read()
         return found
 
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
+class RealFiles(RealTree):
+    """What the command does to the files of groundwork itself."""
+
     def test_a_project_that_exists_gets_the_files_of_the_template_and_its_own_checks_run(self):
         own = {"README.md", "LICENSE", ".gitignore", "src/app.py", ".groundwork-version", ".groundwork-adrs"}
         sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
@@ -154,6 +159,50 @@ class RealFiles(unittest.TestCase):
                     with open(os.path.join(ROOT, path), encoding="utf-8", errors="surrogateescape") as handle:
                         original = handle.read()
                     self.assertEqual(read(project, path), original, path)
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
+class ExistingProject(RealTree):
+    """A project that exists, with files of its own, follows the path of the README phase by phase."""
+
+    OWN = {
+        "README.md": "# My app\n\nBuilds things.\n",
+        "CONTRIBUTING.md": "# Contributing\n\nOpen a pull request.\n\n## Style\n\nUse tabs.\n",
+        ".pre-commit-config.yaml": "repos:\n  - repo: local\n    hooks:\n      - id: lint\n        name: lint\n        entry: make lint\n        language: system\n",
+        "src/app.py": "print(1)\n",
+    }
+
+    def test_each_phase_of_the_path_arrives_without_an_error_and_conflicts_stay_in_the_files_of_the_project(self):
+        order = adoption_order()
+        self.assertTrue(order)
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        source, project = (os.path.join(directory.name, name) for name in ("source", "project"))
+        init(source)
+        self.copy(source)
+        commit(source, "feat: release")
+        git(source, "tag", "-a", "v0.1.0", "-m", "v0.1.0")
+        init(project)
+        put(project, {**self.OWN, ".groundwork-version": "0.1.0\n"})
+        commit(project, "Initial commit")
+        git(project, "switch", "-q", "-c", "feat/1-adopt")
+        for count in range(1, len(order) + 1):
+            kept = order[:count]
+            with self.subTest(adopted=f"{kept[-1]:04d}"):
+                put(project, {".groundwork-adrs": "".join(f"{number:04d}\n" for number in kept)})
+                commit(project, "chore: list the ADRs of the step")
+                result = self.run_in(project, source)
+                self.assertIn(result.returncode, (0, 2), result.stdout + result.stderr)
+                for path in [line[len("conflict: "):] for line in result.stdout.splitlines() if line.startswith("conflict: ")]:
+                    self.assertIn(path, self.OWN, f"{path} is in conflict and the project did not have it")
+                    with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
+                        put(project, {path: handle.read()})
+                for path in [line[len("keep: "):].split(" (")[0] for line in result.stdout.splitlines() if line.startswith("keep: ")]:
+                    self.assertIn(path, self.OWN, f"{path} is kept and the project did not have it")
+                commit(project)
+        for number in order:
+            with self.subTest(arrived=f"{number:04d}"):
+                self.assertTrue(glob.glob(os.path.join(project, "docs", "adr", f"{number:04d}-*.md")))
 
 
 if __name__ == "__main__":
