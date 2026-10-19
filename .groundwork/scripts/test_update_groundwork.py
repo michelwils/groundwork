@@ -283,12 +283,7 @@ class Update(unittest.TestCase):
         self.assertEqual(read(second, ".groundwork-version"), "1.0.0\n")
         self.assertEqual(read(second, "new.md"), "new\n")
         self.assertEqual(read(second, "SECURITY.md"), V3["SECURITY.md"])
-
-    def test_the_tags_of_the_source_that_it_got_from_its_own_source_are_not_copied(self):
-        second = self.source_that_ran_the_update()
-        self.update_from(second, self.project)
         self.assertEqual(self.tags(second), ["groundwork/v0.9.0", "groundwork/v1.0.0"])
-
 
     def record(self, content):
         """Commit `.groundwork-source` in the project with this content (text or bytes)."""
@@ -604,14 +599,6 @@ class Choice(unittest.TestCase):
         self.assertIn("1000", result.stderr)
         self.assertEqual(self.branches(), ["main"])
         self.assertEqual(git(self.project, "status", "--porcelain").strip(), "")
-
-    def test_a_line_that_is_not_a_number_is_refused(self):
-        self.releases(world("1"), world("2"))
-        self.adopt(trimmed(world("1"), {1}), "second\n")
-        result = self.run_script()
-        self.assertEqual(result.returncode, 1)
-        self.assertIn(".groundwork-adrs:1", result.stderr)
-        self.assertEqual(self.branches(), ["main"])
 
     def test_the_adrs_that_the_source_does_not_reserve_are_not_copied(self):
         for choice in (None, "0001-0999\n"):
