@@ -36,13 +36,27 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/scripts"
           "$RUNNER_TEMP/scripts/bin/python" -m pip install -r .groundwork/scripts/requirements.txt
 
+      # The coverage can change only with the scripts, their tests and their configuration, which are
+      # under .groundwork/scripts, or with the steps below. A pull request that changes none of them
+      # runs the plain tests, and a push to the main branch always measures.
+      - name: Find whether the scripts changed
+        id: scripts
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed=true
+          if [ "$GITHUB_EVENT_NAME" = pull_request ] && git diff --quiet "origin/$BASE_REF"...HEAD -- .groundwork/scripts .github/workflows/checks.yml; then
+            changed=false
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
       # A source of ADRs, such as a community base, sets the variable GROUNDWORK_SOURCE to true in the
       # settings of its repository, to run the test of the trees that its projects get too. A source
       # also measures the coverage of its scripts by their tests and requires a minimal level (the
-      # threshold is in coveragerc). A project that left ADRs out has fewer scripts and tests, so it
-      # runs the plain tests.
+      # threshold is in coveragerc), when the scripts changed. A project that left ADRs out has fewer
+      # scripts and tests, so it runs the plain tests.
       - name: Test the scripts and measure the coverage
-        if: ${{ hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true' }}
+        if: ${{ (hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true') && steps.scripts.outputs.changed == 'true' }}
         env:
           GROUNDWORK_SOURCE: ${{ vars.GROUNDWORK_SOURCE }}
         run: |
@@ -51,7 +65,7 @@ jobs:
           "$RUNNER_TEMP/scripts/bin/python" -m coverage report --rcfile=.groundwork/scripts/coveragerc
 
       - name: Test the scripts
-        if: ${{ !(hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true') }}
+        if: ${{ !((hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true') && steps.scripts.outputs.changed == 'true') }}
         env:
           GROUNDWORK_SOURCE: ${{ vars.GROUNDWORK_SOURCE }}
         run: |
