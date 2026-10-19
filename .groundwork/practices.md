@@ -168,6 +168,7 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 - `.gitignore`
 - `.groundwork/scripts/apply_choice.py`
 - `.groundwork/scripts/choice.py`
+- `.groundwork/scripts/coveragerc`
 - `.groundwork/scripts/markers.py`
 - `.groundwork/scripts/open_update_pull_request.py`
 - `.groundwork/scripts/practices_map.py`

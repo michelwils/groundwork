@@ -37,8 +37,21 @@ jobs:
           "$RUNNER_TEMP/scripts/bin/python" -m pip install -r .groundwork/scripts/requirements.txt
 
       # A source of ADRs, such as a community base, sets the variable GROUNDWORK_SOURCE to true in the
-      # settings of its repository, to run the test of the trees that its projects get too.
+      # settings of its repository, to run the test of the trees that its projects get too. A source
+      # also measures the coverage of its scripts by their tests and requires a minimal level (the
+      # threshold is in coveragerc). A project that left ADRs out has fewer scripts and tests, so it
+      # runs the plain tests.
+      - name: Test the scripts and measure the coverage
+        if: ${{ hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true' }}
+        env:
+          GROUNDWORK_SOURCE: ${{ vars.GROUNDWORK_SOURCE }}
+        run: |
+          "$RUNNER_TEMP/scripts/bin/python" -m coverage run --rcfile=.groundwork/scripts/coveragerc -m unittest discover -s .groundwork/scripts -p 'test_*.py'
+          "$RUNNER_TEMP/scripts/bin/python" -m coverage combine --rcfile=.groundwork/scripts/coveragerc
+          "$RUNNER_TEMP/scripts/bin/python" -m coverage report --rcfile=.groundwork/scripts/coveragerc
+
       - name: Test the scripts
+        if: ${{ !(hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true') }}
         env:
           GROUNDWORK_SOURCE: ${{ vars.GROUNDWORK_SOURCE }}
         run: |

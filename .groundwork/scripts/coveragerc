@@ -1,0 +1,14 @@
+# Measure of the coverage of the scripts by their unit tests, in a source of ADRs (checks workflow).
+# The code that a test runs in a subprocess is counted: each process writes its data, which
+# `coverage combine` joins before the report.
+[run]
+source = .groundwork/scripts
+omit = */test_*.py
+branch = true
+parallel = true
+patch = subprocess
+
+[report]
+# The total of the statements and the branches.
+fail_under = 95
+show_missing = true
