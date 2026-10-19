@@ -288,6 +288,8 @@ def existing_project(args, root):
         text = ours
         if path in by_path:
             base, theirs = by_path[path]
+            if ours is None:
+                base = None  # the project lacks the file: it starts from nothing
             action = update.decide(base, theirs, ours)
             if action[0] == "conflict":
                 changes.say("conflict", path)
@@ -309,6 +311,10 @@ def existing_project(args, root):
             changes.write(step_kind, path, text, update.mode(old, path))
         elif text != ours and text is not None:
             changes.write("edit", path, text, os.stat(path).st_mode)
+    for path in sorted(update.tree_paths(old)):
+        if path in by_path or os.path.lexists(path) or update.adr_number(path) is not None or side.owners.get(path) is not None:
+            continue
+        changes.write("add", path, update.text_of(path, update.blob(old, path), kept), update.mode(old, path))
     for path in sorted(deleted):
         changes.delete(path)
     return changes, [], made.said

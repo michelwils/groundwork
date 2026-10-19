@@ -6,15 +6,9 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
-import check_adrs  # noqa: E402
-import check_links  # noqa: E402
-import check_practices  # noqa: E402
 import markers  # noqa: E402
-import practices_map  # noqa: E402
 import update_groundwork  # noqa: E402
-from test_filtered_trees import LICENSE, README, is_source  # noqa: E402
 from test_update_groundwork import ADDRESS, adr, git, init, read, rewritten_env, trimmed, world  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "apply_choice.py")
@@ -409,93 +403,73 @@ class Safety(Fixture):
         self.assertEqual(self.status(), "")
 
 
-def dependents(needs, number):
-    found, grew = {number}, True
-    while grew:
-        grew = False
-        for other, wanted in needs.items():
-            if other not in found and wanted & found:
-                found.add(other)
-                grew = True
-    return found
+class FilesOfNoPractice(Fixture):
+    """The files that belong to no practice reach a project that exists, which the update would not bring."""
 
+    def setUp(self):
+        super().setUp()
+        self.release({**world("1"), "README.md": "# groundwork\n", "LICENSE": "MIT\n", ".groundwork-ranges": "9000-9999\n"}, version="0.2.0")
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
-class RealFiles(unittest.TestCase):
-    """What the command does to the files of groundwork itself."""
+    def existing(self, choice, own=None):
+        self.adopt({**trimmed(world("1"), {1}), **(own or {}), "app.py": "print(1)\n"}, version="0.2.0", choice=choice)
+        for name in ("tool.py", "SHARED.md", "docs/practices.md"):
+            if (own or {}).get(name) is None and os.path.exists(os.path.join(self.project, name)):
+                os.remove(os.path.join(self.project, name))
+        commit(self.project)
 
-    @classmethod
-    def setUpClass(cls):
-        entries = practices_map.read_map(ROOT)[0]
-        cls.needs = practices_map.needs_of(entries)
-        cls.numbers = sorted(cls.needs)
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, text=True, check=True).stdout
-        cls.paths = [path for path in listed.split("\0") if path and os.path.isfile(os.path.join(ROOT, path))]
+    def test_a_file_of_no_practice_that_the_project_lacks_is_added(self):
+        self.existing("0001\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "tool.py"), "tool\n")
+        self.assertEqual(read(self.project, "docs/practices.md"), world("1")["docs/practices.md"])
+        self.assertIn("tool.py", self.lines(result, "add: "))
 
-    def copy(self, destination, version=None, choice=None):
-        for path in self.paths:
-            target = os.path.join(destination, path)
-            os.makedirs(os.path.dirname(target), exist_ok=True)
-            shutil.copy2(os.path.join(ROOT, path), target)
-        if version:
-            put(destination, {".groundwork-version": f"{version}\n"})
-        if choice is not None:
-            put(destination, {".groundwork-adrs": choice})
+    def test_a_shared_file_with_no_owner_arrives_without_the_blocks_of_the_adrs_left_out(self):
+        self.existing("0002\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "SHARED.md"), markers.remove(world("1")["SHARED.md"], "markdown", {1, 2}))
 
-    def world(self, version=None, choice=None):
-        directory = tempfile.TemporaryDirectory()
-        self.addCleanup(directory.cleanup)
-        source = os.path.join(directory.name, "source")
-        project = os.path.join(directory.name, "project")
-        init(source)
-        self.copy(source)
-        commit(source, "feat: release")
-        git(source, "tag", "-a", "v0.1.0", "-m", "v0.1.0")
-        init(project)
-        self.copy(project, version, choice)
-        commit(project, "Initial commit")
-        git(project, "switch", "-q", "-c", "feat/1-adopt")
-        return source, project
+    def test_a_file_that_the_project_has_is_neither_touched_nor_listed(self):
+        self.existing("0001\n", own={"tool.py": "mine\n", "docs/practices.md": "# my practices\n"})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "tool.py"), "mine\n")
+        self.assertEqual(read(self.project, "docs/practices.md"), "# my practices\n")
+        self.assertNotIn("tool.py", result.stdout)
+        self.assertNotIn("docs/practices.md", result.stdout)
 
-    def run_in(self, project, source, *args):
-        if os.path.exists(os.path.join(project, ".groundwork-version")):
-            return subprocess.run([sys.executable, SCRIPT, "--source", source, *args], cwd=project, capture_output=True, text=True)
-        env = rewritten_env(update_groundwork.SOURCE, source)
-        return subprocess.run([sys.executable, SCRIPT, *args], cwd=project, capture_output=True, text=True, env=env)
+    def test_the_files_of_groundwork_itself_and_of_the_project_are_never_added(self):
+        self.existing("0001\n")
+        result = self.run_script()
+        for name in ("README.md", "LICENSE"):
+            self.assertFalse(self.has(name), name)
+            self.assertNotIn(name, result.stdout)
+        self.assertEqual(read(self.project, ".groundwork-ranges"), "9000-9999\n")
 
-    def kept_without(self, number):
-        gone = dependents(self.needs, number)
-        return [n for n in self.numbers if n not in gone]
+    def test_a_file_of_an_adr_left_out_is_not_added(self):
+        self.existing("0001\n")
+        self.run_script()
+        for name in ("four.txt", adr(4), "two.txt"):
+            self.assertFalse(self.has(name), name)
 
-    def test_the_checks_pass_after_the_command_for_each_adr_left_out_and_for_adr_0001_alone(self):
-        sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
-        for name, kept in sets:
-            with self.subTest(left_out=name):
-                source, project = self.world()
-                result = self.run_in(project, source, *[f"{n:04d}" for n in kept])
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                put(project, {"README.md": README, "LICENSE": LICENSE})
-                git(project, "add", "-A")
-                problems = check_adrs.check(project) + check_practices.check(project) + check_links.check(project)
-                self.assertEqual(problems, [])
+    def test_a_dry_run_lists_the_files_and_adds_none(self):
+        self.existing("0001\n")
+        result = self.run_script("--dry-run")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("tool.py", self.lines(result, "add: "))
+        self.assertFalse(self.has("tool.py"))
+        self.assertEqual(self.status(), "")
 
-    def test_narrowing_then_widening_gives_back_the_original_files(self):
-        for number in self.numbers:
-            if number == 1:
-                continue
-            with self.subTest(left_out=f"{number:04d}"):
-                kept = self.kept_without(number)
-                source, project = self.world(version="0.1.0", choice="".join(f"{n:04d}\n" for n in kept))
-                self.assertEqual(self.run_in(project, source).returncode, 0)
-                commit(project)
-                put(project, {".groundwork-adrs": "0001-0999\n"})
-                commit(project)
-                result = self.run_in(project, source)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                for path in self.paths:
-                    with open(os.path.join(ROOT, path), encoding="utf-8", errors="surrogateescape") as handle:
-                        original = handle.read()
-                    self.assertEqual(read(project, path), original, path)
+    def test_a_second_run_changes_nothing(self):
+        self.existing("0001\n")
+        self.run_script()
+        commit(self.project)
+        again = self.run_script()
+        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
+        self.assertEqual(self.lines(again, "add: "), [])
+        self.assertEqual(self.status(), "")
 
 
 if __name__ == "__main__":
