@@ -115,6 +115,8 @@ class RealFiles(unittest.TestCase):
                 self.assertEqual([path for path in wanted if got[path] != wanted[path]], [])
                 git(project, "add", "-A")
                 for script in ("check_adrs.py", "check_practices.py"):
+                    if not os.path.exists(os.path.join(project, ".github", "scripts", script)):
+                        continue  # the script belongs to an ADR that the project left out
                     run = subprocess.run([sys.executable, f".github/scripts/{script}"], cwd=project, capture_output=True, text=True)
                     self.assertEqual(run.returncode, 0, f"{script}: {run.stdout}{run.stderr}")
                 imports = subprocess.run(
