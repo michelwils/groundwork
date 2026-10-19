@@ -9,7 +9,7 @@ Best-practice baseline for my projects: repository structure, conventions, autom
 Me, as the starting point of my desktop and web applications. The repository is public, so anyone can read it or reuse it under the license below:
 
 - a team that wants the same practices in a project, new or existing, adopts it as described in [Adopting groundwork](#adopting-groundwork) and chooses the ADRs it keeps;
-- a community, such as the teams of an organisation, builds from it a base of decisions of its own that its projects synchronise, as [the guide of the bases](docs/community-base.md) tells.
+- a community, such as the teams of an organisation, builds from it a base of decisions of its own that its projects synchronise, as [the guide of the bases](docs/groundwork-community-base.md) tells.
 
 ## What it covers
 
@@ -28,7 +28,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
 - A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py), which a project always synchronises, whatever it leaves out
-- A guide for a community that builds a base of its own from groundwork, in [`docs/community-base.md`](docs/community-base.md)
+- A guide for a community that builds a base of its own from groundwork, in [`docs/groundwork-community-base.md`](docs/groundwork-community-base.md)
 - The choice of the ADRs that a project synchronises, in a file `.groundwork-adrs`, and the ranges of ADR numbers that a community base reserves, in `.groundwork-ranges` ([ADR 1000](docs/adr/1000-choosing-the-adrs-a-project-synchronises.md))
 - A workflow that opens every week the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
 - A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
