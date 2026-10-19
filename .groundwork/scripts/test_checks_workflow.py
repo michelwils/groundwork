@@ -1,8 +1,14 @@
+import configparser
 import os
 import re
+import sys
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
+sys.path.insert(0, HERE)
+from test_filtered_trees import is_source  # noqa: E402
+
 WORKFLOW = os.path.join(HERE, "..", "..", ".github", "workflows", "checks.yml")
 BOT_PULL_REQUEST = "!(startsWith(github.head_ref, 'dependabot/') && github.event.pull_request.user.login == 'dependabot[bot]')"
 
@@ -46,6 +52,79 @@ class ChecksWorkflow(unittest.TestCase):
     def test_the_tests_of_the_scripts_receive_the_variable_of_a_source_of_adrs(self):
         step = steps()["Test the scripts"]
         self.assertRegex(step, re.compile(r"^        env:\n          GROUNDWORK_SOURCE: \$\{\{ vars\.GROUNDWORK_SOURCE \}\}$", flags=re.MULTILINE))
+
+
+SOURCE_CONDITION = "hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true'"
+RCFILE = ".groundwork/scripts/coveragerc"
+COVERAGE_STEP = "Test the scripts and measure the coverage"
+COMMANDS = [
+    f"-m coverage run --rcfile={RCFILE} -m unittest discover -s .groundwork/scripts -p 'test_*.py'",
+    f"-m coverage combine --rcfile={RCFILE}",
+    f"-m coverage report --rcfile={RCFILE}",
+]
+
+
+def read(path):
+    with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
+        return handle.read()
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "the coverage is required of the scripts of a source of ADRs, not of a project")
+class CoverageGate(unittest.TestCase):
+    """The scripts of groundwork must be covered by their unit tests at a minimal level, in the CI of a source."""
+
+    def condition(self, name):
+        return re.search(r"^        if: (.+)$", steps()[name], flags=re.MULTILINE).group(1)
+
+    def test_the_measure_runs_in_a_source_and_the_plain_tests_everywhere_else(self):
+        self.assertEqual(self.condition(COVERAGE_STEP), "${{ " + SOURCE_CONDITION + " }}")
+        self.assertEqual(self.condition("Test the scripts"), "${{ !(" + SOURCE_CONDITION + ") }}")
+
+    def test_the_two_steps_receive_the_variable_of_a_source_of_adrs(self):
+        for name in (COVERAGE_STEP, "Test the scripts"):
+            with self.subTest(step=name):
+                self.assertRegex(steps()[name], re.compile(r"^        env:\n          GROUNDWORK_SOURCE: \$\{\{ vars\.GROUNDWORK_SOURCE \}\}$", flags=re.MULTILINE))
+
+    def test_the_measure_runs_the_tests_combines_the_data_and_reports(self):
+        step = steps()[COVERAGE_STEP]
+        for command in COMMANDS:
+            with self.subTest(command=command):
+                self.assertIn(command, step)
+        self.assertLess(step.index(COMMANDS[0]), step.index(COMMANDS[1]))
+        self.assertLess(step.index(COMMANDS[1]), step.index(COMMANDS[2]))
+        self.assertNotIn("--fail-under", step)
+
+    def test_the_plain_step_does_not_measure(self):
+        self.assertIn("unittest discover", steps()["Test the scripts"])
+        self.assertNotIn("coverage", steps()["Test the scripts"])
+
+    def test_agents_md_gives_the_same_commands_as_the_workflow(self):
+        agents = read("AGENTS.md")
+        for command in COMMANDS:
+            with self.subTest(command=command):
+                self.assertIn("python3 " + command, agents)
+
+    def test_the_configuration_measures_the_scripts_and_their_subprocesses_with_a_minimal_level(self):
+        parser = configparser.ConfigParser()
+        parser.read(os.path.join(ROOT, RCFILE), encoding="utf-8")
+        self.assertEqual(parser["run"]["source"].strip(), ".groundwork/scripts")
+        self.assertIn("*/test_*.py", parser["run"]["omit"])
+        self.assertEqual(parser["run"]["patch"].strip(), "subprocess")
+        self.assertTrue(parser["run"].getboolean("parallel"))
+        self.assertTrue(parser["run"].getboolean("branch"))
+        self.assertEqual(parser["report"].getfloat("fail_under"), 95)
+
+    def test_the_tool_is_required_at_an_exact_version(self):
+        self.assertRegex(read(".groundwork/scripts/requirements.txt"), re.compile(r"^coverage==[0-9][0-9.]*$", flags=re.MULTILINE))
+
+    def test_the_data_of_the_measure_are_not_tracked(self):
+        self.assertRegex(read(".gitignore"), re.compile(r"^\.coverage\*$", flags=re.MULTILINE))
+
+    def test_agents_md_states_the_licenses_that_groundwork_accepts_for_its_dependencies(self):
+        agents = read("AGENTS.md")
+        for name in ("MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "PSF-2.0"):
+            with self.subTest(license=name):
+                self.assertIn(name, agents)
 
 
 if __name__ == "__main__":
