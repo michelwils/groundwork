@@ -190,6 +190,7 @@ class ExistingProject(RealTree):
             kept = order[:count]
             with self.subTest(adopted=f"{kept[-1]:04d}"):
                 put(project, {".groundwork-adrs": "".join(f"{number:04d}\n" for number in kept)})
+                commit(project, "chore: list the ADRs of the step")
                 result = self.run_in(project, source)
                 self.assertIn(result.returncode, (0, 2), result.stdout + result.stderr)
                 for path in [line[len("conflict: "):] for line in result.stdout.splitlines() if line.startswith("conflict: ")]:

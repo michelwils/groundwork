@@ -28,6 +28,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
 - A script that prepares the update of a project to a later version of groundwork, in [`.github/scripts/update_groundwork.py`](.github/scripts/update_groundwork.py), which a project always synchronises, whatever it leaves out
+- The path to adopt groundwork in an existing project, one practice at a time, and the rule that records the gaps, in [Adopting in an existing project](#adopting-in-an-existing-project)
 - A guide for a community that builds a base of its own from groundwork, in [`docs/groundwork-community-base.md`](docs/groundwork-community-base.md)
 - The choice of the ADRs that a project synchronises, in a file `.groundwork-adrs`, and the ranges of ADR numbers that a community base reserves, in `.groundwork-ranges` ([ADR 1000](docs/adr/1000-choosing-the-adrs-a-project-synchronises.md))
 - A workflow that opens every week the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
@@ -137,6 +138,72 @@ To choose, create `.groundwork-adrs` at the root of the project: one number (`00
 - After it changes its choice, whether it adds ADRs or drops some, a project runs `python3 .github/scripts/apply_choice.py` on a branch with a clean working tree. It brings, from the version the project records, the files and the blocks of the ADRs that entered, the files that belong to no practice and that the project lacks (the scripts that the others need, the map `docs/practices.md`, the workflow of the update), and deletes those of the ADRs that left. A file of that kind that the project already has is left as it is. A file or a block that the project changed is kept and listed, and the command exits with status 2. `--dry-run` shows the same list and changes no file of the working tree, nor the index or the branches; it refreshes the copy of the tags of the source. Nothing is done without a `.groundwork-adrs`.
 - A project writes its own lines outside the blocks of a shared file. Inside a block, a change of the project merges with a change of groundwork like in any other file.
 - The files of the update itself, `update_groundwork.py`, `apply_choice.py`, `open_update_pull_request.py` and the workflow, are always synchronised, with `markers.py`, `practices_map.py` and `choice.py` that the scripts use. The update never copies `README.md`, `LICENSE`, `.groundwork-version` or `.groundwork-adrs` from its source.
+
+### Adopting in an existing project
+
+A project that already exists has code that does not follow the rules, a history that may hold secrets, and checks that fail as soon as they are turned on. It adopts the practices one at a time, in the order of their dependencies, and records the gaps that remain so that the rules apply to the new code at once ([Recording the gaps](#recording-the-gaps)).
+
+groundwork does not make a project compatible: the checks report what is not, and the project corrects it. The project has, before it starts:
+
+- a branch of its own and a clean working tree, and [pre-commit](https://pre-commit.com) for the checks of ADR 0008;
+- its own ADRs, if it has any, numbered from `1000` and following the template of [ADR 0001](docs/adr/0001-record-architecture-decisions.md), since `0001` to `0999` are reserved for groundwork. `check_adrs.py` lists each one that does not.
+
+For each step:
+
+1. **Record** the version once: create `.groundwork-version` with one line `X.Y.Z`, the latest release that has `apply_choice.py`, and `.groundwork-source` with one line `https://host/path` if the project follows a community base and not groundwork.
+2. **List** the ADRs of the step in `.groundwork-adrs`, with those of the steps before, one number or range per line, and commit the files you wrote: the command needs a clean working tree.
+3. **Run** `python3 .github/scripts/apply_choice.py --dry-run`, then without `--dry-run`. The first time the project has no script yet: run the one of a clone of groundwork from the directory of the project, `python3 <clone>/.github/scripts/apply_choice.py`. It brings the scripts that the others need, and the project then has its own.
+4. **Read** the output. `add:` is a new file, `merge:` a file merged into yours, `conflict:` a file with markers to resolve, `keep:` a file of the project that has the name of a file of groundwork and is kept as it is, which is expected until the ADR that owns that file is adopted; the status is 2 while some remain.
+5. **Check** what the step says to check, resolve the conflicts, commit through a pull request, and start again with the next step.
+
+A project that has its own mechanism for a practice, such as the check of its branch names, its sign-off of commits or the scripts of its CI, chooses for each practice: adopt the one of groundwork and remove its own, or keep its own and leave the ADR out of `.groundwork-adrs`.
+
+The order, from the dependencies of the map [`docs/practices.md`](docs/practices.md). In the first phase, the records and the names:
+
+- **ADR 0001**, record architecture decisions. It brings the template of the ADRs and `check_adrs.py`. Expect the gaps of the ADRs of the project: the number, the title `# NNNN. …` and the line `**Status:**`. Check with `python3 .github/scripts/check_adrs.py`.
+- **ADR 0002**, Conventional Commits. It brings its lines of `CONTRIBUTING.md`; the hook that checks the titles comes with ADR 0008. The history is not rewritten, and `release.py` counts a past title that does not follow it as no change. Check that the new commits follow it.
+- **ADR 0004**, English. A rule with lines of `CONTRIBUTING.md` and no check. Documents already written in another language stay; the new content is in English. Check by review.
+
+The second phase, the workflow:
+
+- **ADR 0003**, change workflow. It brings the templates of issues and pull requests, the ruleset of the default branch, `apply_settings.py` and `check_pull_request.py`. After `apply_settings.py` the default branch rejects direct pushes. Check that a pull request from a branch `<type>/<issue>-<slug>` that closes its issue passes `check_pull_request.py`.
+- **ADR 0005**, versions and releases. It brings the `release` workflow and `release.py`. The first version is computed from the commits since the last tag reachable from `HEAD`. State the public contract in the README of the project. Check with `python3 .github/scripts/release.py`, which prints the version it would publish and tags nothing.
+- **ADR 0006**, trunk-based development. Lines of `CONTRIBUTING.md` and of the template of pull requests. A branch of the project that lives long is merged or split. Check by review.
+- **ADR 0007**, changes made with an agent. It brings `AGENTS.md`. The `AGENTS.md` of the project is kept until the ADR is adopted, then merged by hand. Check by review.
+
+The third phase, the checks:
+
+- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the hooks of the project in `.pre-commit-config.yaml` and add the ones of groundwork. Check with `pre-commit run --all-files --hook-stage manual`.
+
+The fourth phase, the rules that no tool checks:
+
+- **ADR 0009**, test-first development. Code that has no test stays so; new behaviour is tested first. Check by review.
+- **ADR 0010**, security of the code. Code that breaks a rule is a gap to record. Check by review.
+- **ADR 0012**, responding to an incident. It brings `SECURITY.md`; the one of the project is merged by hand. Check that it names who leads the response.
+- **ADR 0011**, confidential and personal data. The project classifies its data in its documentation. Check by review.
+- **ADR 0013**, licenses of the dependencies. The project writes the licenses it accepts. Check by review.
+
+### Recording the gaps
+
+When an adopted rule fails on code that already exists, the project records the gap and does not lower the rule.
+
+1. **One ADR of the project**, "Known deviations from groundwork", numbered from `1000` and following the template. Its decision is to apply the adopted ADRs and to tolerate the gaps listed in its table until the issues that remove them are closed. The table has a row per gap: the ADR of groundwork, what deviates (the check and the files, or the rule), why, and the issue that removes it. A row that goes is a clarification in the sense of ADR 0001: the decision does not change.
+2. **An exclusion for a check**, in the entry of its hook in `.pre-commit-config.yaml`, which is the one configuration ADR 0008 asks for. One pattern per file that exists, anchored at both ends, with its dots escaped, and a comment that names the row:
+
+   ```yaml
+   repos:
+     - repo: https://github.com/igorshubovych/markdownlint-cli
+       rev: v0.49.1
+       hooks:
+         - id: markdownlint
+           # deviation: ADR 1001, issue #42
+           exclude: '^docs/old-notes\.md$'
+   ```
+
+   pre-commit matches `exclude` with `re.search`, so a pattern that is not anchored also excludes a new file of the same name, and the new code would not be checked. Never exclude a class of files, only files that exist.
+3. **Closing a gap** is one pull request: it brings the file in line, removes its exclusion and its row.
+4. **A secret in the history** is not a gap. Treat it as an incident ([ADR 0012](https://github.com/michelwils/groundwork/blob/main/docs/adr/0012-responding-to-an-incident.md)): revoke it first. Then write the findings that remain into a baseline, `gitleaks git --redact --report-path .gitleaks-baseline.json`, which holds no secret since `--redact` replaces it, add `--baseline-path .gitleaks-baseline.json` to the entry of the hook that scans the history, and add a row. A new secret still fails the check.
+5. **A rule that no tool checks** is recorded in the same table, and the review stands for the check: a reviewer rejects new code that breaks it.
 
 ### Moving to a later version
 

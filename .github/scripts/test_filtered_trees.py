@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -184,9 +185,9 @@ class AdoptionPath(unittest.TestCase):
 
     def example(self):
         text = "\n".join(readme_section(GAPS_HEADING))
-        found = re.search(r"```yaml\n(.+?)\n```", text, flags=re.DOTALL)
+        found = re.search(r"```yaml\n(.+?)\n[ ]*```", text, flags=re.DOTALL)
         self.assertIsNotNone(found, "the rule of the gaps gives an example of configuration")
-        return found.group(1) + "\n"
+        return textwrap.dedent(found.group(1)) + "\n"
 
     def test_the_example_of_the_gaps_is_a_valid_configuration_of_the_checks(self):
         if not shutil.which("pre-commit"):
