@@ -180,5 +180,5 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 - `.github/workflows/update-groundwork.yml`
 - `LICENSE`
 - `README.md`
-- `docs/community-base.md`
+- `docs/groundwork-community-base.md`
 - `docs/practices.md`
