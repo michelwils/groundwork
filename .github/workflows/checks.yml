@@ -34,7 +34,7 @@ jobs:
       - name: Install the dependencies of the scripts
         run: |
           python3 -m venv "$RUNNER_TEMP/scripts"
-          "$RUNNER_TEMP/scripts/bin/python" -m pip install -r .github/scripts/requirements.txt
+          "$RUNNER_TEMP/scripts/bin/python" -m pip install -r .groundwork/scripts/requirements.txt
 
       # A source of ADRs, such as a community base, sets the variable GROUNDWORK_SOURCE to true in the
       # settings of its repository, to run the test of the trees that its projects get too.
@@ -42,7 +42,7 @@ jobs:
         env:
           GROUNDWORK_SOURCE: ${{ vars.GROUNDWORK_SOURCE }}
         run: |
-          "$RUNNER_TEMP/scripts/bin/python" -m unittest discover -s .github/scripts -p 'test_*.py'
+          "$RUNNER_TEMP/scripts/bin/python" -m unittest discover -s .groundwork/scripts -p 'test_*.py'
 
       # Dependabot starts the title of its pull requests with a capital letter (ADR 0003). The
       # branch is not enough to be skipped, since anyone can name a branch dependabot/…
@@ -60,4 +60,4 @@ jobs:
           BRANCH: ${{ github.head_ref }}
           BASE: ${{ github.base_ref }}
           BODY: ${{ github.event.pull_request.body }}
-        run: python3 .github/scripts/check_pull_request.py "$BRANCH" "$BASE" "$BODY"
+        run: python3 .groundwork/scripts/check_pull_request.py "$BRANCH" "$BASE" "$BODY"

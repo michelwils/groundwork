@@ -26,7 +26,7 @@ class SharedFiles(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        entries, shared, _ = check_practices.parse(read("docs/practices.md").split("\n"))
+        entries, shared, _ = check_practices.parse(read(".groundwork/practices.md").split("\n"))
         cls.numbers = sorted(entry["number"] for entry in entries)
         cls.needs = {entry["number"]: set(check_practices.references(entry["needs"][0])[0]) for entry in entries}
         cls.files = {entry["number"]: [path for path, _ in entry["files"]] for entry in entries}

@@ -1,6 +1,6 @@
 # Practices of groundwork
 
-This map tells what each ADR of groundwork is made of, so that a project can see what it takes when it keeps an ADR and what it leaves when it drops one. It is checked by [`check_practices.py`](../.github/scripts/check_practices.py) with the other checks.
+This map tells what each ADR of groundwork is made of, so that a project can see what it takes when it keeps an ADR and what it leaves when it drops one. It is checked by [`check_practices.py`](scripts/check_practices.py) with the other checks.
 
 For each ADR, an entry gives:
 
@@ -12,19 +12,19 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 
 ## Practices
 
-### 0001. [Record architecture decisions](adr/0001-record-architecture-decisions.md)
+### 0001. [Record architecture decisions](../docs/adr/0001-record-architecture-decisions.md)
 
 - Needs: none
 - Files:
   - `docs/adr/template.md`
-  - `.github/scripts/check_adrs.py`
-  - `.github/scripts/test_check_adrs.py`
+  - `.groundwork/scripts/check_adrs.py`
+  - `.groundwork/scripts/test_check_adrs.py`
 - Shared lines:
   - `CONTRIBUTING.md`
   - `AGENTS.md`
   - `.pre-commit-config.yaml`
 
-### 0002. [Conventional Commits](adr/0002-conventional-commits.md)
+### 0002. [Conventional Commits](../docs/adr/0002-conventional-commits.md)
 
 - Needs: none
 - Files:
@@ -33,21 +33,21 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `CONTRIBUTING.md`
   - `.pre-commit-config.yaml`
 
-### 0003. [Change workflow](adr/0003-change-workflow.md)
+### 0003. [Change workflow](../docs/adr/0003-change-workflow.md)
 
 - Needs: ADR 0002
 - Files:
   - `.github/ISSUE_TEMPLATE/change.md`
-  - `.github/rulesets/main.json`
-  - `.github/scripts/apply_settings.py`
-  - `.github/scripts/check_pull_request.py`
-  - `.github/scripts/test_apply_settings.py`
-  - `.github/scripts/test_check_pull_request.py`
+  - `.groundwork/rulesets/main.json`
+  - `.groundwork/scripts/apply_settings.py`
+  - `.groundwork/scripts/check_pull_request.py`
+  - `.groundwork/scripts/test_apply_settings.py`
+  - `.groundwork/scripts/test_check_pull_request.py`
   - `.github/PULL_REQUEST_TEMPLATE.md`
 - Shared lines:
   - `CONTRIBUTING.md`
 
-### 0004. [Repository language is English](adr/0004-repository-language-english.md)
+### 0004. [Repository language is English](../docs/adr/0004-repository-language-english.md)
 
 - Needs: none
 - Files:
@@ -55,17 +55,17 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 - Shared lines:
   - `CONTRIBUTING.md`
 
-### 0005. [Semantic Versioning and releases](adr/0005-semantic-versioning-and-releases.md)
+### 0005. [Semantic Versioning and releases](../docs/adr/0005-semantic-versioning-and-releases.md)
 
 - Needs: ADR 0002
 - Files:
   - `.github/workflows/release.yml`
-  - `.github/scripts/release.py`
-  - `.github/scripts/test_release.py`
+  - `.groundwork/scripts/release.py`
+  - `.groundwork/scripts/test_release.py`
 - Shared lines:
   - `CONTRIBUTING.md`
 
-### 0006. [Trunk-based development](adr/0006-trunk-based-development.md)
+### 0006. [Trunk-based development](../docs/adr/0006-trunk-based-development.md)
 
 - Needs: ADR 0003, ADR 0005
 - Files:
@@ -74,7 +74,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `CONTRIBUTING.md`
   - `.github/PULL_REQUEST_TEMPLATE.md`
 
-### 0007. [AI-assisted changes](adr/0007-ai-assisted-changes.md)
+### 0007. [AI-assisted changes](../docs/adr/0007-ai-assisted-changes.md)
 
 - Needs: ADR 0002, ADR 0003
 - Files:
@@ -84,7 +84,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `.github/PULL_REQUEST_TEMPLATE.md`
   - `.pre-commit-config.yaml`
 
-### 0008. [Automated checks](adr/0008-automated-checks.md)
+### 0008. [Automated checks](../docs/adr/0008-automated-checks.md)
 
 - Needs: none
 - Files:
@@ -94,24 +94,24 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `.github/zizmor.yml`
   - `.markdownlint.yaml`
   - `.markdownlintignore`
-  - `.github/scripts/requirements.txt`
-  - `.github/scripts/check_links.py`
-  - `.github/scripts/check_practices.py`
-  - `.github/scripts/run_with_requirements.py`
-  - `.github/scripts/test_check_links.py`
-  - `.github/scripts/test_check_practices.py`
-  - `.github/scripts/test_run_with_requirements.py`
-  - `.github/scripts/test_checks_workflow.py`
-  - `.github/scripts/test_pre_commit_config.py`
-  - `.github/scripts/test_script_dependencies.py`
+  - `.groundwork/scripts/requirements.txt`
+  - `.groundwork/scripts/check_links.py`
+  - `.groundwork/scripts/check_practices.py`
+  - `.groundwork/scripts/run_with_requirements.py`
+  - `.groundwork/scripts/test_check_links.py`
+  - `.groundwork/scripts/test_check_practices.py`
+  - `.groundwork/scripts/test_run_with_requirements.py`
+  - `.groundwork/scripts/test_checks_workflow.py`
+  - `.groundwork/scripts/test_pre_commit_config.py`
+  - `.groundwork/scripts/test_script_dependencies.py`
   - `.pre-commit-config.yaml`
-  - `.github/scripts/test_shared_files.py`
-  - `.github/scripts/test_apply_choice_on_the_real_files.py`
-  - `.github/scripts/test_filtered_trees.py`
+  - `.groundwork/scripts/test_shared_files.py`
+  - `.groundwork/scripts/test_apply_choice_on_the_real_files.py`
+  - `.groundwork/scripts/test_filtered_trees.py`
 - Shared lines:
   - `CONTRIBUTING.md`
 
-### 0009. [Test-first development](adr/0009-test-first-development.md)
+### 0009. [Test-first development](../docs/adr/0009-test-first-development.md)
 
 - Needs: none
 - Files:
@@ -120,7 +120,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `CONTRIBUTING.md`
   - `AGENTS.md`
 
-### 0010. [Security of the code of an application](adr/0010-security-of-the-code-of-an-application.md)
+### 0010. [Security of the code of an application](../docs/adr/0010-security-of-the-code-of-an-application.md)
 
 - Needs: none
 - Files:
@@ -129,7 +129,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `CONTRIBUTING.md`
   - `AGENTS.md`
 
-### 0011. [Protection of confidential and personal data](adr/0011-protection-of-confidential-and-personal-data.md)
+### 0011. [Protection of confidential and personal data](../docs/adr/0011-protection-of-confidential-and-personal-data.md)
 
 - Needs: ADR 0010, ADR 0012
 - Files:
@@ -138,7 +138,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `CONTRIBUTING.md`
   - `AGENTS.md`
 
-### 0012. [Responding to an incident](adr/0012-responding-to-an-incident.md)
+### 0012. [Responding to an incident](../docs/adr/0012-responding-to-an-incident.md)
 
 - Needs: none
 - Files:
@@ -146,7 +146,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 - Shared lines:
   - none
 
-### 0013. [Licenses of the dependencies](adr/0013-licenses-of-the-dependencies.md)
+### 0013. [Licenses of the dependencies](../docs/adr/0013-licenses-of-the-dependencies.md)
 
 - Needs: none
 - Files:
@@ -166,20 +166,20 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 
 - `.gitattributes`
 - `.gitignore`
-- `.github/scripts/apply_choice.py`
-- `.github/scripts/choice.py`
-- `.github/scripts/markers.py`
-- `.github/scripts/open_update_pull_request.py`
-- `.github/scripts/practices_map.py`
-- `.github/scripts/test_apply_choice.py`
-- `.github/scripts/test_choice.py`
-- `.github/scripts/test_markers.py`
-- `.github/scripts/test_open_update_pull_request.py`
-- `.github/scripts/test_practices_map.py`
-- `.github/scripts/test_update_groundwork.py`
-- `.github/scripts/update_groundwork.py`
+- `.groundwork/scripts/apply_choice.py`
+- `.groundwork/scripts/choice.py`
+- `.groundwork/scripts/markers.py`
+- `.groundwork/scripts/open_update_pull_request.py`
+- `.groundwork/scripts/practices_map.py`
+- `.groundwork/scripts/test_apply_choice.py`
+- `.groundwork/scripts/test_choice.py`
+- `.groundwork/scripts/test_markers.py`
+- `.groundwork/scripts/test_open_update_pull_request.py`
+- `.groundwork/scripts/test_practices_map.py`
+- `.groundwork/scripts/test_update_groundwork.py`
+- `.groundwork/scripts/update_groundwork.py`
 - `.github/workflows/update-groundwork.yml`
 - `LICENSE`
 - `README.md`
-- `docs/groundwork-community-base.md`
-- `docs/practices.md`
+- `.groundwork/community-base.md`
+- `.groundwork/practices.md`

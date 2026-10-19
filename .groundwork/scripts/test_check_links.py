@@ -203,11 +203,11 @@ class Links(Fixture):
 
 MAP = """# Practices
 
-See [the ADR](adr/0003-third.md), [its anchor](adr/0003-third.md#decision) and [its script](../three.py).
+See [the ADR](../docs/adr/0003-third.md), [its anchor](../docs/adr/0003-third.md#decision) and [its script](../three.py).
 
 ## Practices
 
-### 0001. [First](adr/0001-first.md)
+### 0001. [First](../docs/adr/0001-first.md)
 
 - Needs: none
 - Files:
@@ -215,7 +215,7 @@ See [the ADR](adr/0003-third.md), [its anchor](adr/0003-third.md#decision) and [
 - Shared lines:
   - none
 
-### 0003. [Third](adr/0003-third.md)
+### 0003. [Third](../docs/adr/0003-third.md)
 
 - Needs: none
 - Files:
@@ -229,7 +229,7 @@ class LeftOut(Fixture):
     """A project that keeps some of the ADRs: the map still links what it left out."""
 
     def project(self, listed="0001\n", files=None):
-        self.make({"docs/practices.md": MAP, "docs/adr/0001-first.md": "# 0001. First\n", ".groundwork-adrs": listed, **(files or {})})
+        self.make({".groundwork/practices.md": MAP, "docs/adr/0001-first.md": "# 0001. First\n", ".groundwork-adrs": listed, **(files or {})})
 
     def test_a_link_of_the_map_to_the_adr_that_is_left_out_is_not_reported(self):
         self.project()
@@ -257,7 +257,7 @@ class LeftOut(Fixture):
         self.assertEqual(len(self.problems()), 4)
 
     def test_a_link_of_the_map_to_a_file_that_does_not_exist_and_is_not_left_out_is_reported(self):
-        self.project(files={"docs/practices.md": MAP + "\n[nothing](nothing.md)\n"})
+        self.project(files={".groundwork/practices.md": MAP + "\n[nothing](nothing.md)\n"})
         (problem,) = self.problems()
         self.assertIn("nothing.md", problem)
 

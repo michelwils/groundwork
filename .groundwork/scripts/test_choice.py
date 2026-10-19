@@ -147,7 +147,7 @@ class Included(unittest.TestCase):
 
     def test_a_file_that_the_map_does_not_give_to_an_adr_is_taken(self):
         kept = choice.Kept([], NEEDS)
-        for path in ("docs/practices.md", "README.md", "docs/adr/template.md", "docs/adr/notes.md", "CONTRIBUTING.md"):
+        for path in (".groundwork/practices.md", "README.md", "docs/adr/template.md", "docs/adr/notes.md", "CONTRIBUTING.md"):
             with self.subTest(path=path):
                 self.assertTrue(self.included(path, kept))
 
@@ -164,7 +164,7 @@ class Included(unittest.TestCase):
 
     def test_every_file_is_taken_without_a_choice(self):
         kept = choice.Kept(None, NEEDS)
-        for path in ("a.txt", "c.txt", "AGENTS.md", "docs/adr/0004-fourth.md", "docs/practices.md"):
+        for path in ("a.txt", "c.txt", "AGENTS.md", "docs/adr/0004-fourth.md", ".groundwork/practices.md"):
             with self.subTest(path=path):
                 self.assertTrue(self.included(path, kept))
 

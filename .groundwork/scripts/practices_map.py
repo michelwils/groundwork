@@ -1,6 +1,6 @@
 """The map of the practices and the numbers of the ADRs that a source reserves (ADR 0001).
 
-`parse` reads the map, `docs/practices.md`: the entries with what each ADR needs, its files and its
+`parse` reads the map, `.groundwork/practices.md`: the entries with what each ADR needs, its files and its
 shared lines, the shared files and the files that are not part of a practice. `needs_of` and `owners`
 turn the entries into the needs of each ADR and the ADR that owns each file, and `closure` follows the
 needs in turn.
@@ -12,7 +12,7 @@ one `NNNN-NNNN` per line (ADR 0001). `read_ranges` returns them, with what is wr
 import os
 import re
 
-MAP = "docs/practices.md"
+MAP = ".groundwork/practices.md"
 BASE = (1, 999)
 RANGES_FILE = ".groundwork-ranges"
 ADR_DIRECTORY = "docs/adr"

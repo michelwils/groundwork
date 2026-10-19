@@ -48,7 +48,7 @@ MAP = """# Practices
 
 ## Not part of a practice
 
-- `docs/practices.md`
+- `.groundwork/practices.md`
 """
 
 
@@ -119,11 +119,11 @@ class Source(unittest.TestCase):
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of a source of ADRs, which a project may extend with scripts of its own")
 class NoSuggestedRange(unittest.TestCase):
-    """The range 9000-9999 is a suggestion of the guide of the community bases, and no script or workflow assumes it."""
+    """The range 9000-9999 is a suggestion of the guide of the community bases, which is the only file that gives it, and no script or workflow assumes it."""
 
     def test_no_file_of_the_automation_that_is_not_a_test_writes_it(self):
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github"], capture_output=True, text=True, check=True).stdout
-        files = [path for path in listed.split("\0") if path and not os.path.basename(path).startswith("test_")]
+        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github", ".groundwork"], capture_output=True, text=True, check=True).stdout
+        files = [path for path in listed.split("\0") if path and not os.path.basename(path).startswith("test_") and path != ".groundwork/community-base.md"]
         self.assertTrue(files)
         for path in files:
             with self.subTest(path=path), open(os.path.join(ROOT, path), encoding="utf-8", errors="replace") as handle:
@@ -193,7 +193,7 @@ class ImportsOfTheFiles(unittest.TestCase):
     def test_a_script_imports_only_its_own_adr_the_adrs_it_needs_adr_0001_and_the_files_of_no_adr(self):
         entries = practices_map.read_map(ROOT)[0]
         owners, needs = practices_map.owners(entries), practices_map.needs_of(entries)
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github/scripts"], capture_output=True, text=True, check=True).stdout
+        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".groundwork/scripts"], capture_output=True, text=True, check=True).stdout
         scripts = {path: os.path.basename(path)[:-3] for path in listed.split("\0") if path.endswith(".py")}
         modules = {name: path for path, name in scripts.items()}
         for path in sorted(scripts):
@@ -340,7 +340,7 @@ class Community(unittest.TestCase):
         root = directory.name
         put(root, "docs/adr/0001-first.md", ADR.format(n="0001"))
         put(root, "docs/adr/9000-of-the-community.md", ADR.format(n="9000"))
-        put(root, "docs/practices.md", MAP)
+        put(root, ".groundwork/practices.md", MAP)
         put(root, "CONTRIBUTING.md", "Rules.\n")
         put(root, ".groundwork-ranges", "# The range of the community\n" + ranges)
         if version:

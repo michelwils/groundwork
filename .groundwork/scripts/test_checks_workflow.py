@@ -3,7 +3,7 @@ import re
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-WORKFLOW = os.path.join(HERE, "..", "workflows", "checks.yml")
+WORKFLOW = os.path.join(HERE, "..", "..", ".github", "workflows", "checks.yml")
 BOT_PULL_REQUEST = "!(startsWith(github.head_ref, 'dependabot/') && github.event.pull_request.user.login == 'dependabot[bot]')"
 
 

@@ -42,4 +42,4 @@ jobs:
         if: ${{ hashFiles('.groundwork-version') != '' }}
         env:
           GH_TOKEN: ${{ secrets.GROUNDWORK_UPDATE_TOKEN }}
-        run: python3 .github/scripts/open_update_pull_request.py
+        run: python3 .groundwork/scripts/open_update_pull_request.py

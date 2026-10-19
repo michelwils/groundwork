@@ -55,7 +55,7 @@ from update_groundwork import Failure  # noqa: E402
 TOKEN = re.compile(r"^(?:[0-9]{4}|[0-9]{4}-[0-9]{4})$")
 BY_HAND = [
     "The steps that stay by hand:",
-    "- apply the settings of the repository: python3 .github/scripts/apply_settings.py [<owner>/<repo>]",
+    "- apply the settings of the repository: python3 .groundwork/scripts/apply_settings.py [<owner>/<repo>]",
     "- create the secret GROUNDWORK_UPDATE_TOKEN",
     "- replace the README with the project's own, and the license",
 ]

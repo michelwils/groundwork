@@ -13,7 +13,7 @@ def read(*parts):
 
 
 def requirements():
-    lines = [line.strip() for line in read(".github", "scripts", "requirements.txt").splitlines()]
+    lines = [line.strip() for line in read(".groundwork", "scripts", "requirements.txt").splitlines()]
     return [line for line in lines if line and not line.startswith("#")]
 
 
@@ -28,11 +28,11 @@ class ScriptDependencies(unittest.TestCase):
         config = read(".pre-commit-config.yaml")
         hook = config.split("id: markdown-links", 1)[1].split("\n      - id:", 1)[0].split("\n\n", 1)[0]
         self.assertNotIn("additional_dependencies", hook)
-        self.assertIn("run_with_requirements.py .github/scripts/check_links.py", hook)
+        self.assertIn("run_with_requirements.py .groundwork/scripts/check_links.py", hook)
 
     def test_the_workflow_installs_the_requirements_of_the_scripts_before_testing_them(self):
         workflow = read(".github", "workflows", "checks.yml")
-        self.assertIn("pip install -r .github/scripts/requirements.txt", workflow)
+        self.assertIn("pip install -r .groundwork/scripts/requirements.txt", workflow)
         self.assertLess(workflow.index("requirements.txt"), workflow.index("unittest discover"))
 
 
