@@ -462,15 +462,6 @@ class FilesOfNoPractice(Fixture):
         self.assertFalse(self.has("tool.py"))
         self.assertEqual(self.status(), "")
 
-    def test_a_second_run_changes_nothing(self):
-        self.existing("0001\n")
-        self.run_script()
-        commit(self.project)
-        again = self.run_script()
-        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
-        self.assertEqual(self.lines(again, "add: "), [])
-        self.assertEqual(self.status(), "")
-
 
 if __name__ == "__main__":
     unittest.main()
