@@ -28,6 +28,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Shared editor and line-ending settings, in [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)
 - Automated updates of pinned tool versions, proposed seven days after a release, in [`.github/dependabot.yml`](.github/dependabot.yml)
 - A script that prepares the update of a project to a later version of groundwork, in [`.groundwork/scripts/update_groundwork.py`](.groundwork/scripts/update_groundwork.py), which a project always synchronises, whatever it leaves out
+- The place of the files of groundwork: those that have no conventional name, such as the scripts, their tests and the map of the practices, are in the directory `.groundwork/`, so that a project can tell them from its own ([ADR 1001](docs/adr/1001-naming-the-files-of-groundwork.md))
 - The path to adopt groundwork in an existing project, one practice at a time, and the rule that records the gaps, in [Adopting in an existing project](#adopting-in-an-existing-project)
 - A guide for a community that builds a base of its own from groundwork, in [`.groundwork/community-base.md`](.groundwork/community-base.md)
 - The choice of the ADRs that a project synchronises, in a file `.groundwork-adrs`, and the ranges of ADR numbers that a community base reserves, in `.groundwork-ranges` ([ADR 1000](docs/adr/1000-choosing-the-adrs-a-project-synchronises.md))
@@ -53,7 +54,7 @@ groundwork follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html), a
 **Public contract.** What adopting projects rely on:
 
 - the rules in the Decision section of accepted ADRs
-- the files groundwork provides for projects to use, such as hooks, workflows and templates: their names, locations and behaviour
+- the files groundwork provides for projects to use, such as hooks, workflows and templates: their names, locations and behaviour, and the directory `.groundwork/` with what it holds
 - the file `.groundwork-version` that a project keeps, and which the update script reads: its name and its format
 - the files `.groundwork-adrs`, `.groundwork-ranges` and `.groundwork-source`: their names and their formats
 - for a project that keeps some of the ADRs only: the rules of the ADRs it keeps and of the ones they need, and the files that [`.groundwork/practices.md`](.groundwork/practices.md) gives for them
