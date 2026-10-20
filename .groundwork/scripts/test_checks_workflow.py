@@ -200,11 +200,11 @@ class CoverageGate(unittest.TestCase):
         self.assertIn("unittest discover", steps()["Test the scripts"])
         self.assertNotIn("coverage", steps()["Test the scripts"])
 
-    def test_agents_md_gives_the_same_commands_as_the_workflow(self):
-        agents = read("AGENTS.md")
+    def test_readme_gives_the_same_commands_as_the_workflow(self):
+        readme = read("README.md")
         for command in COMMANDS:
             with self.subTest(command=command):
-                self.assertIn("python3 " + command, agents)
+                self.assertIn("python3 " + command, readme)
 
     def test_the_configuration_measures_the_scripts_and_their_subprocesses_with_a_minimal_level(self):
         parser = configparser.ConfigParser()
@@ -222,11 +222,11 @@ class CoverageGate(unittest.TestCase):
     def test_the_data_of_the_measure_are_not_tracked(self):
         self.assertRegex(read(".gitignore"), re.compile(r"^\.coverage\*$", flags=re.MULTILINE))
 
-    def test_agents_md_states_the_licenses_that_groundwork_accepts_for_its_dependencies(self):
-        agents = read("AGENTS.md")
+    def test_readme_states_the_licenses_that_groundwork_accepts_for_its_dependencies(self):
+        readme = read("README.md")
         for name in ("MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "PSF-2.0"):
             with self.subTest(license=name):
-                self.assertIn(name, agents)
+                self.assertIn(name, readme)
 
 
 if __name__ == "__main__":
