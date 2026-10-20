@@ -245,12 +245,38 @@ class AmbiguousReverts(unittest.TestCase):
     def test_the_changes_released_are_found_by_their_description_without_the_reverts(self):
         with Repository() as repo:
             repo.commit("feat: add x (#3)")
-            repo.commit("revert: add x (#4)")
+            repo.commit("revert: add z (#4)")
             repo.commit("Initial commit")
             repo.tag("0.1.0")
             repo.commit("fix: add y")
             self.assertEqual(set(release.released_keys("0.1.0")), {"add x"})
             self.assertEqual(release.released_keys(None), {})
+
+    def test_a_change_that_a_released_revert_undid_is_no_longer_released(self):
+        with Repository() as repo:
+            repo.commit("feat: add x (#3)")
+            repo.commit("feat: add y (#4)")
+            repo.commit("revert: add x (#5)")
+            repo.tag("0.1.0")
+            self.assertEqual(set(release.released_keys("0.1.0")), {"add y"})
+
+    def test_a_change_added_again_after_a_released_revert_is_released(self):
+        with Repository() as repo:
+            repo.commit("feat: add x")
+            repo.commit("revert: add x")
+            repo.commit("feat: add x")
+            repo.tag("0.1.0")
+            self.assertEqual(set(release.released_keys("0.1.0")), {"add x"})
+
+    def test_a_change_that_an_earlier_release_undid_does_not_make_the_next_revert_ambiguous(self):
+        with Repository() as repo:
+            repo.commit("feat: add x")
+            repo.tag("1.0.0")
+            repo.commit("revert!: add x")
+            repo.tag("2.0.0")
+            repo.commit("feat: add x")
+            repo.commit("revert: add x")
+            self.assertEqual(repo.run().returncode, 0)
 
     def test_a_change_that_a_revert_undid_is_not_a_second_match_for_the_next_one(self):
         with Repository() as repo:

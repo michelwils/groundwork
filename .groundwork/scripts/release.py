@@ -88,14 +88,20 @@ def key(description):
 
 
 def released_keys(version):
-    """Return the descriptions of the changes released up to the version, with the title of the latest one of each."""
+    """Return the descriptions of the changes released up to the version that no released revert undid, with the
+    title of the latest one of each."""
     if not version:
         return {}
     found = {}
-    for title in git("log", "--format=%s", f"v{version}").splitlines():
+    for title in git("log", "--reverse", "--format=%s", f"v{version}").splitlines():
         match = TITLE.match(title)
-        if match and match.group("type") != "revert":
-            found.setdefault(key(match.group("description")), f"{title} (released by v{version})")
+        if not match:
+            continue
+        name = key(match.group("description"))
+        if match.group("type") == "revert":
+            found.pop(name, None)
+        else:
+            found[name] = f"{title} (released by v{version})"
     return found
 
 
@@ -179,7 +185,8 @@ def main():
 
     previous = previous_version()
     commits = commits_since(previous)
-    ambiguous = cancel_reverts(commits, released_keys(previous))
+    released = released_keys(previous) if any(commit["type"] == "revert" for commit in commits) else {}
+    ambiguous = cancel_reverts(commits, released)
     if ambiguous and not args.version:
         sys.exit("\n".join(
             [f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches" + "".join(f"\n  {title}" for title in titles)
