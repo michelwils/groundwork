@@ -203,6 +203,7 @@ class ExistingProject(RealTree):
         for number in order:
             with self.subTest(arrived=f"{number:04d}"):
                 self.assertTrue(glob.glob(os.path.join(project, "docs", "adr", f"{number:04d}-*.md")))
+        self.assertEqual(check_links.check(project), [])
 
 
 if __name__ == "__main__":
