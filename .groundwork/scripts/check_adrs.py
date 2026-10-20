@@ -127,10 +127,7 @@ def check_numbers(numbers, reserved, kept, problems):
                 if missing in kept:
                     problems.append(f"{DIRECTORY}: the number {missing:04d} of the {owner} ADRs is skipped")
     project = {number for number in numbers if number >= 1 and not practices_map.is_reserved(number, reserved)}
-    first = 1
-    while practices_map.is_reserved(first, reserved):
-        first += 1
-    for missing in range(first, max(project, default=0) + 1):
+    for missing in range(1, max(project, default=0) + 1):
         if missing not in project and not practices_map.is_reserved(missing, reserved):
             problems.append(f"{DIRECTORY}: the number {missing:04d} of the project ADRs is skipped")
 
