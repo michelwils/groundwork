@@ -22,7 +22,10 @@ TITLE = re.compile(
 PULL_REQUEST = re.compile(r" \(#\d+\)$")
 BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
 BREAKING_TEXT = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*(.*)\Z", re.MULTILINE | re.DOTALL)
-TRAILER = re.compile(r"^(?:[A-Z][A-Za-z]*(?:-[A-Za-z]+)+: |(?:Refs|Closes|Fixes) #\d)")
+TRAILER = re.compile(
+    r"^(?:(?:Co-Authored-By|Signed-off-by|Reviewed-by|Acked-by|Tested-by|Reported-by|Suggested-by|Helped-by|Cc): "
+    r"|(?:Refs|Closes|Fixes) #\d)"
+)
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 TAG = re.compile(r"^v(\d+\.\d+\.\d+)$")
 LEVELS = {"none": 0, "patch": 1, "minor": 2, "major": 3}

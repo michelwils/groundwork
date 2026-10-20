@@ -284,6 +284,17 @@ class BreakingFooter(unittest.TestCase):
             "## Breaking changes\n\n- change it\n\n  rename the option.\n  Before: foo\n  After: bar\n\n  Step 1: run it.\n",
         )
 
+    def test_a_hyphenated_label_that_is_not_a_trailer_stays_in_the_footer(self):
+        text = self.breaking_notes(
+            "feat!: change it",
+            "BREAKING CHANGE: read `account`.\nMigration-Guide: https://example.test/guide\n"
+            "Co-Authored-By: Someone <someone@example.com>",
+        )
+        self.assertIn("  Migration-Guide: https://example.test/guide", text)
+        self.assertNotIn("Co-Authored-By", text)
+        alone = self.breaking_notes("feat!: change it", "BREAKING CHANGE: Migration-Guide: https://example.test/guide")
+        self.assertIn("  Migration-Guide: https://example.test/guide", alone)
+
     def test_the_hyphenated_token_is_recognised(self):
         text = self.breaking_notes("feat!: change it", "BREAKING-CHANGE: read `account`.")
         self.assertIn("  read `account`.", text)
