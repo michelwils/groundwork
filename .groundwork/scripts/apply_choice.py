@@ -247,16 +247,28 @@ def new_project(args, root):
     return changes, BY_HAND, kept.added()
 
 
+def inherited(args):
+    """Return a sentence for the project that was perhaps created from the template of a base, else an empty string."""
+    if args.source is None or args.source == (update.recorded_source() or update.SOURCE):
+        return ""
+    return (
+        f" If the project was created from the template of a base, these files are the base's: delete {update.VERSION_FILE}, "
+        f"{choice.CHOICE_FILE} and {update.SOURCE_FILE}, then run the command again."
+    )
+
+
 def existing_project(args, root):
     if args.adrs:
-        raise Failure(f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.")
+        raise Failure(
+            f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.{inherited(args)}"
+        )
     if args.version:
         raise Failure("--version is for a new project: the version is the one that .groundwork-version records.")
     old = update.recorded_version()
     source = update.source_of(args.source)
     versions = update.fetch_releases(source)
     if old not in versions:
-        raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.")
+        raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.{inherited(args)}")
     made = update.plan(old, old)
     changes = Changes()
     if made.kept.adopted is None:

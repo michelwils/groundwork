@@ -301,6 +301,40 @@ class Narrowed(Fixture):
         self.assertEqual(self.status(), "")
 
 
+class FromTheTemplateOfABase(Fixture):
+    """A project created from the template of a base holds the files that the base recorded for itself."""
+
+    HINT = "created from the template of a base"
+
+    def inherit(self):
+        self.adopt(world("1"), version="0.9.9", choice="0001\n")
+
+    def test_a_list_names_the_inherited_files_to_delete(self):
+        self.inherit()
+        result = self.run_script("0001")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(self.HINT, result.stderr)
+        for name in (".groundwork-version", ".groundwork-adrs", ".groundwork-source"):
+            self.assertIn(name, result.stderr)
+        self.assertEqual(self.status(), "")
+
+    def test_a_recorded_version_that_the_base_did_not_publish_names_the_inherited_files_to_delete(self):
+        self.inherit()
+        result = self.run_script()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(self.HINT, result.stderr)
+        for name in (".groundwork-version", ".groundwork-adrs", ".groundwork-source"):
+            self.assertIn(name, result.stderr)
+        self.assertEqual(self.status(), "")
+
+    def test_a_project_that_runs_with_its_own_source_gets_the_error_alone(self):
+        self.adopt(world("1"), version="0.9.9", choice="0001\n")
+        result = self.run_new()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("0.9.9", result.stderr)
+        self.assertNotIn(self.HINT, result.stderr)
+
+
 class Widened(Fixture):
     def test_it_brings_the_files_and_the_blocks_of_the_adrs_that_entered_the_choice(self):
         self.adopt(trimmed(world("1"), {1, 2}), version="0.1.0", choice="0003\n0004\n")
