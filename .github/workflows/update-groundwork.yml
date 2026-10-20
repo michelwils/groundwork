@@ -34,9 +34,10 @@ jobs:
         if: ${{ hashFiles('.groundwork-version') != '' }}
         env:
           TOKEN: ${{ secrets.GROUNDWORK_UPDATE_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           if [ -z "$TOKEN" ]; then
-            echo "::error::The secret GROUNDWORK_UPDATE_TOKEN is not set. See the update section of the README."
+            echo "::error::The secret GROUNDWORK_UPDATE_TOKEN is not set. Create a fine-grained personal access token limited to this repository, with write access to contents, pull requests and workflows, then run: gh secret set GROUNDWORK_UPDATE_TOKEN --repo $REPOSITORY. See https://github.com/michelwils/groundwork#automatic-update"
             exit 1
           fi
 
