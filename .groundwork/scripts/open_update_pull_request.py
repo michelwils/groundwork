@@ -28,6 +28,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 UPDATE = os.path.join(HERE, "update_groundwork.py")
 VERSION_FILE = ".groundwork-version"
 PREFIX = "groundwork/"
+HEADER = ("branch", "from", "to", "source")
+VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
 IDENTITY = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"]
 
 
@@ -67,6 +69,26 @@ def undo(branch, current, commit):
     run("git", "clean", "-fdq")
     run("git", "switch", "-q", *([current] if current else ["--detach", commit]))
     run("git", "branch", "-q", "-D", branch)
+
+
+def header(output):
+    """Return the fields of the first lines of the output of the update script, or None when it names no branch.
+    No later line, such as the name of a file in conflict, can replace a field, and the branch is the one of the version."""
+    lines = output.split("\n")
+    if not lines[0].startswith("branch: "):
+        return None
+    fields = {}
+    for name, line in zip(HEADER, lines):
+        if not line.startswith(f"{name}: "):
+            break
+        fields[name] = line[len(name) + 2:]
+    if (
+        len(fields) < len(HEADER)
+        or not all(VERSION.fullmatch(fields[name]) for name in ("from", "to"))
+        or fields["branch"] != f"{PREFIX}update-to-v{fields['to'].replace('.', '-')}"
+    ):
+        raise Failure(f"The update script wrote an unexpected header: {lines[:len(HEADER)]!r}.")
+    return fields
 
 
 def added(output):
@@ -112,8 +134,8 @@ def main():
     if update.returncode == 1:
         sys.stderr.write(update.stderr)
         return 1
-    fields = dict(re.findall(r"^(branch|from|to|source): (.+)$", update.stdout, re.MULTILINE))
-    if "branch" not in fields:
+    fields = header(update.stdout)
+    if fields is None:
         return 0  # up to date, the update script said so
     files = conflicts(update.stdout) if update.returncode == 2 else []
 
@@ -129,7 +151,7 @@ def main():
 
     url = run(
         "gh", "pr", "create", "--head", branch, "--title", title,
-        "--body", body(old, new, files, fields.get("source", ""), added(update.stdout)),
+        "--body", body(old, new, files, fields["source"], added(update.stdout)),
         *(["--draft"] if files else []),
     ).strip()
     print(url)

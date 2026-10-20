@@ -286,6 +286,24 @@ class Update(unittest.TestCase):
                 self.assertEqual(git(self.project, "status", "--porcelain", "--ignored"), "")
                 self.assertEqual(self.branches(), ["main"])
 
+    def test_a_version_that_holds_a_path_with_a_control_character_is_refused_before_anything_changes(self):
+        # A line break in a name would add a line to the report, which open_update_pull_request.py reads.
+        for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029"), start=4):
+            with self.subTest(character=character):
+                shutil.rmtree(self.project)
+                self.adopt("0.1.0", V1)
+                name = f"notes{character}branch: victim"
+                write(self.source, {name: "notes\n"})
+                git(self.source, "add", "-A")
+                git(self.source, "commit", "-q", "-m", f"feat: release 0.{version}.0")
+                git(self.source, "tag", "-a", f"v0.{version}.0", "-m", f"v0.{version}.0")
+                os.remove(os.path.join(self.source, name))
+                result = self.run_script("--to", f"0.{version}.0")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(repr(name), result.stderr)
+                self.assertEqual(git(self.project, "status", "--porcelain", "--ignored"), "")
+                self.assertEqual(self.branches(), ["main"])
+
     def test_a_name_that_only_starts_like_git_is_updated(self):
         for version, directory in enumerate((".github", ".gitx", "git~2", "x.git"), start=4):
             with self.subTest(directory=directory):

@@ -12,7 +12,8 @@ in the working tree: it does not commit, push or open a pull request.
 
 Files that concern groundwork itself, or that belong to the project, are left out, see EXCLUDED.
 A version whose files include a path that a file system can put in a directory .git, such as a hook,
-stops the update before anything changes (in_git_directory).
+or a path that holds a control character or a line break, which would add a line to this report,
+stops the update before anything changes (paths_of).
 
 The project may list the ADRs it keeps in `.groundwork-adrs` (choice.py). The script then reads,
 in the version it moves to, the ranges of ADR numbers that the source reserves and the map of the
@@ -37,6 +38,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -163,21 +165,26 @@ def inside(root, path):
 
 
 def paths_of(raw):
-    """Return the paths of the output of git, without EXCLUDED, and stop at one that would land in a directory .git:
-    the source would then write the hooks or the configuration of the project."""
+    """Return the paths of the output of git, without EXCLUDED. Stop at one that holds a control character or a line
+    break, which would add a line to the report that open_update_pull_request.py reads, and at one that would land in a
+    directory .git: the source would then write the hooks or the configuration of the project. The callers read the
+    output as bytes, so that Python translates no line break."""
     paths = [path for path in raw.split("\0") if path]
     for path in paths:
+        if any(unicodedata.category(character) in ("Cc", "Zl", "Zp") for character in path):
+            raise Failure(f"The source holds {path!r}, whose name holds a control character or a line break: nothing is changed.")
         if in_git_directory(path):
             raise Failure(f"The source holds {path}, which would land in a directory .git: nothing is changed.")
     return [path for path in paths if path not in EXCLUDED]
 
 
 def tree_paths(version):
-    return paths_of(git("ls-tree", "-r", "--name-only", "-z", f"refs/tags/{PREFIX}v{version}").stdout)
+    return paths_of(git("ls-tree", "-r", "--name-only", "-z", f"refs/tags/{PREFIX}v{version}", text=False).stdout.decode())
 
 
 def changed_paths(old, new):
-    return paths_of(git("diff", "--no-renames", "--name-only", "-z", f"refs/tags/{PREFIX}v{old}", f"refs/tags/{PREFIX}v{new}").stdout)
+    raw = git("diff", "--no-renames", "--name-only", "-z", f"refs/tags/{PREFIX}v{old}", f"refs/tags/{PREFIX}v{new}", text=False).stdout
+    return paths_of(raw.decode())
 
 
 def read(path):

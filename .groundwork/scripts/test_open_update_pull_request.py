@@ -288,5 +288,32 @@ class Body(unittest.TestCase):
         self.assertEqual(opener.conflicts(output), ["a.md"])
 
 
+    HEADER = "branch: groundwork/update-to-v0-2-0\nfrom: 0.1.0\nto: 0.2.0\nsource: https://github.com/o/g.git\n"
+
+    def test_the_header_is_read_from_the_first_lines_only(self):
+        output = self.HEADER + "Resolve the conflicts in these files:\n- a.md\nbranch: victim\nto: 9.9.9\n"
+        self.assertEqual(
+            opener.header(output),
+            {"branch": "groundwork/update-to-v0-2-0", "from": "0.1.0", "to": "0.2.0", "source": "https://github.com/o/g.git"},
+        )
+
+    def test_an_update_that_names_no_branch_has_no_header(self):
+        self.assertIsNone(opener.header("The project is up to date with groundwork 0.2.0.\n"))
+
+    def test_a_header_that_is_not_the_expected_one_is_refused(self):
+        for output in (
+            self.HEADER.replace("groundwork/update-to-v0-2-0", "victim"),
+            self.HEADER.replace("groundwork/update-to-v0-2-0", "groundwork/update-to-v0-2-0\nx"),
+            "branch: groundwork/update-to-v0-2-0\nfrom: 0.1.0\nsource: s\nto: 0.2.0\n",
+            "branch: groundwork/update-to-v0-2-0\nfrom: 0.1.0\n",
+            self.HEADER.replace("to: 0.2.0", "to: 0.3.0"),
+            self.HEADER.replace("to: 0.2.0", "to: 0.2.0 [x](https://example.org)"),
+            self.HEADER.replace("from: 0.1.0", "from: 0.1.0 [x](https://example.org)"),
+        ):
+            with self.subTest(output=output):
+                with self.assertRaises(opener.Failure):
+                    opener.header(output)
+
+
 if __name__ == "__main__":
     unittest.main()
