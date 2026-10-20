@@ -51,6 +51,11 @@ class ChecksWorkflow(unittest.TestCase):
         self.assertIn("check_pull_request.py", step)
         self.assertNotIn("startsWith", step)
 
+    def test_the_title_is_given_to_the_check_of_the_closing_line_through_the_environment(self):
+        step = steps()["Check the branch name and the closing line of the pull request"]
+        self.assertIn("PR_TITLE: ${{ github.event.pull_request.title }}", step)
+        self.assertIn('"$BRANCH" "$BASE" "$BODY" "$PR_TITLE"', step)
+
     def test_the_tests_of_the_scripts_receive_the_variable_of_a_source_of_adrs(self):
         step = steps()["Test the scripts"]
         self.assertRegex(step, re.compile(r"^        env:\n          GROUNDWORK_SOURCE: \$\{\{ vars\.GROUNDWORK_SOURCE \}\}$", flags=re.MULTILINE))

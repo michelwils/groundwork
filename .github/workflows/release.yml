@@ -7,6 +7,10 @@ on:
         description: Version to release, without the leading v. Leave empty to compute it.
         required: false
         type: string
+      notes:
+        description: Text that opens the release notes, for example how to migrate from a breaking change. Leave empty for none.
+        required: false
+        type: string
       publish:
         description: Create the tag and the release. Unchecked, only show the version and the notes.
         required: true
@@ -41,9 +45,15 @@ jobs:
         id: release
         env:
           VERSION: ${{ inputs.version }}
+          NOTES: ${{ inputs.notes }}
         run: |
           set -o pipefail
-          python3 .groundwork/scripts/release.py ${VERSION:+--version "$VERSION"} --notes "$RUNNER_TEMP/notes.md" | tee "$RUNNER_TEMP/summary.txt"
+          extra=()
+          if [ -n "$NOTES" ]; then
+            printf '%s\n' "$NOTES" > "$RUNNER_TEMP/extra.md"
+            extra=(--notes-extra "$RUNNER_TEMP/extra.md")
+          fi
+          python3 .groundwork/scripts/release.py ${VERSION:+--version "$VERSION"} "${extra[@]}" --notes "$RUNNER_TEMP/notes.md" | tee "$RUNNER_TEMP/summary.txt"
           {
             echo '```text'
             cat "$RUNNER_TEMP/summary.txt"

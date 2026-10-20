@@ -3,9 +3,10 @@
 
 The version is decided from the commit titles since the previous tag reachable
 from HEAD, by the highest increment among them. A change undone by a `revert`
-before the release is ignored together with its revert.
+before the release is ignored together with its revert. The text of the `BREAKING CHANGE:` footer
+of a change is given under it in the notes, and the text of --notes-extra comes first.
 
-Usage: release.py [--version X.Y.Z] [--notes FILE]
+Usage: release.py [--version X.Y.Z] [--notes FILE] [--notes-extra FILE]
 """
 
 import argparse
@@ -20,6 +21,7 @@ TITLE = re.compile(
 )
 PULL_REQUEST = re.compile(r" \(#\d+\)$")
 BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
+BREAKING_TEXT = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*(.*?)(?=^[\w-]+(?:: | #)|\Z)", re.MULTILINE | re.DOTALL)
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 TAG = re.compile(r"^v(\d+\.\d+\.\d+)$")
 LEVELS = {"none": 0, "patch": 1, "minor": 2, "major": 3}
@@ -60,8 +62,10 @@ def commits_since(version):
                 description=match.group("description"),
                 breaking=bool(match.group("bang")) or bool(BREAKING_FOOTER.search(message)),
             )
+            footer = BREAKING_TEXT.search(message)
+            commit["footer"] = footer.group(1).strip() if footer else ""
         else:
-            commit.update(type=None, scope=None, description=title, breaking=False)
+            commit.update(type=None, scope=None, description=title, breaking=False, footer="")
         commits.append(commit)
     return commits
 
@@ -102,7 +106,7 @@ def bump(version, level):
     return f"{major}.{minor}.{patch + 1}"
 
 
-def notes(commits):
+def notes(commits, extra=""):
     groups = {}
     for commit in commits:
         if commit["undone"]:
@@ -117,15 +121,27 @@ def notes(commits):
         for commit in groups[name]:
             scope = f"**{commit['scope']}:** " if commit["scope"] else ""
             lines.append(f"- {scope}{commit['description']}")
+            if name == "Breaking changes" and commit["footer"]:
+                lines += ["", *(f"  {line}" for line in commit["footer"].splitlines())]
         lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+    text = "\n".join(lines).rstrip() + "\n"
+    return f"{extra.strip()}\n\n{text}" if extra.strip() else text
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", help="version to release, without the leading v")
     parser.add_argument("--notes", help="file that receives the release notes")
+    parser.add_argument("--notes-extra", help="file whose text opens the release notes")
     args = parser.parse_args()
+
+    extra = ""
+    if args.notes_extra:
+        try:
+            with open(args.notes_extra) as handle:
+                extra = handle.read()
+        except OSError as error:
+            sys.exit(f"error: cannot read the extra notes: {error}")
 
     previous = previous_version()
     commits = commits_since(previous)
@@ -149,7 +165,7 @@ def main():
     if git("tag", "--list", f"v{version}").strip():
         sys.exit(f"error: the tag v{version} already exists")
 
-    text = notes(commits)
+    text = notes(commits, extra)
     if args.notes:
         with open(args.notes, "w") as handle:
             handle.write(text)

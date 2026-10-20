@@ -87,4 +87,5 @@ jobs:
           BRANCH: ${{ github.head_ref }}
           BASE: ${{ github.base_ref }}
           BODY: ${{ github.event.pull_request.body }}
-        run: python3 .groundwork/scripts/check_pull_request.py "$BRANCH" "$BASE" "$BODY"
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: python3 .groundwork/scripts/check_pull_request.py "$BRANCH" "$BASE" "$BODY" "$PR_TITLE"

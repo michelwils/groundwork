@@ -210,7 +210,7 @@ When an adopted rule fails on code that already exists, the project records the 
 
 A copy shares no history with groundwork and does not receive later changes. To move to a later version:
 
-1. Read the [release notes](https://github.com/michelwils/groundwork/releases) of the versions in between. A minor version adds a rule or a file without breaking anything. A major version requires the project to change something, which its `BREAKING CHANGE:` notes describe.
+1. Read the [release notes](https://github.com/michelwils/groundwork/releases) of the versions in between. A minor version adds a rule or a file without breaking anything. A breaking change requires the project to change something, which the notes tell under it. It is a major version, or a minor one while the major version is `0`.
 2. Open an issue for the update, then run the script from a clean working tree, with the number of that issue:
 
    ```sh
