@@ -16,11 +16,11 @@ We will respond to an incident by these principles. They apply to a project of a
 - **Record.** The facts and the decisions are written where the work is tracked, such as the report or an issue, as they happen.
 - **Review.** After the incident, a review that blames no one records what happened and what was missing, and opens an issue for the check or the rule that was missing, if there was one.
 
-A vulnerability that is reported to the project is handled as `SECURITY.md` says, which uses the review below. These principles apply to every other incident, including a leak of personal data.
+A vulnerability that is reported to the project is handled as `SECURITY.md` says, which uses the review above. These principles apply to every other incident, including a leak of personal data.
 
 ## Consequences
 
-- A project that follows them has answered, before an incident, who decides and what is done first, and it has a record to learn from after.
+- A project that follows them has answered, before an incident, who decides and what is done first, and it has a record to learn from afterwards.
 - The principles do not prevent an incident or limit its damage by themselves. They replace neither monitoring, nor a roster, nor a deadline, nor the exercise of a response, which depend on the project and are not stated here.
 - The review is only worth what the project does with its findings. A review whose issues are never handled changes nothing.
 - A project with a single maintainer decides, informs and reviews alone. The principles give it a list to follow, not a second person.
