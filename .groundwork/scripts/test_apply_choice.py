@@ -9,7 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import markers  # noqa: E402
 import update_groundwork  # noqa: E402
-from test_update_groundwork import ADDRESS, adr, git, init, read, rewritten_env, trimmed, world  # noqa: E402
+from test_update_groundwork import ADDRESS, adr, git, init, read, rewritten_env, tag_with_hook, trimmed, world  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "apply_choice.py")
 
@@ -187,6 +187,17 @@ class NewProject(Fixture):
                 self.assertEqual(self.status(), "")
                 self.assertTrue(self.has("two.txt"))
 
+    def test_a_path_of_the_map_under_git_is_refused_before_anything_changes(self):
+        files = self.template()
+        files[".groundwork/practices.md"] = files[".groundwork/practices.md"].replace("`four.txt`", "`.git/config`")
+        self.adopt(files)
+        result = self.run_new("0001")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(".git/config", result.stderr)
+        self.assertTrue(self.has(".git/config"))
+        self.assertEqual(self.status(), "")
+        self.assertTrue(self.has("two.txt"))
+
     def test_a_link_to_a_file_outside_the_repository_is_not_followed(self):
         self.adopt({**self.template(), "four.txt": ""})
         os.remove(os.path.join(self.project, "four.txt"))
@@ -298,6 +309,15 @@ class Narrowed(Fixture):
         result = self.run_script()
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertTrue(os.path.exists(self.outside))
+        self.assertEqual(self.status(), "")
+
+    def test_a_recorded_version_that_holds_a_path_under_git_is_refused_before_anything_changes(self):
+        tag_with_hook(self.source, "v0.1.0", "0.2.0", ".git")
+        self.adopt(world("1"), version="0.2.0", choice="0001\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(".git/hooks/pre-commit", result.stderr)
+        self.assertFalse(self.has(".git/hooks/pre-commit"))
         self.assertEqual(self.status(), "")
 
 

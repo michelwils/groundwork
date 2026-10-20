@@ -11,6 +11,8 @@ between the two versions, file by file, keeping the changes of the project. It l
 in the working tree: it does not commit, push or open a pull request.
 
 Files that concern groundwork itself, or that belong to the project, are left out, see EXCLUDED.
+A version whose files include a path that a file system can put in a directory .git, such as a hook,
+stops the update before anything changes (in_git_directory).
 
 The project may list the ADRs it keeps in `.groundwork-adrs` (choice.py). The script then reads,
 in the version it moves to, the ranges of ADR numbers that the source reserves and the map of the
@@ -50,6 +52,8 @@ ADDRESS = re.compile(r"https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[A-Za-z0-9._~%/
 ADDRESS_LENGTH = 2048
 PREFIX = "groundwork/"
 VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+# The characters that HFS+ ignores in a name, as git does for .git (core.protectHFS).
+HFS_IGNORED = dict.fromkeys([0x200C, 0x200D, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x206A, 0x2070), 0xFEFF])
 
 
 class Failure(Exception):
@@ -142,14 +146,38 @@ def mode(version, path):
     return int(line[0], 8) if line else 0o100644
 
 
+def in_git_directory(path):
+    """Tell whether a file system can put the path in a directory .git: a name of the path that is .git in any case,
+    on HFS+ once the characters it ignores are taken out, on NTFS with dots or spaces at the end, a stream after a colon,
+    the short name git~1, or a backslash for a separator."""
+    names = re.split(r"[/\\]", path.translate(HFS_IGNORED))
+    return any(name.split(":", 1)[0].rstrip(". ").lower() in (".git", "git~1") for name in names)
+
+
+def inside(root, path):
+    """Tell whether the path stays in the repository once it is resolved, links included, and out of a directory .git."""
+    if os.path.isabs(path) or ".." in path.split("/") or not path or in_git_directory(path):
+        return False
+    real = os.path.realpath(os.path.join(root, path))
+    return real == root or (real.startswith(root + os.sep) and not in_git_directory(os.path.relpath(real, root)))
+
+
+def paths_of(raw):
+    """Return the paths of the output of git, without EXCLUDED, and stop at one that would land in a directory .git:
+    the source would then write the hooks or the configuration of the project."""
+    paths = [path for path in raw.split("\0") if path]
+    for path in paths:
+        if in_git_directory(path):
+            raise Failure(f"The source holds {path}, which would land in a directory .git: nothing is changed.")
+    return [path for path in paths if path not in EXCLUDED]
+
+
 def tree_paths(version):
-    raw = git("ls-tree", "-r", "--name-only", "-z", f"refs/tags/{PREFIX}v{version}").stdout
-    return [path for path in raw.split("\0") if path and path not in EXCLUDED]
+    return paths_of(git("ls-tree", "-r", "--name-only", "-z", f"refs/tags/{PREFIX}v{version}").stdout)
 
 
 def changed_paths(old, new):
-    raw = git("diff", "--no-renames", "--name-only", "-z", f"refs/tags/{PREFIX}v{old}", f"refs/tags/{PREFIX}v{new}").stdout
-    return [path for path in raw.split("\0") if path and path not in EXCLUDED]
+    return paths_of(git("diff", "--no-renames", "--name-only", "-z", f"refs/tags/{PREFIX}v{old}", f"refs/tags/{PREFIX}v{new}").stdout)
 
 
 def read(path):
@@ -368,6 +396,10 @@ def run(args):
         raise Failure(f"The branch {branch} already exists.")
     made = plan(old, new)
     said, steps = made.said, made.steps
+    root = os.path.realpath(".")
+    for path, _, _ in steps:
+        if not inside(root, path):
+            raise Failure(f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed.")
     git("switch", "--quiet", "-c", branch)
 
     conflicts = [path for path, base, theirs in steps if apply_path(path, base, theirs, read(path), mode(new, path))]

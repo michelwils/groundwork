@@ -11,6 +11,9 @@ is already open, when the pull request of that version was closed without being 
 project has no `.groundwork-version`. A later version is proposed again. The branch of an earlier
 run that has no pull request is replaced.
 
+Git runs no hook, neither in this script nor in the update: the files of the source are not reviewed yet,
+and the job holds a token that can push.
+
 Usage: open_update_pull_request.py [--source URL]
 """
 
@@ -30,6 +33,12 @@ IDENTITY = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+gi
 
 class Failure(Exception):
     pass
+
+
+def without_hooks(environ):
+    """Return the environment in which git runs no hook, with the configuration already given in it."""
+    count = int(environ.get("GIT_CONFIG_COUNT", "0"))
+    return {**environ, "GIT_CONFIG_COUNT": str(count + 1), f"GIT_CONFIG_KEY_{count}": "core.hooksPath", f"GIT_CONFIG_VALUE_{count}": os.devnull}
 
 
 def run(*command):
@@ -87,6 +96,7 @@ def main():
     parser = argparse.ArgumentParser(description="Open the pull request that updates the project to a later groundwork.")
     parser.add_argument("--source", default=None, help="repository of groundwork, as for update_groundwork.py")
     args = parser.parse_args()
+    os.environ.update(without_hooks(os.environ))
     if not os.path.exists(VERSION_FILE):
         print(f"No {VERSION_FILE} in this repository: nothing to update.")
         return 0

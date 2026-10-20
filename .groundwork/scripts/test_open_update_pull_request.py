@@ -124,6 +124,29 @@ class OpenUpdatePullRequest(unittest.TestCase):
         self.assertEqual(git(self.remote, "show", "groundwork/update-to-v0-2-0:.groundwork-version"), "0.2.0\n")
         self.assertIn("https://github.com/owner/project/pull/1", result.stdout)
 
+    def test_runs_no_hook_of_the_project(self):
+        hooks, ran = os.path.join(self.directory.name, "hooks"), os.path.join(self.directory.name, "ran")
+        os.makedirs(hooks)
+        os.makedirs(ran)
+        names = ("pre-commit", "prepare-commit-msg", "commit-msg", "post-commit", "post-checkout", "reference-transaction", "pre-push")
+        for name in names:
+            path = os.path.join(hooks, name)
+            with open(path, "w") as handle:
+                handle.write(f"#!/bin/sh\ntouch '{os.path.join(ran, name)}'\n")
+            os.chmod(path, 0o755)
+        git(self.project, "config", "core.hooksPath", hooks)
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(self.created()), 1)
+        self.assertEqual(os.listdir(ran), [])
+
+    def test_runs_no_hook_and_keeps_the_configuration_given_in_the_environment(self):
+        environ = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "url.a.insteadOf", "GIT_CONFIG_VALUE_0": "b"}
+        self.assertEqual(
+            opener.without_hooks(environ),
+            {**environ, "GIT_CONFIG_COUNT": "2", "GIT_CONFIG_KEY_1": "core.hooksPath", "GIT_CONFIG_VALUE_1": os.devnull},
+        )
+
     def test_the_pull_request_is_ready_and_named_after_the_version(self):
         self.run_script()
         (call,) = self.created()

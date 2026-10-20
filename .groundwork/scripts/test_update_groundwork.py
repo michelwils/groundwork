@@ -65,6 +65,31 @@ def read(path, name):
         return handle.read()
 
 
+def tag_with_hook(repo, base, version, directory):
+    """Tag in repo, on top of the tag base, a version whose tree adds an executable hook under directory
+    (a/b for a nested one): git mktree builds such a tree, which no checkout can."""
+
+    def run(*args, input=""):
+        return subprocess.run(["git", *args], cwd=repo, input=input, check=True, capture_output=True, text=True).stdout.strip()
+
+    hook = run("hash-object", "-w", "--stdin", input="#!/bin/sh\ntouch ran\n")
+    entry = f"100755 blob {hook}\tpre-commit\n"
+    for name in reversed(f"{directory}/hooks".split("/")):
+        entry = f"040000 tree {run('mktree', input=entry)}\t{name}\n"
+    root = run("mktree", input=git(repo, "ls-tree", base) + entry)
+    git(repo, "tag", "-a", f"v{version}", "-m", f"v{version}", run("commit-tree", root, "-p", f"{base}^{{commit}}", "-m", f"feat: release {version}"))
+
+
+class Inside(unittest.TestCase):
+    def test_a_path_through_a_link_to_git_is_not_inside(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = os.path.realpath(directory)
+            os.makedirs(os.path.join(root, ".git"))
+            os.symlink(".git", os.path.join(root, "link"))
+            self.assertFalse(update_groundwork.inside(root, "link/config"))
+            self.assertTrue(update_groundwork.inside(root, "two.txt"))
+
+
 class Update(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -243,6 +268,51 @@ class Update(unittest.TestCase):
         result = self.run_script(issue="abc")
         self.assertEqual(result.returncode, 1)
         self.assertEqual(self.branches(), ["main"])
+
+    # Names that a file system can take for .git: in any case, on HFS+ with the characters it ignores, on NTFS with
+    # trailing dots and spaces, a stream, its short name or a backslash for a separator.
+    GIT_DIRECTORIES = (".git", ".GIT", "sub/.git", ".git.", ".git ", ".git::$INDEX_ALLOCATION", "GIT~1", ".g\u200cit", ".git\\x")
+
+    def test_a_version_that_holds_a_path_under_git_is_refused_before_anything_changes(self):
+        for version, directory in enumerate(self.GIT_DIRECTORIES, start=4):
+            with self.subTest(directory=directory):
+                shutil.rmtree(self.project)
+                self.adopt("0.1.0", V1)
+                tag_with_hook(self.source, "v0.3.0", f"0.{version}.0", directory)
+                result = self.run_script("--to", f"0.{version}.0")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(f"{directory}/hooks/pre-commit", result.stderr)
+                self.assertFalse(os.path.exists(os.path.join(self.project, ".git", "hooks", "pre-commit")))
+                self.assertEqual(git(self.project, "status", "--porcelain", "--ignored"), "")
+                self.assertEqual(self.branches(), ["main"])
+
+    def test_a_name_that_only_starts_like_git_is_updated(self):
+        for version, directory in enumerate((".github", ".gitx", "git~2", "x.git"), start=4):
+            with self.subTest(directory=directory):
+                shutil.rmtree(self.project)
+                self.adopt("0.1.0", V1)
+                tag_with_hook(self.source, "v0.3.0", f"0.{version}.0", directory)
+                result = self.run_script("--to", f"0.{version}.0")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertTrue(os.path.exists(os.path.join(self.project, directory, "hooks", "pre-commit")))
+
+    def test_a_path_through_a_link_of_the_project_to_git_or_outside_is_refused_before_anything_changes(self):
+        outside = os.path.join(self.directory.name, "outside")
+        os.makedirs(os.path.join(outside, "hooks"))
+        for version, target in enumerate((".git", outside), start=4):
+            with self.subTest(target=target):
+                shutil.rmtree(self.project)
+                self.adopt("0.1.0", V1)
+                os.symlink(target, os.path.join(self.project, "s"))
+                self.commit_project({})
+                tag_with_hook(self.source, "v0.3.0", f"0.{version}.0", "s")
+                result = self.run_script("--to", f"0.{version}.0")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("s/hooks/pre-commit", result.stderr)
+                self.assertFalse(os.path.exists(os.path.join(self.project, ".git", "hooks", "pre-commit")))
+                self.assertFalse(os.path.exists(os.path.join(outside, "hooks", "pre-commit")))
+                self.assertEqual(git(self.project, "status", "--porcelain", "--ignored"), "")
+                self.assertEqual(self.branches(), ["main"])
 
     def tags(self, repo):
         return git(repo, "tag", "--list").split()

@@ -28,7 +28,7 @@ its content in that version was changed by the project: it is kept and listed.
 
 Only the ADRs of the ranges that the source reserves are concerned; an ADR of the project and its
 blocks are left alone. Only files that git tracks are deleted, a path of the map that leaves the
-repository is refused, and a refused choice stops everything before the first change. The command
+repository or is in a directory .git is refused, and a refused choice stops everything before the first change. The command
 refuses a working tree that is not clean and the default branch, except with `--dry-run`, which
 changes no file of the working tree, nor the index or the branches, and refreshes the copy of the
 tags of the source.
@@ -94,19 +94,11 @@ def check_repository(root):
         raise Failure(f"This is the default branch, {current}: work on a branch of its own.")
 
 
-def inside(root, path):
-    """Tell whether the path stays in the repository once it is resolved, links included."""
-    if os.path.isabs(path) or ".." in path.split("/") or not path:
-        return False
-    real = os.path.realpath(os.path.join(root, path))
-    return real == root or real.startswith(root + os.sep)
-
-
 def refuse_paths_outside(root, side, kept):
-    """Stop at a file of the map, for an ADR that is left out, that is not inside the repository."""
+    """Stop at a file of the map, for an ADR that is left out, that is not inside the repository or that is in a directory .git."""
     for path, owner in sorted(side.owners.items()):
-        if owner not in kept and not inside(root, path):
-            raise Failure(f"The map gives {path} to the ADR {owner:04d}, and it is not inside the repository: nothing is changed.")
+        if owner not in kept and not update.inside(root, path):
+            raise Failure(f"The map gives {path} to the ADR {owner:04d}, and it is outside the repository or in a directory .git: nothing is changed.")
 
 
 def decoded(content):
@@ -228,8 +220,8 @@ def new_project(args, root):
             number is None and owner is not None and owner not in kept
         )
         if gone:
-            if not inside(root, path):
-                raise Failure(f"{path} leaves the repository: it is not deleted.")
+            if not update.inside(root, path):
+                raise Failure(f"{path} leaves the repository or is in a directory .git: it is not deleted.")
             changes.delete(path)
             continue
         if markers.kind(path):
@@ -286,8 +278,8 @@ def existing_project(args, root):
         number = update.adr_number(path)
         owner = side.owners.get(path)
         if (number is not None and left_out(number, kept, side.reserved)) or (number is None and owner is not None and owner not in kept):
-            if not inside(root, path):
-                raise Failure(f"{path} leaves the repository: it is not deleted.")
+            if not update.inside(root, path):
+                raise Failure(f"{path} leaves the repository or is in a directory .git: it is not deleted.")
             if update.read(path) == update.blob(old, path):
                 deleted.add(path)
             else:
@@ -351,8 +343,8 @@ def run(args):
     else:
         changes, notes, said = new_project(args, root)
     for path, _, _ in changes.writes:
-        if not inside(root, path):
-            raise Failure(f"{path} leaves the repository: nothing is changed.")
+        if not update.inside(root, path):
+            raise Failure(f"{path} leaves the repository or is in a directory .git: nothing is changed.")
     if not args.dry_run:
         apply(changes)
     for line in changes.lines:
