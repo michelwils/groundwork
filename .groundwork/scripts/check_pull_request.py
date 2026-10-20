@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the branch name and the closing line of a pull request (ADR 0003, ADR 0006).
+"""Check the branch name, the closing line and the breaking change of a pull request (ADR 0003, ADR 0006).
 
 The branch is named <type>/<issue-number>-<slug>. The description has `Closes #<issue-number>`.
 A backport (base `maintenance/v<major>`, branch ending in `-v<major>`) has `Refs #<issue-number>`
@@ -7,7 +7,10 @@ instead, and no `Closes`. Branches of Dependabot (`dependabot/…`) and of the u
 (`groundwork/…`) are skipped: a project that uses another dependency update bot adds its branch
 prefix to BOT_BRANCHES.
 
-Usage: check_pull_request.py BRANCH BASE BODY
+When the title has `!` before the colon, the description has a line `BREAKING CHANGE: <text>`: the
+maintainer copies it into the body of the squash commit, and the release notes give it (ADR 0003).
+
+Usage: check_pull_request.py BRANCH BASE BODY TITLE
 """
 
 import re
@@ -19,12 +22,21 @@ MAINTENANCE = re.compile(r"^maintenance/v(?P<major>[0-9]+)$")
 CLOSES = re.compile(r"\bCloses #([0-9]+)\b")
 REFS = re.compile(r"\bRefs #([0-9]+)\b")
 BOT_BRANCHES = ("dependabot/", "groundwork/")
+BREAKING_TITLE = re.compile(r"^(?:" + "|".join(TYPES) + r")(?:\([a-z]+\))?!: ")
+BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*\S", re.MULTILINE)
 
 
-def check(branch, base, body):
+def check(branch, base, body, title):
     """Return the problems of the pull request, empty when it follows the rules."""
     if branch.startswith(BOT_BRANCHES):
         return []
+    problems = branch_problems(branch, base, body)
+    if BREAKING_TITLE.match(title) and not BREAKING_FOOTER.search(body or ""):
+        problems.append("The title has `!`: the description has no line `BREAKING CHANGE: <what breaks and how to migrate>`.")
+    return problems
+
+
+def branch_problems(branch, base, body):
     match = BRANCH.match(branch)
     if not match:
         return [f"The branch '{branch}' is not named <type>/<issue-number>-<slug>, with a type of ADR 0002 and a slug in kebab case."]
@@ -47,7 +59,7 @@ def check(branch, base, body):
 
 
 def main():
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         print(__doc__, file=sys.stderr)
         return 2
     problems = check(*sys.argv[1:])

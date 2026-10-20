@@ -244,6 +244,75 @@ class Notes(unittest.TestCase):
             )
 
 
+class BreakingFooter(unittest.TestCase):
+    def breaking_notes(self, title, body=""):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit(title, body)
+            commits = release.commits_since("0.1.0")
+            release.cancel_reverts(commits)
+            return release.notes(commits)
+
+    def test_the_footer_is_given_under_the_change(self):
+        text = self.breaking_notes(
+            "refactor(layout)!: move the files (#9)",
+            "BREAKING CHANGE: the scripts are in `.groundwork/scripts`.\n"
+            "Move your copy of them.\n\n"
+            "Co-Authored-By: Someone <someone@example.com>",
+        )
+        self.assertEqual(
+            text,
+            "## Breaking changes\n\n- **layout:** move the files (#9)\n\n"
+            "  the scripts are in `.groundwork/scripts`.\n  Move your copy of them.\n",
+        )
+
+    def test_a_footer_followed_by_a_trailer_stops_at_the_trailer(self):
+        text = self.breaking_notes(
+            "feat!: change it", "BREAKING CHANGE: read `account`.\nCo-Authored-By: Someone <someone@example.com>"
+        )
+        self.assertEqual(text, "## Breaking changes\n\n- change it\n\n  read `account`.\n")
+
+    def test_a_line_that_looks_like_a_label_is_part_of_the_footer(self):
+        text = self.breaking_notes(
+            "feat!: change it",
+            "BREAKING CHANGE: rename the option.\nBefore: foo\nAfter: bar\n\nStep 1: run it.\n\n"
+            "Refs #4\nCo-Authored-By: Someone <someone@example.com>",
+        )
+        self.assertEqual(
+            text,
+            "## Breaking changes\n\n- change it\n\n  rename the option.\n  Before: foo\n  After: bar\n\n  Step 1: run it.\n",
+        )
+
+    def test_a_hyphenated_label_that_is_not_a_trailer_stays_in_the_footer(self):
+        text = self.breaking_notes(
+            "feat!: change it",
+            "BREAKING CHANGE: read `account`.\nMigration-Guide: https://example.test/guide\n"
+            "Co-Authored-By: Someone <someone@example.com>",
+        )
+        self.assertIn("  Migration-Guide: https://example.test/guide", text)
+        self.assertNotIn("Co-Authored-By", text)
+        alone = self.breaking_notes("feat!: change it", "BREAKING CHANGE: Migration-Guide: https://example.test/guide")
+        self.assertIn("  Migration-Guide: https://example.test/guide", alone)
+
+    def test_the_hyphenated_token_is_recognised(self):
+        text = self.breaking_notes("feat!: change it", "BREAKING-CHANGE: read `account`.")
+        self.assertIn("  read `account`.", text)
+
+    def test_a_change_marked_only_by_the_bang_has_its_entry_alone(self):
+        self.assertEqual(self.breaking_notes("feat!: change it"), "## Breaking changes\n\n- change it\n")
+
+    def test_a_footer_of_a_change_that_was_undone_is_not_given(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it", "BREAKING CHANGE: read `account`.")
+            repo.commit("revert: change it")
+            commits = release.commits_since("0.1.0")
+            release.cancel_reverts(commits)
+            self.assertEqual(release.notes(commits), "\n")
+
+
 class Command(unittest.TestCase):
     def test_version_can_be_given(self):
         with Repository() as repo:
@@ -294,6 +363,51 @@ class Command(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             with open(path) as handle:
                 self.assertIn("- add a feature", handle.read())
+
+    def test_the_extra_notes_come_first_in_the_output_and_the_file(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            extra = os.path.join(repo.directory.name, "extra.md")
+            with open(extra, "w") as handle:
+                handle.write("## Migration\n\nMove the scripts.\n")
+            path = os.path.join(repo.directory.name, "notes.md")
+            result = repo.run("--notes", path, "--notes-extra", extra)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            expected = "## Migration\n\nMove the scripts.\n\n## feat\n\n- add a feature\n"
+            self.assertIn(expected, result.stdout)
+            with open(path) as handle:
+                self.assertEqual(handle.read(), expected)
+
+    def test_extra_notes_alone_have_no_trailing_blank_line(self):
+        self.assertEqual(release.notes([], "Move the scripts.\n"), "Move the scripts.\n")
+
+    def test_a_missing_file_of_extra_notes_is_an_error(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            result = repo.run("--notes-extra", os.path.join(repo.directory.name, "absent.md"))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("error:", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+
+class Workflow(unittest.TestCase):
+    """The workflow that makes the release gives the extra notes to the script without running them."""
+
+    def setUp(self):
+        with open(os.path.join(HERE, "..", "..", ".github", "workflows", "release.yml")) as handle:
+            self.text = handle.read()
+
+    def test_the_extra_notes_are_an_optional_input(self):
+        self.assertRegex(self.text, r"(?s)inputs:.*\n      notes:\n.*?required: false\n        type: string")
+
+    def test_the_extra_notes_reach_the_script_through_a_file_written_from_the_environment(self):
+        self.assertIn("NOTES: ${{ inputs.notes }}", self.text)
+        self.assertEqual(self.text.count("inputs.notes"), 1)
+        self.assertIn('printf \'%s\\n\' "$NOTES" > "$RUNNER_TEMP/extra.md"', self.text)
+        self.assertIn('--notes-extra "$RUNNER_TEMP/extra.md"', self.text)
+
+    def test_an_empty_list_of_arguments_is_safe_in_every_version_of_bash(self):
+        self.assertIn('${extra[@]+"${extra[@]}"}', self.text)
 
 
 if __name__ == "__main__":
