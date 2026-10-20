@@ -36,7 +36,7 @@ The workflow `update-groundwork` of the base opens a pull request `chore: update
 - **Record the base as the source of the updates.** `apply_choice.py --source` writes `.groundwork-source` at the root of the project, with one line, the address of the base: `https://host/path`. Without it the project follows groundwork, whose address is the default. The update, and the weekly workflow, read the file, and `--source` still wins for a run by hand. The file is never copied from the base, which therefore cannot overwrite it. A base that follows groundwork needs no such file, and one that follows another base has its own.
 - **A private base needs a credential that can read it.** The weekly workflow fetches the base with the credential of the repository of the project, which is limited to that repository. GitHub's documentation does not say whether the credential kept by the checkout applies to another repository, so grant the token `GROUNDWORK_UPDATE_TOKEN` read access to the contents of the base as well, and look at the first run.
 - The project takes everything that the base reserves, groundwork's `0001` to `0999` that the base kept and the ranges of the base, or chooses with `.groundwork-adrs`. The update copies neither `.groundwork-version` nor `.groundwork-adrs` of the base to it; the template does, hence the first step.
-- The project numbers its own ADRs from the first number that no range of the base reserves, and may use any number that no range reserves.
+- The project numbers its own ADRs as [ADR 0001](https://github.com/michelwils/groundwork/blob/main/docs/adr/0001-record-architecture-decisions.md) tells.
 
 ## The own decisions of the base
 
