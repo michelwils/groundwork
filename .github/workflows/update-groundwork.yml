@@ -5,7 +5,9 @@ name: update-groundwork
 # The secret GROUNDWORK_UPDATE_TOKEN is a fine-grained personal access token with write access
 # to contents, pull requests and workflows on this repository only: the token of a workflow
 # cannot push changes to workflow files, and does not start the checks of the pull request
-# without an approval.
+# without an approval. The checkout keeps it (persist-credentials, on by default: keep it on)
+# for the fetch of the base. A private base of the same owner needs read access too; one of
+# another owner or host cannot be read (see .groundwork/community-base.md).
 
 on:
   schedule:
