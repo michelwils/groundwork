@@ -18,7 +18,7 @@ import choice  # noqa: E402
 import practices_map  # noqa: E402
 
 # The files that a project has of its own: the update synchronises neither of them.
-README = "# Project\n\n## Checks\n\nText.\n\n## Versioning\n\nText.\n"
+README = "# Project\n\nText.\n"
 LICENSE = "License.\n"
 
 ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n"
