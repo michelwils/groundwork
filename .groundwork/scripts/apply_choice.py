@@ -247,37 +247,29 @@ def new_project(args, root):
     return changes, BY_HAND, kept.added()
 
 
-def inherited(args):
-    """Return a sentence for the project that was perhaps created from the template of a base, else an empty string.
-
-    The project is taken for one when its source is not the one it records, or when it records one and names none."""
-    names = [name for name in (update.VERSION_FILE, choice.CHOICE_FILE, update.SOURCE_FILE) if os.path.exists(name)]
-    if args.source is None:
-        suspect = os.path.exists(update.SOURCE_FILE)
-    else:
-        try:
-            recorded = update.recorded_source()
-        except Failure:
-            recorded = None  # the error about that file would hide the one that is being raised
-        suspect = args.source != (recorded or update.SOURCE)
-    if not suspect:
+def inherited(unknown):
+    """Return a sentence for the project whose recorded version the source never published, which was perhaps
+    created from the template of a base, else an empty string."""
+    if not unknown:
         return ""
+    names = [name for name in (update.VERSION_FILE, choice.CHOICE_FILE, update.SOURCE_FILE) if os.path.exists(name)]
     listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
     return f" If the project was created from the template of a base, these files are the base's: delete {listed}, then run the command again."
 
 
 def existing_project(args, root):
-    if args.adrs:
-        raise Failure(
-            f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.{inherited(args)}"
-        )
     if args.version:
         raise Failure("--version is for a new project: the version is the one that .groundwork-version records.")
     old = update.recorded_version()
     source = update.source_of(args.source)
     versions = update.fetch_releases(source)
-    if old not in versions:
-        raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.{inherited(args)}")
+    unknown = old not in versions
+    if args.adrs:
+        raise Failure(
+            f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.{inherited(unknown)}"
+        )
+    if unknown:
+        raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.{inherited(unknown)}")
     made = update.plan(old, old)
     changes = Changes()
     if made.kept.adopted is None:

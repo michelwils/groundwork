@@ -352,11 +352,11 @@ class FromTheTemplateOfABase(Fixture):
         self.assertIn(".groundwork-adrs: edit that file", result.stderr)
         self.assert_hint(result, (".groundwork-source",))
 
-    def test_a_project_that_runs_with_its_own_source_gets_the_error_alone(self):
-        self.adopt(world("1"), version="0.9.9", choice="0001\n")
-        result = self.run_new()
+    def test_a_project_whose_version_the_source_published_gets_the_error_alone(self):
+        self.adopt(world("1"), version="0.1.0", choice="0001\n")
+        result = self.run_script("0001")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("0.9.9", result.stderr)
+        self.assertIn(".groundwork-adrs: edit that file", result.stderr)
         self.assertNotIn(self.HINT, result.stderr)
 
 
