@@ -4,9 +4,9 @@
 
 ## Context
 
-groundwork is also a project. Its scripts, about 1 600 statements in `.groundwork/scripts/`, have about 500 unit tests, and nothing shows what those tests run. [ADR 0009](0009-test-first-development.md) leaves to each project the coverage it requires, if any, and groundwork does not synchronise a requirement of coverage with its practices. Removing the tests that overlap needs a measure that shows that the code is still run.
+groundwork is also a project. Its scripts, about 1 600 statements in `.groundwork/scripts/`, have about 500 unit tests, and nothing shows what those tests run. [ADR 0009](0009-test-first-development.md) leaves to each project the coverage it requires, if any, and groundwork does not synchronise a coverage requirement with its practices. Removing the tests that overlap needs a measure that shows that the code is still run.
 
-The tests run many of the scripts in a subprocess, so a measure of the process of the tests alone would miss most of `update_groundwork.py` and `apply_choice.py`. Measured with coverage.py 7.16.2 (`patch = subprocess`, then `coverage combine`) on the day of this decision, the scripts are covered at 96 % of their statements and branches, 97 % of their statements alone.
+The tests run many of the scripts in a subprocess, so measuring the test process alone would miss most of `update_groundwork.py` and `apply_choice.py`. Measured with coverage.py 7.16.2 (`patch = subprocess`, then `coverage combine`) on the day of this decision, the scripts are covered at 96 % of their statements and branches, 97 % of their statements alone.
 
 A project that left ADRs out has fewer scripts and fewer tests, and it runs the same workflow.
 
@@ -14,9 +14,9 @@ A project that left ADRs out has fewer scripts and fewer tests, and it runs the 
 
 We will require that the unit tests cover at least 95 % of the scripts, in the CI of a source of ADRs.
 
-- **What is measured.** The statements and the branches of the scripts of `.groundwork/scripts/`, without the test files. The code that a test runs in a subprocess is counted.
-- **The level.** 95 % of the total of the statements and the branches. The documentation of coverage.py describes a level for the total only (`fail_under`), not one per file. The threshold is written in `.groundwork/scripts/coveragerc` and in the section "Working on groundwork" of the README.
-- **The tool.** coverage.py, under the license Apache-2.0, which the README lists among the licenses accepted for the dependencies of the scripts. It is pinned at an exact version in `.groundwork/scripts/requirements.txt`, so that Dependabot updates it and the audit of the dependencies reads it.
+- **What is measured.** The statements and branches of the scripts in `.groundwork/scripts/`, without the test files. The code that a test runs in a subprocess is counted.
+- **The level.** 95 % of the total of statements and branches. The coverage.py documentation describes a level for the total only (`fail_under`), not one per file. The threshold is written in `.groundwork/scripts/coveragerc` and in the section "Working on groundwork" of the README.
+- **The tool.** coverage.py, under the Apache-2.0 license, which the README lists among the licenses accepted for the scripts' dependencies. It is pinned at an exact version in `.groundwork/scripts/requirements.txt`, so that Dependabot updates it and the dependency audit reads it.
 - **Where.** In the CI of a source of ADRs, that is a repository without `.groundwork-version` or one that sets the variable `GROUNDWORK_SOURCE` to `true`. A project runs the plain tests.
 - **When.** On a push to the main branch, and on a pull request that changes a file under `.groundwork/scripts/` or the workflow `checks.yml`. The coverage can change only with them, so any other pull request runs the plain tests. The decision is a step of the job, not a filter on the workflow, so that no required check is skipped.
 - **Lowering it.** A change that brings the coverage under the level adds tests. The level is lowered only by a change of this ADR.
@@ -34,6 +34,6 @@ We will require that the unit tests cover at least 95 % of the scripts, in the C
 ## Options considered
 
 - **The statements alone.** It is simpler, and it does not see a branch that no test takes.
-- **A level per file.** The documentation of coverage.py describes none, and a script written by hand to enforce one would be one more script to test.
+- **A level per file.** The coverage.py documentation describes none, and a script written by hand to enforce one would be one more script to test.
 - **The level for every project.** It would fail a project that left ADRs out for a reason that has nothing to do with it, and ADR 0009 leaves coverage to the projects.
-- **A higher level, such as 96 % or 97 %.** It leaves no margin for the differences of a platform.
+- **A higher level, such as 96 % or 97 %.** It leaves no margin for the differences between platforms.

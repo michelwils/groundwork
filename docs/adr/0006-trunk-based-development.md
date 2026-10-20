@@ -20,7 +20,7 @@ We will develop on a single long-lived branch, `main`. All other branches are sh
 
 **Releasing a fix.** The project states in its README which versions it maintains. By default, only the latest release is maintained. A fix is made on `main` like any other change, with an issue and a pull request, and is released from `main`: as soon as it is merged when it is urgent, otherwise with the next release. If `main` holds a `feat` or a breaking change that must not ship with the fix, it is made dormant again first, by reverting it or by switching it off. A user of an older version updates to receive the fix, unless the project maintains that version.
 
-**Maintained older versions.** A project that maintains an older major version does so on a maintenance branch. A pull request to that branch, such as a backport, is the exception to the rule of [ADR 0003](0003-change-workflow.md) that a pull request targets `main`, and it follows the other rules of that ADR. A minor increment does not break users ([ADR 0005](0005-semantic-versioning-and-releases.md)), so there is one branch per major version, not per minor version. None is used while the major version is `0`, where nothing is stable.
+**Maintained older versions.** A project that maintains an older major version does so on a maintenance branch. A pull request to that branch, such as a backport, is the exception to the rule of [ADR 0003](0003-change-workflow.md) that a pull request targets `main`. It follows the other rules of that ADR. A minor increment does not break users ([ADR 0005](0005-semantic-versioning-and-releases.md)), so there is one branch per major version, not per minor version. None is used while the major version is `0`, where nothing is stable.
 
 - The branch is created on demand, never in advance, from the latest tag of that major version, and is named `maintenance/v<major>`.
 - The fix is made on `main` first. A backport pull request then applies the fix commit to the maintenance branch. Its branch is created from the maintenance branch and named like the original branch followed by `-v<major>`, for example `fix/12-handle-empty-input-v1`. Its title is the title of the original pull request, without its number. Its description contains `Refs #<issue-number>` instead of `Closes`, and it has no checklist, since the issue is already closed.
@@ -40,4 +40,4 @@ We will develop on a single long-lived branch, `main`. All other branches are sh
 - Maintaining an older major version doubles the work of every fix, which is applied and released twice. A project should maintain as few as possible.
 - With maintenance branches, the latest tag by date is not always the highest version.
 - The fix of a vulnerability that is not public yet is made outside this workflow, as `SECURITY.md` says. A rollback is a new fix or a `revert`, made like any other change.
-- That `main` is releasable relies on the checks of the CI.
+- A releasable `main` relies on the CI checks.

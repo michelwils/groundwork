@@ -22,7 +22,7 @@ We will write every commit message following [Conventional Commits 1.0.0](https:
 - **Body:** optional, explains why the change was made rather than what it does.
 - **Footers:** follow the git trailer format, for example `Refs #12` or `Co-Authored-By: …`.
 - **Breaking changes:** a change that is not backward compatible is marked with `!` before the colon and has a `BREAKING CHANGE:` footer that describes what breaks and how to migrate.
-- **Reverts:** the title of a `revert` repeats the description of the change it undoes, for example `revert: add password reset`, so that tools can recognise it. The default title that git or the hosting platform generates is replaced by it.
+- **Reverts:** the title of a `revert` repeats the description of the change it undoes, for example `revert: add password reset`, so that tools can recognise it. It replaces the default title that git or the hosting platform generates.
 
 ## Consequences
 

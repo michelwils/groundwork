@@ -10,7 +10,7 @@ The conventions of a project, such as the format of commit messages or the rules
 
 We will check the repository automatically, in two places, from one configuration.
 
-- **Before each commit.** Checks run on the files and on the message of the commit, on the contributor's machine, through hooks installed from the configuration of the repository.
+- **Before each commit.** Checks run on the commit's files and message, on the contributor's machine, through hooks installed from the repository's configuration.
 - **In CI.** The same checks run on all files for every pull request and for the main branch. Checks of the pull request are added: its title, since it becomes the commit title on the main branch, and its branch name and closing line, which tie it to its issue.
 - **One configuration.** The checks are defined once, in a file of the repository, and each tool is used at a pinned version. Both places therefore run the same checks.
 - **A failing check blocks the change.** A commit whose check fails is not made, and a pull request whose check fails is not merged.
@@ -25,6 +25,6 @@ We will check the repository automatically, in two places, from one configuratio
 - The pinned versions age and are updated by hand, as any other change.
 - A check that rejects valid work costs time until it is fixed.
 - Rules that need judgement, such as whether the type of a commit is right, stay with the review.
-- The condition that the checks of a pull request pass before it is merged can be verified.
+- The condition that a pull request's checks pass before it is merged can be verified.
 - A new advisory fails the audit of every pull request until the dependency is updated, which is the intent.
-- The audit sees a vulnerability only when a pull request runs it. The alerts and the security updates of the platform, which the settings script turns on, tell when one is found after the merge.
+- The audit sees a vulnerability only when a pull request runs it. The platform's alerts and security updates, which the settings script turns on, tell when one is found after the merge.

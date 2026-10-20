@@ -20,7 +20,7 @@ A vulnerability that is reported to the project is handled as `SECURITY.md` says
 
 ## Consequences
 
-- A project that follows them has answered, before an incident, who decides and what is done first, and it has a record to learn from after.
+- A project that follows them has answered, before an incident, who decides and what is done first, and it has a record to learn from afterwards.
 - The principles do not prevent an incident or limit its damage by themselves. They replace neither monitoring, nor a roster, nor a deadline, nor the exercise of a response, which depend on the project and are not stated here.
 - The review is only worth what the project does with its findings. A review whose issues are never handled changes nothing.
 - A project with a single maintainer decides, informs and reviews alone. The principles give it a list to follow, not a second person.
