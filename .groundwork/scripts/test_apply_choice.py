@@ -309,31 +309,48 @@ class FromTheTemplateOfABase(Fixture):
     def inherit(self):
         self.adopt(world("1"), version="0.9.9", choice="0001\n")
 
+    UPSTREAM = "https://example.test/upstream.git"
+
+    def assert_hint(self, result, present, absent=()):
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(self.HINT, result.stderr)
+        for name in present:
+            self.assertIn(name, result.stderr)
+        for name in absent:
+            self.assertNotIn(name, result.stderr)
+
     def test_a_list_names_the_inherited_files_to_delete(self):
         self.inherit()
         result = self.run_script("0001")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn(self.HINT, result.stderr)
-        for name in (".groundwork-version", ".groundwork-adrs", ".groundwork-source"):
-            self.assertIn(name, result.stderr)
+        self.assert_hint(result, (".groundwork-version", ".groundwork-adrs"), (".groundwork-source",))
         self.assertEqual(self.status(), "")
 
     def test_a_recorded_version_that_the_base_did_not_publish_names_the_inherited_files_to_delete(self):
         self.inherit()
         result = self.run_script()
-        self.assertEqual(result.returncode, 1)
-        self.assertIn(self.HINT, result.stderr)
-        for name in (".groundwork-version", ".groundwork-adrs", ".groundwork-source"):
-            self.assertIn(name, result.stderr)
+        self.assert_hint(result, (".groundwork-version", ".groundwork-adrs"), (".groundwork-source",))
         self.assertEqual(self.status(), "")
 
+    def test_it_names_only_the_inherited_files_that_exist(self):
+        self.adopt(world("1"), version="0.9.9")
+        result = self.run_script()
+        self.assert_hint(result, (".groundwork-version",), (".groundwork-adrs", ".groundwork-source"))
+
     def test_a_source_inherited_from_the_template_does_not_hide_the_files_to_delete(self):
-        self.adopt({**world("1"), ".groundwork-source": "https://example.test/upstream.git\n"}, version="0.9.9", choice="0001\n")
+        self.adopt({**world("1"), ".groundwork-source": self.UPSTREAM + "\n"}, version="0.9.9", choice="0001\n")
         for arguments in (("0001",), ()):
-            result = self.run_script(*arguments)
-            self.assertEqual(result.returncode, 1)
-            self.assertIn(self.HINT, result.stderr)
-            self.assertIn(".groundwork-source", result.stderr)
+            self.assert_hint(self.run_script(*arguments), (".groundwork-source",))
+
+    def test_the_hint_stays_when_the_command_has_no_source_and_the_template_brings_one(self):
+        self.adopt({**world("1"), ".groundwork-source": self.UPSTREAM + "\n"}, version="0.9.9", choice="0001\n")
+        result = self.run_script(source=False, env=rewritten_env(self.UPSTREAM, self.source))
+        self.assert_hint(result, (".groundwork-source",))
+
+    def test_a_source_file_that_cannot_be_read_does_not_hide_the_error(self):
+        self.adopt({**world("1"), ".groundwork-source": "not an address\n"}, version="0.9.9", choice="0001\n")
+        result = self.run_script("0001")
+        self.assertIn(".groundwork-adrs: edit that file", result.stderr)
+        self.assert_hint(result, (".groundwork-source",))
 
     def test_a_project_that_runs_with_its_own_source_gets_the_error_alone(self):
         self.adopt(world("1"), version="0.9.9", choice="0001\n")

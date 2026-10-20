@@ -248,13 +248,22 @@ def new_project(args, root):
 
 
 def inherited(args):
-    """Return a sentence for the project that was perhaps created from the template of a base, else an empty string."""
-    if args.source is None or args.source == (update.recorded_source() or update.SOURCE):
+    """Return a sentence for the project that was perhaps created from the template of a base, else an empty string.
+
+    The project is taken for one when its source is not the one it records, or when it records one and names none."""
+    names = [name for name in (update.VERSION_FILE, choice.CHOICE_FILE, update.SOURCE_FILE) if os.path.exists(name)]
+    if args.source is None:
+        suspect = os.path.exists(update.SOURCE_FILE)
+    else:
+        try:
+            recorded = update.recorded_source()
+        except Failure:
+            recorded = None  # the error about that file would hide the one that is being raised
+        suspect = args.source != (recorded or update.SOURCE)
+    if not suspect:
         return ""
-    return (
-        f" If the project was created from the template of a base, these files are the base's: delete {update.VERSION_FILE}, "
-        f"{choice.CHOICE_FILE} and {update.SOURCE_FILE}, then run the command again."
-    )
+    listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    return f" If the project was created from the template of a base, these files are the base's: delete {listed}, then run the command again."
 
 
 def existing_project(args, root):
