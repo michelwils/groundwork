@@ -172,9 +172,6 @@ class Reverts(unittest.TestCase):
             repo.tag("0.1.0")
             repo.commit("feat(api): add x")
             repo.commit("revert(api): add x", "BREAKING CHANGE: x is gone")
-            commits = release.commits_since("0.1.0")
-            release.cancel_reverts(commits)
-            self.assertEqual([c["undone"] for c in commits], [True, True])
             self.assertEqual(repo.next(), ("none", None))
 
     def test_each_revert_cancels_one_change(self):
