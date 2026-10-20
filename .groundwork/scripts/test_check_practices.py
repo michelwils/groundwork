@@ -410,6 +410,11 @@ class Projects(Practices):
         self.put(".groundwork-version", "0.5.0\n")
         self.assertEqual(self.problems(self.apart_license_and_readme()), [])
 
+    def test_a_project_is_told_of_a_file_of_the_map_other_than_the_license_and_the_readme(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        text = practices(*self.good_entries(), apart=(".groundwork/practices.md", ".groundwork-source"))
+        self.only(".groundwork-source", text)
+
     def test_groundwork_is_told_of_a_license_and_a_readme_that_git_does_not_track(self):
         self.put("LICENSE", "License.\n")
         with open(os.path.join(self.root, ".git", "info", "exclude"), "a") as handle:
