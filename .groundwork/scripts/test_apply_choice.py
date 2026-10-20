@@ -327,6 +327,14 @@ class FromTheTemplateOfABase(Fixture):
             self.assertIn(name, result.stderr)
         self.assertEqual(self.status(), "")
 
+    def test_a_source_inherited_from_the_template_does_not_hide_the_files_to_delete(self):
+        self.adopt({**world("1"), ".groundwork-source": "https://example.test/upstream.git\n"}, version="0.9.9", choice="0001\n")
+        for arguments in (("0001",), ()):
+            result = self.run_script(*arguments)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn(self.HINT, result.stderr)
+            self.assertIn(".groundwork-source", result.stderr)
+
     def test_a_project_that_runs_with_its_own_source_gets_the_error_alone(self):
         self.adopt(world("1"), version="0.9.9", choice="0001\n")
         result = self.run_new()
