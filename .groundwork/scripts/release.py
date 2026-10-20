@@ -21,7 +21,8 @@ TITLE = re.compile(
 )
 PULL_REQUEST = re.compile(r" \(#\d+\)$")
 BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
-BREAKING_TEXT = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*(.*?)(?=^[\w-]+(?:: | #)|\Z)", re.MULTILINE | re.DOTALL)
+BREAKING_TEXT = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*(.*)\Z", re.MULTILINE | re.DOTALL)
+TRAILER = re.compile(r"^(?:[A-Z][A-Za-z]*(?:-[A-Za-z]+)+: |(?:Refs|Closes|Fixes) #\d)")
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 TAG = re.compile(r"^v(\d+\.\d+\.\d+)$")
 LEVELS = {"none": 0, "patch": 1, "minor": 2, "major": 3}
@@ -62,12 +63,20 @@ def commits_since(version):
                 description=match.group("description"),
                 breaking=bool(match.group("bang")) or bool(BREAKING_FOOTER.search(message)),
             )
-            footer = BREAKING_TEXT.search(message)
-            commit["footer"] = footer.group(1).strip() if footer else ""
+            commit["footer"] = footer_text(message)
         else:
             commit.update(type=None, scope=None, description=title, breaking=False, footer="")
         commits.append(commit)
     return commits
+
+
+def footer_text(message):
+    """Return the text of the `BREAKING CHANGE:` footer, without the trailers that end the message."""
+    footer = BREAKING_TEXT.search(message)
+    lines = footer.group(1).splitlines() if footer else []
+    while lines and (not lines[-1].strip() or TRAILER.match(lines[-1])):
+        lines.pop()
+    return "\n".join(lines).strip()
 
 
 def key(description):
@@ -122,10 +131,10 @@ def notes(commits, extra=""):
             scope = f"**{commit['scope']}:** " if commit["scope"] else ""
             lines.append(f"- {scope}{commit['description']}")
             if name == "Breaking changes" and commit["footer"]:
-                lines += ["", *(f"  {line}" for line in commit["footer"].splitlines())]
+                lines += ["", *(f"  {line}" if line else "" for line in commit["footer"].splitlines())]
         lines.append("")
     text = "\n".join(lines).rstrip() + "\n"
-    return f"{extra.strip()}\n\n{text}" if extra.strip() else text
+    return f"{extra.strip()}\n\n{text}".rstrip() + "\n" if extra.strip() else text
 
 
 def main():

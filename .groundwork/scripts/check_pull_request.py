@@ -22,7 +22,7 @@ MAINTENANCE = re.compile(r"^maintenance/v(?P<major>[0-9]+)$")
 CLOSES = re.compile(r"\bCloses #([0-9]+)\b")
 REFS = re.compile(r"\bRefs #([0-9]+)\b")
 BOT_BRANCHES = ("dependabot/", "groundwork/")
-BREAKING_TITLE = re.compile(r"^[a-z]+(\([a-z]+\))?!: ")
+BREAKING_TITLE = re.compile(r"^(?:" + "|".join(TYPES) + r")(?:\([a-z]+\))?!: ")
 BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*\S", re.MULTILINE)
 
 

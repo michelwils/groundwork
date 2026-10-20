@@ -126,6 +126,9 @@ class BreakingChange(unittest.TestCase):
             with self.subTest(title=title):
                 self.assertEqual(check(title=title), [])
 
+    def test_a_title_with_a_type_that_is_not_one_of_ADR_0002_is_not_a_breaking_change(self):
+        self.assertEqual(check(title="wip!: rename it"), [])
+
     def test_a_backport_needs_it_too(self):
         branch = "fix/12-handle-empty-input-v1"
         self.assertEqual(len(check(branch=branch, base="maintenance/v1", body="Refs #12", title="fix!: change it")), 1)

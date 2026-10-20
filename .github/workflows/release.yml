@@ -53,7 +53,7 @@ jobs:
             printf '%s\n' "$NOTES" > "$RUNNER_TEMP/extra.md"
             extra=(--notes-extra "$RUNNER_TEMP/extra.md")
           fi
-          python3 .groundwork/scripts/release.py ${VERSION:+--version "$VERSION"} "${extra[@]}" --notes "$RUNNER_TEMP/notes.md" | tee "$RUNNER_TEMP/summary.txt"
+          python3 .groundwork/scripts/release.py ${VERSION:+--version "$VERSION"} ${extra[@]+"${extra[@]}"} --notes "$RUNNER_TEMP/notes.md" | tee "$RUNNER_TEMP/summary.txt"
           {
             echo '```text'
             cat "$RUNNER_TEMP/summary.txt"

@@ -273,6 +273,17 @@ class BreakingFooter(unittest.TestCase):
         )
         self.assertEqual(text, "## Breaking changes\n\n- change it\n\n  read `account`.\n")
 
+    def test_a_line_that_looks_like_a_label_is_part_of_the_footer(self):
+        text = self.breaking_notes(
+            "feat!: change it",
+            "BREAKING CHANGE: rename the option.\nBefore: foo\nAfter: bar\n\nStep 1: run it.\n\n"
+            "Refs #4\nCo-Authored-By: Someone <someone@example.com>",
+        )
+        self.assertEqual(
+            text,
+            "## Breaking changes\n\n- change it\n\n  rename the option.\n  Before: foo\n  After: bar\n\n  Step 1: run it.\n",
+        )
+
     def test_the_hyphenated_token_is_recognised(self):
         text = self.breaking_notes("feat!: change it", "BREAKING-CHANGE: read `account`.")
         self.assertIn("  read `account`.", text)
@@ -356,6 +367,9 @@ class Command(unittest.TestCase):
             with open(path) as handle:
                 self.assertEqual(handle.read(), expected)
 
+    def test_extra_notes_alone_have_no_trailing_blank_line(self):
+        self.assertEqual(release.notes([], "Move the scripts.\n"), "Move the scripts.\n")
+
     def test_a_missing_file_of_extra_notes_is_an_error(self):
         with Repository() as repo:
             repo.commit("feat: add a feature")
@@ -380,6 +394,9 @@ class Workflow(unittest.TestCase):
         self.assertEqual(self.text.count("inputs.notes"), 1)
         self.assertIn('printf \'%s\\n\' "$NOTES" > "$RUNNER_TEMP/extra.md"', self.text)
         self.assertIn('--notes-extra "$RUNNER_TEMP/extra.md"', self.text)
+
+    def test_an_empty_list_of_arguments_is_safe_in_every_version_of_bash(self):
+        self.assertIn('${extra[@]+"${extra[@]}"}', self.text)
 
 
 if __name__ == "__main__":
