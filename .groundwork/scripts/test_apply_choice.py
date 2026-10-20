@@ -172,7 +172,7 @@ class NewProject(Fixture):
         self.adopt(self.template())
         result = self.run_new("0003")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("added: 0002", result.stdout)
+        self.assertEqual(self.lines(result, "added: "), ["0002"])
 
     def test_a_path_of_the_map_that_leaves_the_repository_is_refused_before_anything_changes(self):
         for hostile in ("../outside.txt", self.outside):
