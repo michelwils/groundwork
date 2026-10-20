@@ -73,7 +73,7 @@ def key(description):
 def cancel_reverts(commits):
     """Mark a reverted commit and its revert as undone, when both are in the range."""
     for index, commit in enumerate(commits):
-        if commit["type"] != "revert" or commit["breaking"]:
+        if commit["type"] != "revert":
             continue
         for earlier in commits[:index]:
             if (

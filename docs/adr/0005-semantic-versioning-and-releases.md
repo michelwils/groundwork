@@ -27,7 +27,7 @@ We will version the project with [Semantic Versioning 2.0.0](https://semver.org/
 | `fix`, `perf` | patch |
 | `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`, `revert` | none |
 
-A `revert` that undoes released behaviour users rely on is marked as a breaking change with `!`.
+A `revert` that undoes released behaviour users rely on is marked as a breaking change with `!`. A `revert` of a change in the same release is ignored with it, as the Releases section says.
 
 **Initial development.** While the major version is `0`, nothing is stable and versions start from `0.0.0`. A breaking change or a `feat` increments the minor version, and a `fix` or a `perf` increments the patch version. A first release that contains a `feat` is therefore `0.1.0`. The major version becomes `1` only when the maintainers decide, as described below.
 
@@ -39,7 +39,7 @@ A `revert` that undoes released behaviour users rely on is marked as a breaking 
 
 **Releases.** A release is made when the maintainers decide, not on every merge. Between releases, `main` carries no version. The maintainers start a workflow that makes the release in three steps:
 
-1. It decides the version from the commits on `main`, or on the maintenance branch, since the previous tag. The version is incremented once, by the highest increment among those commits: ten `feat` commits and three `fix` commits give one minor increment. A change is undone when a later `revert` repeats its description in its title ([ADR 0002](0002-conventional-commits.md)), and it is then ignored together with that `revert`. The maintainers can give the version instead, for example to tag `1.0.0`. The workflow refuses a version that is not greater than the previous one, or whose tag already exists.
+1. It decides the version from the commits on `main`, or on the maintenance branch, since the previous tag. The version is incremented once, by the highest increment among those commits: ten `feat` commits and three `fix` commits give one minor increment. A change is undone when a later `revert` repeats its description in its title ([ADR 0002](0002-conventional-commits.md)), and it is then ignored together with that `revert`, even when the `revert` is marked with `!`, since the change it undoes was not released. The maintainers can give the version instead, for example to tag `1.0.0`. The workflow refuses a version that is not greater than the previous one, or whose tag already exists.
 2. It tags `main`, or the maintenance branch, with `v<version>`.
 3. It publishes a release for the tag on the hosting platform. Its notes list the changes since the previous release, grouped by commit type, from the commit titles, without the changes that were undone. A release made on a maintenance branch is not marked as the latest one.
 
