@@ -217,7 +217,15 @@ A copy shares no history with groundwork and does not receive later changes. To 
    python3 .groundwork/scripts/update_groundwork.py <issue-number> [--to X.Y.Z]
    ```
 
-   It reads `.groundwork-version`, fetches the tags of its source, which is the address in `.groundwork-source` or else groundwork, under their own prefix `groundwork/`, so that they do not collide with the tags of the project, and says the source it used (`source:`), and creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`. On that branch it applies what changed between the two versions, file by file, and keeps the changes of the project. It leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`. It goes to the latest version unless `--to` names another. It does not commit, push or open a pull request. A project whose copy of groundwork predates the script, or the version that reads the choice, takes `.groundwork/scripts/update_groundwork.py` and the modules it uses, `markers.py`, `practices_map.py` and `choice.py`, from the release it moves to, before it chooses.
+   The script:
+
+   - reads `.groundwork-version` and fetches the tags of its source, under their own prefix `groundwork/` so that they do not collide with the tags of the project. The source is the address in `.groundwork-source`, or else groundwork, and the script says which it used (`source:`);
+   - creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`, and applies on it what changed between the two versions, file by file, keeping the changes of the project;
+   - leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`;
+   - goes to the latest version unless `--to` names another;
+   - does not commit, push or open a pull request.
+
+   **A project at v0.5.0 or before** does its first update with the script of the release it moves to, whether it has a choice or not. Its own script leaves out only `README.md` and `LICENSE`, so it would bring `docs/adr/1000-…` to `1002-…`, which are decisions of groundwork, next to the ADRs numbered from 1000 of the project. Clone groundwork at the tag of that release and run its script from the directory of the project, as step 3 of [Choosing the ADRs](#choosing-the-adrs-a-project-synchronises) does: `python3 <clone>/.groundwork/scripts/update_groundwork.py <issue-number>`. Do it before the weekly workflow runs, or start the workflow by hand only after that update, since the workflow runs the script of the project. If an update has already brought those ADRs, delete them and restore the ADR 1000 of the project if they replaced it.
 
    It ends with status 0 when the project is updated or already up to date, 1 on an error, and 2 when files are in conflict. It names them and leaves markers in them for you to resolve.
 3. Commit the result like any other change, through the issue and a pull request.
