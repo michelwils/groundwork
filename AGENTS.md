@@ -9,7 +9,7 @@ Rules for coding agents working on this repository. The rules for every contribu
 <!-- groundwork:0001 -->
 - A significant decision is recorded as a new ADR, following [`docs/adr/template.md`](docs/adr/template.md). Propose it instead of deciding.
 <!-- /groundwork -->
-- For a change that is not trivial, propose a plan (files, tests, risks, open questions) and wait for the approval of a maintainer before you change any file. Record the approved plan in the "Plan" section of the pull request, and stop and report if the work departs from it ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)).
+- For a change that is not trivial, propose a plan (files, tests, risks, open questions) and wait for a maintainer's approval before you change any file. Record the approved plan in the "Plan" section of the pull request, and stop and report if the work departs from it ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)).
 <!-- groundwork:0009 -->
 - Write the test of a change of behaviour and see it fail for the expected reason before you write the code ([ADR 0009](docs/adr/0009-test-first-development.md)). Report a test that you could not write first, and why.
 <!-- /groundwork -->
@@ -22,7 +22,7 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 - Never include a link to, or an identifier of, your session or conversation.
 - For a change that touches a trust boundary, name in your plan the security rule or principle that applies, and each new dependency with its license, in your plan and in the pull request.
 <!-- groundwork:0010 -->
-- The rules for the security of the code are in [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md).
+- The security rules for the code are in [ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md).
 <!-- /groundwork -->
 <!-- groundwork:0011 -->
 - The principles for confidential and personal data are in [ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md).
@@ -30,7 +30,7 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 <!-- groundwork:0013 -->
 - The licenses accepted for the dependencies are those that the project states, as [ADR 0013](docs/adr/0013-licenses-of-the-dependencies.md) asks.
 <!-- /groundwork -->
-- Never merge a pull request without the explicit approval of a maintainer for that pull request.
+- Never merge a pull request without a maintainer's explicit approval for that pull request.
 - Report the errors you corrected and the deviations from a rule. Do not report that you followed the rules.
 - Check your work before presenting it, committing it or marking a pull request ready, against the [review checklist](CONTRIBUTING.md#review-checklist).
 - Never bypass a check: do not skip hooks, disable a rule, or remove or weaken a test to make it pass. When a check fails, fix the cause or report it.
@@ -41,4 +41,4 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 
 ## Project
 
-The commands, the layout and the checks of the project. The README of groundwork describes groundwork in its own section; a project writes its own here.
+The project's commands, layout and checks. The README of groundwork describes groundwork in its own section, and a project writes its own here.

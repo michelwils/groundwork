@@ -20,9 +20,9 @@ Every change goes through an issue, a branch and a pull request ([ADR 0003](docs
 3. Commit your work on the branch.
 4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. The pull request template has these sections.
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
-6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted. For a breaking change, the maintainer who merges copies the `BREAKING CHANGE:` line of the description into the body of the squash commit, which the release notes give.
+6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted. For a breaking change, the maintainer who merges copies the `BREAKING CHANGE:` line from the description into the body of the squash commit, from which the release notes take it.
 
-The pull requests that Dependabot opens to update pinned versions, and the one that the `update-groundwork` workflow opens to move to a later version of groundwork, have no issue, and the title of those of Dependabot, which starts with a capital letter, is not checked. A maintainer reviews and merges each one ([ADR 0003](docs/adr/0003-change-workflow.md)).
+The pull requests that Dependabot opens to update pinned versions, and the one that the `update-groundwork` workflow opens to move to a later version of groundwork, have no issue. The title of Dependabot's pull requests, which starts with a capital letter, is not checked. A maintainer reviews and merges each one ([ADR 0003](docs/adr/0003-change-workflow.md)).
 <!-- /groundwork -->
 
 <!-- groundwork:0002 -->
@@ -92,7 +92,7 @@ Write the test of a change of behaviour before the code that makes it pass, and 
 
 A reviewer, and whoever checks their own work, check:
 
-- each acceptance criterion of the issue against the diff, not against the description of the pull request
+- each acceptance criterion of the issue against the diff, not against the pull request description
 - contradictions with, and repetitions of, the ADRs, the README and this file
 - the commands that the change documents, by running them
 - the links, by following them
@@ -116,7 +116,7 @@ Checks run before each commit and in CI on every pull request ([ADR 0008](docs/a
 <!-- groundwork:0007 -->
 ## AI-assisted changes
 
-A change made with a coding agent follows the same rules ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)). Its commits have a `Co-Authored-By` trailer naming the agent, and an issue or a pull request it writes ends with a line stating that it was generated. Nothing refers to the agent's session, and a maintainer approves every merge. For a change that is not trivial, it proposes a plan first and records the approved plan in the pull request. The instructions given to agents are in [`AGENTS.md`](AGENTS.md).
+A change made with a coding agent follows the same rules ([ADR 0007](docs/adr/0007-ai-assisted-changes.md)). Its commits have a `Co-Authored-By` trailer naming the agent, and an issue or a pull request it writes ends with a line stating that it was generated. Nothing refers to the agent's session, and a maintainer approves every merge. For a change that is not trivial, the agent proposes a plan first and records the approved plan in the pull request. The instructions given to agents are in [`AGENTS.md`](AGENTS.md).
 
 ```text
 docs(readme): describe the release process
@@ -143,7 +143,7 @@ Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versionin
 1. Run it with `publish` unchecked and the version empty. It shows the version it computes and the release notes, and creates nothing.
 2. Run it again with `publish` checked. It creates the annotated tag `v<version>` and publishes the release.
 
-To open the notes with a text, for example how to migrate from a breaking change that no commit describes, give it in `notes`: `gh workflow run release.yml -f notes="$(cat <file>)"`. To release another version than the computed one, for example `1.0.0` or after a change that was undone without a `revert`, give it in `version`. It is also what the workflow asks for when the description of a `revert` matches more than one change, released or not: it stops and names them. The public contract is described in the [README](README.md).
+To open the notes with a text, for example how to migrate from a breaking change that no commit describes, give it in `notes`: `gh workflow run release.yml -f notes="$(cat <file>)"`. To release a version other than the computed one, for example `1.0.0` or after a change that was undone without a `revert`, give it in `version`. The workflow asks for one too when the description of a `revert` matches more than one change, released or not: it stops and names them. The public contract is described in the [README](README.md).
 <!-- /groundwork -->
 
 <!-- groundwork:0006 -->
