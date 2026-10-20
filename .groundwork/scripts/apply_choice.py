@@ -244,7 +244,7 @@ def new_project(args, root):
     changes.write("write", update.VERSION_FILE, f"{version}\n".encode("utf-8"), label=f"{update.VERSION_FILE} {version}")
     if args.source is not None:
         changes.write("write", update.SOURCE_FILE, f"{args.source}\n".encode("utf-8"))
-    return changes, BY_HAND, []
+    return changes, BY_HAND, kept.added()
 
 
 def existing_project(args, root):

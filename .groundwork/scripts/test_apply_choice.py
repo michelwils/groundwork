@@ -168,6 +168,12 @@ class NewProject(Fixture):
         self.assertIn("two.txt", self.lines(result, "delete: "))
         self.assertIn("SHARED.md", self.lines(result, "edit: "))
 
+    def test_it_says_the_adrs_that_enter_because_a_listed_one_needs_them(self):
+        self.adopt(self.template())
+        result = self.run_new("0003")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.lines(result, "added: "), ["0002"])
+
     def test_a_path_of_the_map_that_leaves_the_repository_is_refused_before_anything_changes(self):
         for hostile in ("../outside.txt", self.outside):
             with self.subTest(path=hostile):
