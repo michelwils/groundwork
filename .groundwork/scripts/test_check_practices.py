@@ -403,6 +403,27 @@ class Projects(Practices):
         os.remove(os.path.join(self.root, "tool.py"))
         self.only("tool.py")
 
+    def apart_license_and_readme(self):
+        return practices(*self.good_entries(), apart=(".groundwork/practices.md", "LICENSE", "README.md"))
+
+    def test_a_project_may_lack_the_files_that_the_update_never_copies(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        self.assertEqual(self.problems(self.apart_license_and_readme()), [])
+
+    def test_a_project_is_told_of_a_file_of_the_map_other_than_the_license_and_the_readme(self):
+        self.put(".groundwork-version", "0.5.0\n")
+        text = practices(*self.good_entries(), apart=(".groundwork/practices.md", ".groundwork-source"))
+        self.only(".groundwork-source", text)
+
+    def test_groundwork_is_told_of_a_license_and_a_readme_that_git_does_not_track(self):
+        self.put("LICENSE", "License.\n")
+        with open(os.path.join(self.root, ".git", "info", "exclude"), "a") as handle:
+            handle.write("LICENSE\n")
+        problems = self.problems(self.apart_license_and_readme())
+        self.assertEqual(len(problems), 2)
+        self.assertIn("the file LICENSE is not tracked by git", problems[0])
+        self.assertIn("the file README.md does not exist", problems[1])
+
     def test_the_map_still_names_every_file_in_groundwork_itself(self):
         self.put("src/app.py", "")
         self.only("src/app.py")
