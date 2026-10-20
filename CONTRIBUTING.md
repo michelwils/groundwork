@@ -143,7 +143,7 @@ Versions follow Semantic Versioning ([ADR 0005](docs/adr/0005-semantic-versionin
 1. Run it with `publish` unchecked and the version empty. It shows the version it computes and the release notes, and creates nothing.
 2. Run it again with `publish` checked. It creates the annotated tag `v<version>` and publishes the release.
 
-To open the notes with a text, for example how to migrate from a breaking change that no commit describes, give it in `notes`: `gh workflow run release.yml -f notes="$(cat <file>)"`. To release another version than the computed one, for example `1.0.0` or after a change that was undone without a `revert`, give it in `version`. The public contract is described in the [README](README.md).
+To open the notes with a text, for example how to migrate from a breaking change that no commit describes, give it in `notes`: `gh workflow run release.yml -f notes="$(cat <file>)"`. To release another version than the computed one, for example `1.0.0` or after a change that was undone without a `revert`, give it in `version`. It is also what the workflow asks for when the description of a `revert` matches more than one change, released or not: it stops and names them. The public contract is described in the [README](README.md).
 <!-- /groundwork -->
 
 <!-- groundwork:0006 -->

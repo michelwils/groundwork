@@ -3,7 +3,8 @@
 
 The version is decided from the commit titles since the previous tag reachable
 from HEAD, by the highest increment among them. A change undone by a `revert`
-before the release is ignored together with its revert. The text of the `BREAKING CHANGE:` footer
+before the release is ignored together with its revert. A revert whose description matches more than one
+change, released or not, is paired with none and stops the command: give the version. The text of the `BREAKING CHANGE:` footer
 of a change is given under it in the notes, and the text of --notes-extra comes first.
 
 Usage: release.py [--version X.Y.Z] [--notes FILE] [--notes-extra FILE]
@@ -86,19 +87,40 @@ def key(description):
     return PULL_REQUEST.sub("", description).strip()
 
 
-def cancel_reverts(commits):
-    """Mark a reverted commit and its revert as undone, when both are in the range."""
+def released_keys(version):
+    """Return the descriptions of the changes released up to the version, with the title of the latest one of each."""
+    if not version:
+        return {}
+    found = {}
+    for title in git("log", "--format=%s", f"v{version}").splitlines():
+        match = TITLE.match(title)
+        if match and match.group("type") != "revert":
+            found.setdefault(key(match.group("description")), f"{title} (released by v{version})")
+    return found
+
+
+def cancel_reverts(commits, released=None):
+    """Mark a reverted commit and its revert as undone, when both are in the range.
+
+    A revert is paired only with the one change that has its description, in the range or released. One that
+    matches more than one is left alone and returned, with the titles it matches: the maintainers give the version."""
+    released = released or {}
+    ambiguous = []
     for index, commit in enumerate(commits):
         if commit["type"] != "revert":
             continue
-        for earlier in commits[:index]:
-            if (
-                not earlier["undone"]
-                and earlier["type"] not in (None, "revert")
-                and key(earlier["description"]) == key(commit["description"])
-            ):
-                earlier["undone"] = commit["undone"] = True
-                break
+        name = key(commit["description"])
+        matches = [
+            earlier
+            for earlier in commits[:index]
+            if not earlier["undone"] and earlier["type"] not in (None, "revert") and key(earlier["description"]) == name
+        ]
+        titles = ([released[name]] if name in released else []) + [earlier["title"] for earlier in matches]
+        if len(titles) > 1:
+            ambiguous.append((commit, titles))
+        elif matches:
+            matches[0]["undone"] = commit["undone"] = True
+    return ambiguous
 
 
 def increment(commit, major):
@@ -157,7 +179,13 @@ def main():
 
     previous = previous_version()
     commits = commits_since(previous)
-    cancel_reverts(commits)
+    ambiguous = cancel_reverts(commits, released_keys(previous))
+    if ambiguous and not args.version:
+        sys.exit("\n".join(
+            [f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches" + "".join(f"\n  {title}" for title in titles)
+             for revert, titles in ambiguous]
+            + ["Give the version with --version."]
+        ))
     major = int((previous or "0.0.0").split(".")[0])
     level = max((increment(c, major) for c in commits), key=LEVELS.get, default="none")
 

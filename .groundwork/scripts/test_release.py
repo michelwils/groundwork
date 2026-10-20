@@ -184,6 +184,86 @@ class Reverts(unittest.TestCase):
             self.assertEqual(repo.next(), ("minor", "0.2.0"))
 
 
+class AmbiguousReverts(unittest.TestCase):
+    """A revert whose description matches more than one change is not paired: the maintainers give the version."""
+
+    def stops_on(self, repo, revert):
+        result = repo.run()
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn(revert, result.stderr)
+        self.assertIn("--version", result.stderr)
+        return result
+
+    def test_a_breaking_revert_of_a_released_change_is_not_absorbed_by_the_same_description_in_the_range(self):
+        with Repository() as repo:
+            repo.commit("feat: add x")
+            repo.tag("1.0.0")
+            repo.commit("feat: add x")
+            repo.commit("revert!: add x")
+            result = self.stops_on(repo, "revert!: add x")
+            self.assertIn("feat: add x (released by v1.0.0)", result.stderr)
+
+    def test_a_breaking_revert_of_a_released_change_is_not_absorbed_by_a_fix_with_the_same_description(self):
+        with Repository() as repo:
+            repo.commit("feat: add x")
+            repo.tag("1.0.0")
+            repo.commit("fix: add x")
+            repo.commit("revert!: add x")
+            self.stops_on(repo, "revert!: add x")
+
+    def test_a_revert_that_matches_two_changes_of_the_range_stops(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat: add x")
+            repo.commit("fix: add x")
+            repo.commit("revert: add x")
+            result = self.stops_on(repo, "revert: add x")
+            self.assertIn("feat: add x", result.stderr)
+            self.assertIn("fix: add x", result.stderr)
+
+    def test_the_version_given_goes_on_and_the_notes_keep_the_revert_and_the_changes(self):
+        with Repository() as repo:
+            repo.commit("feat: add x")
+            repo.tag("1.0.0")
+            repo.commit("feat: add x")
+            repo.commit("revert!: add x")
+            result = repo.run("--version", "2.0.0")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("version: 2.0.0", result.stdout)
+            self.assertEqual(result.stdout.count("- add x"), 2)
+
+    def test_a_revert_that_matches_only_a_released_change_is_neither_paired_nor_ambiguous(self):
+        with Repository() as repo:
+            repo.commit("feat: add x")
+            repo.tag("0.1.0")
+            repo.commit("revert: add x")
+            commits = release.commits_since("0.1.0")
+            self.assertEqual(release.cancel_reverts(commits, release.released_keys("0.1.0")), [])
+            self.assertFalse(commits[0]["undone"])
+
+    def test_the_changes_released_are_found_by_their_description_without_the_reverts(self):
+        with Repository() as repo:
+            repo.commit("feat: add x (#3)")
+            repo.commit("revert: add x (#4)")
+            repo.commit("Initial commit")
+            repo.tag("0.1.0")
+            repo.commit("fix: add y")
+            self.assertEqual(set(release.released_keys("0.1.0")), {"add x"})
+            self.assertEqual(release.released_keys(None), {})
+
+    def test_a_change_that_a_revert_undid_is_not_a_second_match_for_the_next_one(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat: add x")
+            repo.commit("revert: add x")
+            repo.commit("feat: add x")
+            repo.commit("revert: add x")
+            self.assertEqual(repo.next(), ("none", None))
+            self.assertEqual(repo.run().returncode, 0)
+
+
 class Tags(unittest.TestCase):
     def test_tags_that_are_not_versions_are_ignored(self):
         with Repository() as repo:
