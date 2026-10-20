@@ -237,7 +237,7 @@ The [`update-groundwork` workflow](.github/workflows/update-groundwork.yml) does
 - It opens nothing when the project is up to date, when a pull request from a branch `groundwork/…` is already open, or when the pull request of that version was closed without being merged. Close the pull request to skip a version: a later version is proposed again.
 - When files are in conflict, the pull request is a draft that lists them, with the markers left in the files. Resolve them, then mark it ready.
 - It does nothing where there is no `.groundwork-version`, such as in groundwork itself.
-- It needs the secret `GROUNDWORK_UPDATE_TOKEN`: a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) limited to the repository, with write access to contents, pull requests and workflows. The token of a workflow cannot push changes to workflow files, and does not start the checks of the pull request without an approval. Create the secret once, and renew the token before it expires:
+- It needs the secret `GROUNDWORK_UPDATE_TOKEN`: a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) limited to the repository, with write access to contents, pull requests and workflows. The update also fetches the base with it, so a private base needs more than this: see [In a project of the base](.groundwork/community-base.md#in-a-project-of-the-base). The token of a workflow cannot push changes to workflow files, and does not start the checks of the pull request without an approval. Create the secret once, and renew the token before it expires:
 
   ```sh
   gh secret set GROUNDWORK_UPDATE_TOKEN --repo <owner>/<repo>
