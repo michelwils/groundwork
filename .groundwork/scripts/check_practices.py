@@ -26,7 +26,7 @@ The map describes the ADRs of the ranges that the source reserves, `0001` to `09
 `.groundwork-ranges`, and only those: an ADR of one of these ranges without an entry is reported, and
 an ADR of groundwork may not need one of a community base. In a project, which has a `.groundwork-version`,
 the files of the project are not in the map, so the check leaves out the tracked files that the map does
-not name and reports only what the map names and the project lacks. When the project keeps some of the
+not name and reports only what the map names and the project lacks, other than `README.md` and `LICENSE`, which the update never copies. When the project keeps some of the
 ADRs (`.groundwork-adrs`), the entries of the others and their files are left out, and the lines that
 are refused in the two files are reported by check_adrs.py.
 
@@ -41,6 +41,7 @@ import sys
 import choice
 import markers
 from practices_map import ADR_DIRECTORY, ADR_FILE, BASE, MAP, RANGES_FILE, cycles, is_reserved, needs_of, parse, read_map, read_ranges, references
+from update_groundwork import EXCLUDED
 
 VERSION_FILE = ".groundwork-version"
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
@@ -204,6 +205,7 @@ def check_blocks(root, entries, owned, reserved, shared, files, numbers, problem
 
 
 def check_files(root, entries, shared, apart, files, problems):
+    project = os.path.exists(os.path.join(root, VERSION_FILE))
     named = {}
     listed = [(path, line, f"the entry {entry['number']:04d}") for entry in entries for path, line in entry["files"]]
     listed += [(path, line, "the shared files") for path, line in shared]
@@ -213,12 +215,12 @@ def check_files(root, entries, shared, apart, files, problems):
             problems.append((MAP, line, f"the file {path} is named by {owner} and by {named[path]}"))
         else:
             named[path] = owner
-        if path not in files:
+        if path not in files and not (project and path in EXCLUDED):
             reason = "is not tracked by git" if os.path.exists(os.path.join(root, path)) else "does not exist"
             problems.append((MAP, line, f"the file {path} {reason}"))
     implicit = {path for path in files if path.startswith(ADR_DIRECTORY + "/") and ADR_FILE.match(path[len(ADR_DIRECTORY) + 1:])}
     implicit |= {RANGES_FILE} & files
-    if os.path.exists(os.path.join(root, VERSION_FILE)):
+    if project:
         return
     for path in sorted(files - set(named) - implicit):
         problems.append((MAP, 1, f"the file {path} is tracked and the map does not name it"))
