@@ -525,6 +525,31 @@ class Choices(Practices):
         )
         self.assertEqual(self.problems(practices(*entries)), [])
 
+    def deleted_without_staging(self, text, *names):
+        """Track the files with the map, then delete the named ones from the working tree only, as apply_choice.py does."""
+        self.put(".groundwork/practices.md", text)
+        self.track()
+        for name in names:
+            os.remove(os.path.join(self.root, name))
+        return check_practices.check(self.root)
+
+    def test_a_file_that_the_command_deleted_and_git_still_tracks_is_not_there_for_the_check(self):
+        self.project("0001\n0002\n")
+        self.put("CONTRIBUTING.md", "Rules.\n\n<!-- groundwork:0001 -->\nOne.\n<!-- /groundwork -->\n")
+        self.put("conf.yaml", "# groundwork:0001\nkey: 1\n# /groundwork\n")
+        entries = (
+            entry("0001", files=["docs/adr/template.md", "tool.py", "tool_test.py"], shared=["CONTRIBUTING.md", "conf.yaml"]),
+            entry("0002", needs="ADR 0001"),
+            entry("0003", files=["conf.yaml"], needs="ADR 0001"),
+        )
+        self.assertEqual(self.deleted_without_staging(practices(*entries), "conf.yaml"), [])
+
+    def test_a_file_of_a_kept_adr_that_is_deleted_and_still_tracked_is_reported_as_missing(self):
+        self.project("0001\n")
+        (problem,) = self.deleted_without_staging(self.good(), "tool.py")
+        self.assertIn("tool.py", problem)
+        self.assertIn("does not exist", problem)
+
     def test_a_line_of_the_choice_that_is_refused_is_left_to_the_check_of_the_adrs(self):
         self.project("abc\n0001\n0002\n")
         self.assertEqual(self.problems(), [])

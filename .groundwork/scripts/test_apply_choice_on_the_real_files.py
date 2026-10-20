@@ -142,6 +142,16 @@ class RealFiles(RealTree):
                 problems = check_adrs.check(project) + check_practices.check(project) + check_links.check(project)
                 self.assertEqual(problems, [])
 
+    def test_the_map_passes_after_the_command_before_the_deletions_are_staged(self):
+        sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
+        for name, kept in sets:
+            with self.subTest(left_out=name):
+                source, project = self.world()
+                result = self.run_in(project, source, *[f"{n:04d}" for n in kept])
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                put(project, {"README.md": README, "LICENSE": LICENSE})
+                self.assertEqual(check_practices.check(project), [])
+
     def test_narrowing_then_widening_gives_back_the_original_files(self):
         for number in self.numbers:
             if number == 1:
