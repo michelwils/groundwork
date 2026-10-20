@@ -158,6 +158,14 @@ class Reverts(unittest.TestCase):
             repo.commit("revert!: add password reset")
             self.assertEqual(repo.next(), ("major", "2.0.0"))
 
+    def test_a_breaking_revert_of_an_unreleased_change_is_ignored_with_it(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat: add x")
+            repo.commit("revert!: add x")
+            self.assertEqual(repo.next(), ("none", None))
+
     def test_each_revert_cancels_one_change(self):
         with Repository() as repo:
             repo.commit("feat: add a feature")
