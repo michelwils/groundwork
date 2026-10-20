@@ -11,7 +11,8 @@ It reports an ADR without an entry or an entry without an ADR, an ADR that needs
 does not exist or a cycle of needs, an ADR whose text names or links an ADR that its entry does not
 list as needed, a file named in the map that is not tracked by git or that two entries name, and a
 tracked file that the map does not name. The file
-of an ADR is named by its entry.
+of an ADR is named by its entry. A file that git tracks and that the working tree no longer has, such as
+one that apply_choice.py deleted and the project did not stage yet, is not there for the check.
 
 The lines that several ADRs share are in blocks (markers.py). A file belongs to the ADR whose entry
 lists it in `Files`, or to none: it is then in `## Shared files`. In a file with an owner, only the
@@ -235,6 +236,7 @@ def check(root):
     files = tracked(root)
     if files is None:
         return [f"{root}: not a git repository, the tracked files are unknown"]
+    files = {name for name in files if os.path.lexists(os.path.join(root, name))}
     entries, shared, apart = read_map(root)
     problems = []
     reserved = read_ranges(root)[0]
