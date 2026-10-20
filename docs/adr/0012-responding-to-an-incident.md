@@ -16,7 +16,7 @@ We will respond to an incident by these principles. They apply to a project of a
 - **Record.** The facts and the decisions are written where the work is tracked, such as the report or an issue, as they happen.
 - **Review.** After the incident, a review that blames no one records what happened and what was missing, and opens an issue for the check or the rule that was missing, if there was one.
 
-A vulnerability that is reported to the project is handled as `SECURITY.md` says, which uses the review below. These principles apply to every other incident, including a leak of personal data.
+A vulnerability that is reported to the project is handled as `SECURITY.md` says, which uses the review above. These principles apply to every other incident, including a leak of personal data.
 
 ## Consequences
 

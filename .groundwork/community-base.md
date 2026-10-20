@@ -43,7 +43,7 @@ The base's `update-groundwork` workflow opens a pull request `chore: update grou
 - The project takes everything that the base reserves (groundwork's `0001` to `0999` that the base kept, and the base's ranges), or chooses with `.groundwork-adrs`. The update copies neither the base's `.groundwork-version` nor its `.groundwork-adrs` to the project. The template does, hence the first step.
 - The project numbers its own ADRs as [ADR 0001](https://github.com/michelwils/groundwork/blob/main/docs/adr/0001-record-architecture-decisions.md) tells.
 
-## The own decisions of the base
+## The base's own decisions
 
 The ADRs of groundwork numbered `1000` or more are its own decisions and are not synchronised, but a repository created from the template holds them. The base deletes them, or keeps [ADR 1000](https://github.com/michelwils/groundwork/blob/main/docs/adr/1000-choosing-the-adrs-a-project-synchronises.md), which explains the choice that it implements. Its own decisions, the ones that are not for its projects, are then numbered from `1000` if it deleted them all, or from `1001` if it kept ADR 1000. If a range of the base lies at `1000` or above, they start at the first number that no range reserves.
 
