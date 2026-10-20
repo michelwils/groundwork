@@ -27,7 +27,7 @@ We will version the project with [Semantic Versioning 2.0.0](https://semver.org/
 | `fix`, `perf` | patch |
 | `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`, `revert` | none |
 
-A `revert` that undoes released behaviour users rely on is marked as a breaking change with `!`.
+A `revert` that undoes released behaviour users rely on is marked as a breaking change with `!`. A `revert` of a change in the same release is ignored with it, as the Releases section says.
 
 **Initial development.** While the major version is `0`, nothing is stable and versions start from `0.0.0`. A breaking change or a `feat` increments the minor version, and a `fix` or a `perf` increments the patch version. A first release that contains a `feat` is therefore `0.1.0`. The major version becomes `1` only when the maintainers decide, as described below.
 
