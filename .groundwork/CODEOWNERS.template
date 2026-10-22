@@ -1,0 +1,11 @@
+# Who reviews the files of groundwork in this project (ADR 0014).
+# Copy this file to .github/CODEOWNERS and replace @OWNER with the users or teams, with write access, who review them.
+# The last line that matches a file wins. A community base that reserves ADR numbers outside 0001-0999 adds its ranges.
+/docs/adr/0*              @OWNER
+/docs/adr/template.md     @OWNER
+/.groundwork*             @OWNER
+/.github/workflows/       @OWNER
+/.github/zizmor.yml       @OWNER
+/.github/dependabot.yml   @OWNER
+/.pre-commit-config.yaml  @OWNER
+/.github/CODEOWNERS       @OWNER
