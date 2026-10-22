@@ -13,13 +13,14 @@ A template copies files, not settings. The script applies, to a repository on Gi
   a ruleset of that name exists and created otherwise. With --code-owner-review, it also requires the approval of
   a code owner (CODEOWNERS) and dismisses an approval when a commit is pushed after it; with --last-push-approval,
   the approval must come from someone other than the person who pushed last (ADR 0014). The options are not
-  remembered: a run without them applies the ruleset of the file, which requires neither approval. --code-owner-review
+  remembered: a run without them applies the ruleset of the file, which requires neither approval, and stops
+  when that would turn off a review that the ruleset of the repository requires, unless --turn-off-reviews is given. --code-owner-review
   needs a file of code owners, run from the directory of the project, and --last-push-approval needs --code-owner-review
 
 Run it again and the repository stays in the same state. It needs admin rights on the repository,
 and the `gh` command, logged in.
 
-Usage: apply_settings.py [OWNER/REPO] [--dry-run] [--code-owner-review] [--last-push-approval]
+Usage: apply_settings.py [OWNER/REPO] [--dry-run] [--code-owner-review] [--last-push-approval] [--turn-off-reviews]
 """
 
 import argparse
@@ -66,6 +67,8 @@ def check_owners():
             rules = [fields for fields in rules if fields]
             if not rules:
                 raise Failure(f"{path} names no owner: add the rules of the template, with the reviewers of the project.")
+            if any(len(fields) < 2 for fields in rules):
+                raise Failure(f"{path} has a rule with no owner: each line gives a pattern and the reviewers of the project.")
             if any("@OWNER" in fields for fields in rules):
                 raise Failure(f"{path} still names @OWNER, the owner of the template: replace it with the reviewers of the project.")
             return
@@ -101,15 +104,14 @@ def lowered(detail):
 
 def settings(repository, code_owner_review=False, last_push_approval=False):
     """Return the steps, in the order they are applied, as (description, arguments of gh api, standard input of gh),
-    and the warnings: what a run without the options would turn off in the ruleset that exists."""
+    and the reviews that the ruleset on the platform requires and that this run would turn off."""
     api = f"repos/{repository}"
     ruleset_id = next((r["id"] for r in json.loads(gh("api", f"{api}/rulesets")) if r["name"] == ruleset_name()), None)
     ruleset = ("-X", "PUT", f"{api}/rulesets/{ruleset_id}") if ruleset_id else ("-X", "POST", f"{api}/rulesets")
-    warnings = []
-    if ruleset_id and not (code_owner_review or last_push_approval):
-        turned_off = lowered(json.loads(gh("api", f"{api}/rulesets/{ruleset_id}") or "{}"))
-        if turned_off:
-            warnings.append(f"the ruleset '{ruleset_name()}' requires {' and '.join(turned_off)}, and this run turns it off: give the same options to keep it.")
+    kept = (["code owner review"] if code_owner_review else []) + (["last push approval"] if last_push_approval else [])
+    turned_off = []
+    if ruleset_id:
+        turned_off = [name for name in lowered(json.loads(gh("api", f"{api}/rulesets/{ruleset_id}") or "{}")) if name not in kept]
     if code_owner_review or last_push_approval:
         body, words = protected(code_owner_review, last_push_approval)
         file, text, stdin = "-", f" ({', '.join(words)})", json.dumps(body)
@@ -133,7 +135,7 @@ def settings(repository, code_owner_review=False, last_push_approval=False):
             stdin,
         ),
     ]
-    return steps, warnings
+    return steps, turned_off
 
 
 def run(args):
@@ -146,11 +148,14 @@ def run(args):
         check_owners()
     print(f"repository: {repository}")
     try:
-        steps, warnings = settings(repository, args.code_owner_review, args.last_push_approval)
+        steps, turned_off = settings(repository, args.code_owner_review, args.last_push_approval)
     except Failure as failure:
         raise Failure(f"could not read the rulesets of {repository}: {failure}. This needs admin rights on the repository.")
-    for warning in warnings:
-        print(f"warning: {warning}", file=sys.stderr)
+    if turned_off and not args.turn_off_reviews:
+        raise Failure(
+            f"the ruleset '{ruleset_name()}' of {repository} requires {' and '.join(turned_off)}, and this run would turn it off. "
+            "Give the same options to keep it, or --turn-off-reviews to turn it off."
+        )
     for description, arguments, *stdin in steps:
         if args.dry_run:
             print(f"would apply {description}")
@@ -172,6 +177,10 @@ def main():
     parser.add_argument(
         "--code-owner-review", action="store_true",
         help="require the approval of a code owner and dismiss an approval when a commit is pushed after it (ADR 0014)",
+    )
+    parser.add_argument(
+        "--turn-off-reviews", action="store_true",
+        help="apply the ruleset even if it turns off a review that the ruleset of the repository requires",
     )
     parser.add_argument(
         "--last-push-approval", action="store_true",

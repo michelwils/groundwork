@@ -309,23 +309,47 @@ class ApplySettings(unittest.TestCase):
 
     PROTECTED = '{"rules": [{"type": "pull_request", "parameters": {"require_code_owner_review": true, "require_last_push_approval": false}}]}'
 
-    def test_a_run_without_the_options_warns_when_it_turns_off_a_review_that_the_ruleset_has(self):
+    BOTH = '{"rules": [{"type": "pull_request", "parameters": {"require_code_owner_review": true, "require_last_push_approval": true}}]}'
+    EXISTING = '[{"id": 7, "name": "main"}]'
+
+    def test_a_run_that_would_turn_off_a_review_that_the_ruleset_has_is_refused(self):
         for arguments in ((), ("--dry-run",)):
             with self.subTest(arguments=arguments):
-                result = self.run_script("owner/repo", *arguments, rulesets='[{"id": 7, "name": "main"}]', ruleset=self.PROTECTED)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn("warning", result.stderr)
+                result = self.run_script("owner/repo", *arguments, rulesets=self.EXISTING, ruleset=self.PROTECTED)
+                self.assertEqual(result.returncode, 1)
                 self.assertIn("code owner review", result.stderr)
                 self.assertIn("same options", result.stderr)
+                self.assertIn("--turn-off-reviews", result.stderr)
+                self.assertEqual(self.writes(), [])
 
-    def test_no_warning_when_the_options_are_given_or_the_ruleset_has_no_review(self):
+    def test_a_run_that_keeps_only_one_of_two_reviews_is_refused_too(self):
         self.owners()
-        given = self.run_script("owner/repo", "--code-owner-review", rulesets='[{"id": 7, "name": "main"}]', ruleset=self.PROTECTED)
-        self.assertNotIn("warning", given.stderr)
-        plain = self.run_script("owner/repo", rulesets='[{"id": 7, "name": "main"}]', ruleset='{"rules": [{"type": "pull_request", "parameters": {}}]}')
-        self.assertNotIn("warning", plain.stderr)
+        result = self.run_script("owner/repo", "--code-owner-review", rulesets=self.EXISTING, ruleset=self.BOTH)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("last push approval", result.stderr)
+        self.assertNotIn("code owner review required", result.stderr)
+        self.assertEqual(self.writes(), [])
+
+    def test_the_option_that_turns_the_reviews_off_lets_the_run_go_on(self):
+        result = self.run_script("owner/repo", "--turn-off-reviews", rulesets=self.EXISTING, ruleset=self.BOTH)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIsNone(self.sent())
+        self.assertTrue(any("rulesets/7" in " ".join(call) for call in self.writes()))
+
+    def test_nothing_is_refused_when_the_options_keep_the_reviews_or_the_ruleset_has_none(self):
+        self.owners()
+        kept = self.run_script("owner/repo", "--code-owner-review", "--last-push-approval", rulesets=self.EXISTING, ruleset=self.BOTH)
+        self.assertEqual(kept.returncode, 0, kept.stderr)
+        plain = self.run_script("owner/repo", rulesets=self.EXISTING, ruleset='{"rules": [{"type": "pull_request", "parameters": {}}]}')
+        self.assertEqual(plain.returncode, 0, plain.stderr)
         created = self.run_script("owner/repo")
-        self.assertNotIn("warning", created.stderr)
+        self.assertEqual(created.returncode, 0, created.stderr)
+
+    def test_a_file_of_code_owners_whose_rules_name_no_owner_is_refused(self):
+        self.owners("/docs/adr/0*\n")
+        result = self.run_script("owner/repo", "--code-owner-review")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no owner", result.stderr)
 
     def test_a_ruleset_file_without_a_pull_request_rule_is_an_error_not_a_crash(self):
         with tempfile.TemporaryDirectory() as directory:
