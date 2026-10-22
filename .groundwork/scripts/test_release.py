@@ -228,7 +228,10 @@ class AmbiguousReverts(unittest.TestCase):
             repo.tag("1.0.0")
             repo.commit("feat: add x")
             repo.commit("revert!: add x")
-            result = repo.run("--version", "2.0.0")
+            migration = os.path.join(repo.directory.name, "migration.md")
+            with open(migration, "w") as handle:
+                handle.write("Stop using it.\n")
+            result = repo.run("--version", "2.0.0", "--notes-extra", migration)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("version: 2.0.0", result.stdout)
             self.assertEqual(result.stdout.count("- add x"), 2)
@@ -287,6 +290,101 @@ class AmbiguousReverts(unittest.TestCase):
             repo.commit("feat: add x")
             repo.commit("revert: add x")
             self.assertEqual(repo.next(), ("none", None))
+            self.assertEqual(repo.run().returncode, 0)
+
+
+class BreakingWithoutText(unittest.TestCase):
+    """A breaking change whose commit has no text in its `BREAKING CHANGE:` footer stops the release: the maintainers give the migration."""
+
+    def extra(self, repo, text):
+        path = os.path.join(repo.directory.name, "extra.md")
+        with open(path, "w") as handle:
+            handle.write(text)
+        return path
+
+    def sha(self, repo, count=1):
+        return repo.git("log", f"-{count}", "--format=%h").split()
+
+    def test_a_change_marked_only_by_the_bang_stops_and_is_named(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it (#9)")
+            result = repo.run()
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("the breaking change 'feat!: change it (#9)' (" + self.sha(repo)[0] + ")", result.stderr)
+            self.assertIn("--notes-extra", result.stderr)
+            self.assertNotIn("version:", result.stdout)
+
+    def test_a_footer_without_text_stops(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("fix: correct it", "BREAKING CHANGE:\nCo-Authored-By: Someone <someone@example.com>")
+            result = repo.run()
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("fix: correct it", result.stderr)
+
+    def test_every_change_without_text_is_named(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it")
+            repo.commit("fix: correct it", "BREAKING CHANGE: read `account`.")
+            repo.commit("refactor!: move it")
+            result = repo.run()
+            self.assertEqual(result.returncode, 1, result.stdout)
+            second, first = self.sha(repo, 3)[0], self.sha(repo, 3)[2]
+            self.assertIn(f"'feat!: change it' ({first})", result.stderr)
+            self.assertIn(f"'refactor!: move it' ({second})", result.stderr)
+            self.assertNotIn("fix: correct it", result.stderr)
+
+    def test_a_change_with_a_footer_is_not_affected(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it", "BREAKING CHANGE: read `account`.")
+            result = repo.run()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("  read `account`.", result.stdout)
+
+    def test_a_release_without_a_breaking_change_is_not_affected(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            self.assertEqual(repo.run().returncode, 0)
+
+    def test_the_extra_notes_give_the_migration_and_the_release_goes_on(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it")
+            result = repo.run("--notes-extra", self.extra(repo, "Read `account` instead of `user`.\n"))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Read `account` instead of `user`.", result.stdout)
+            self.assertIn("- change it", result.stdout)
+
+    def test_empty_extra_notes_do_not_give_the_migration(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it")
+            self.assertEqual(repo.run("--notes-extra", self.extra(repo, " \n")).returncode, 1)
+
+    def test_the_version_given_does_not_give_the_migration(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it")
+            result = repo.run("--version", "0.2.0")
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("--notes-extra", result.stderr)
+
+    def test_a_change_that_a_revert_undid_is_not_named(self):
+        with Repository() as repo:
+            repo.commit("feat: add a feature")
+            repo.tag("0.1.0")
+            repo.commit("feat!: change it")
+            repo.commit("revert: change it")
             self.assertEqual(repo.run().returncode, 0)
 
 

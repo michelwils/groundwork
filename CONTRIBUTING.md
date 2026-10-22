@@ -20,7 +20,7 @@ Every change goes through an issue, a branch and a pull request ([ADR 0003](docs
 3. Commit your work on the branch.
 4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. The pull request template has these sections.
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
-6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted. For a breaking change, the maintainer who merges copies the `BREAKING CHANGE:` line from the description into the body of the squash commit, from which the release notes take it.
+6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted. For a breaking change, the maintainer who merges copies the `BREAKING CHANGE:` line from the description into the body of the squash commit, from which the release notes take it. A release stops at a breaking change whose commit has no such text, until the maintainers give the migration as the text that opens the notes.
 
 The pull requests that Dependabot opens to update pinned versions, and the one that the `update-groundwork` workflow opens to move to a later version of groundwork, have no issue. The title of Dependabot's pull requests, which starts with a capital letter, is not checked. A maintainer reviews and merges each one ([ADR 0003](docs/adr/0003-change-workflow.md)).
 <!-- /groundwork -->
