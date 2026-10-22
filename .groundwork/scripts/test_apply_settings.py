@@ -345,6 +345,73 @@ class ApplySettings(unittest.TestCase):
         created = self.run_script("owner/repo")
         self.assertEqual(created.returncode, 0, created.stderr)
 
+    def pull_request(self, **parameters):
+        return json.dumps({"rules": [{"type": "pull_request", "parameters": parameters}]})
+
+    def test_every_approval_setting_that_a_run_would_lower_is_guarded(self):
+        for parameter, words in (
+            ("dismiss_stale_reviews_on_push", "stale approvals"),
+            ("required_review_thread_resolution", "thread resolution"),
+            ("required_approving_review_count", "required approvals"),
+        ):
+            with self.subTest(parameter=parameter):
+                value = 1 if parameter == "required_approving_review_count" else True
+                result = self.run_script("owner/repo", rulesets=self.EXISTING, ruleset=self.pull_request(**{parameter: value}))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(words, result.stderr)
+                self.assertEqual(self.writes(), [])
+
+    def test_a_setting_that_the_options_set_is_not_lowered(self):
+        self.owners()
+        result = self.run_script(
+            "owner/repo", "--code-owner-review", rulesets=self.EXISTING,
+            ruleset=self.pull_request(require_code_owner_review=True, dismiss_stale_reviews_on_push=True),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_setting_that_the_options_do_not_set_is_lowered_even_when_they_are_given(self):
+        self.owners()
+        result = self.run_script(
+            "owner/repo", "--code-owner-review", rulesets=self.EXISTING, ruleset=self.pull_request(required_review_thread_resolution=True)
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("thread resolution", result.stderr)
+
+    def test_a_file_of_code_owners_may_leave_a_path_without_owner(self):
+        self.owners("/docs/adr/0001-*\n/docs/adr/0*  @reviewers\n")
+        self.assertEqual(self.run_script("owner/repo", "--code-owner-review").returncode, 0)
+
+    def test_without_an_option_a_ruleset_file_needs_no_pull_request_rule(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "main.json")
+            with open(path, "w") as handle:
+                json.dump({"name": "main", "rules": [{"type": "deletion"}]}, handle)
+            previous, apply_settings.RULESET = apply_settings.RULESET, path
+            try:
+                ruleset, words = apply_settings.protected(False, False)
+            finally:
+                apply_settings.RULESET = previous
+        self.assertEqual((ruleset["name"], words), ("main", []))
+
+    def test_a_ruleset_file_without_a_pull_request_rule_is_not_reported_as_a_read_error(self):
+        import argparse
+
+        arguments = argparse.Namespace(
+            repository="owner/repo", dry_run=True, code_owner_review=True, last_push_approval=False, turn_off_reviews=False
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "main.json")
+            with open(path, "w") as handle:
+                json.dump({"name": "main", "rules": [{"type": "deletion"}]}, handle)
+            previous, apply_settings.RULESET = apply_settings.RULESET, path
+            try:
+                with self.assertRaises(apply_settings.Failure) as caught:
+                    apply_settings.run(arguments)
+            finally:
+                apply_settings.RULESET = previous
+        self.assertIn("pull_request", str(caught.exception))
+        self.assertNotIn("could not read", str(caught.exception))
+
     def test_a_file_of_code_owners_whose_rules_name_no_owner_is_refused(self):
         self.owners("/docs/adr/0*\n")
         result = self.run_script("owner/repo", "--code-owner-review")
