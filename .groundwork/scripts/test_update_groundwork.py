@@ -305,6 +305,13 @@ class Update(unittest.TestCase):
                 self.assertEqual(git(self.project, "status", "--porcelain", "--ignored"), "")
                 self.assertEqual(self.branches(), ["main"])
 
+    def test_a_path_under_git_with_a_bidirectional_control_is_named_without_the_control(self):
+        tag_with_hook(self.source, "v0.3.0", "0.4.0", ".git\u202e")
+        result = self.run_script("--to", "0.4.0")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(repr(".git\u202e/hooks/pre-commit"), result.stderr)
+        self.assertNotIn("\u202e", result.stderr)
+
     def test_a_name_with_an_invisible_character_that_a_script_needs_is_updated(self):
         # U+200C is required in Persian and Hindi, U+200D in emoji sequences, U+00AD is a soft hyphen.
         for version, character in enumerate(("\u200c", "\u200d", "\u00ad"), start=4):
