@@ -204,7 +204,7 @@ def main():
     )
     parser.add_argument(
         "--last-push-approval", action="store_true",
-        help="require that the approval comes from someone other than the person who pushed last (ADR 0014)",
+        help="with --code-owner-review, require that the approval comes from someone other than the person who pushed last (ADR 0014)",
     )
     try:
         run(parser.parse_args())
