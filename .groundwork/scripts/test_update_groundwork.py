@@ -287,8 +287,9 @@ class Update(unittest.TestCase):
                 self.assertEqual(self.branches(), ["main"])
 
     def test_a_version_that_holds_a_path_with_a_control_character_is_refused_before_anything_changes(self):
-        # A line break in a name would add a line to the report, which open_update_pull_request.py reads.
-        for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029"), start=4):
+        # A line break in a name would add a line to the report, which open_update_pull_request.py reads. A bidirectional
+        # control, such as U+202E, changes how the name is shown to the reviewer.
+        for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029", "\u202a", "\u202e", "\u2066", "\u2069"), start=4):
             with self.subTest(character=character):
                 shutil.rmtree(self.project)
                 self.adopt("0.1.0", V1)
@@ -303,6 +304,28 @@ class Update(unittest.TestCase):
                 self.assertIn(repr(name), result.stderr)
                 self.assertEqual(git(self.project, "status", "--porcelain", "--ignored"), "")
                 self.assertEqual(self.branches(), ["main"])
+
+    def test_a_path_under_git_with_a_bidirectional_control_is_named_without_the_control(self):
+        tag_with_hook(self.source, "v0.3.0", "0.4.0", ".git\u202e")
+        result = self.run_script("--to", "0.4.0")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(repr(".git\u202e/hooks/pre-commit"), result.stderr)
+        self.assertNotIn("\u202e", result.stderr)
+
+    def test_a_name_with_an_invisible_character_that_a_script_needs_is_updated(self):
+        # U+200C is required in Persian and Hindi, U+200D in emoji sequences, U+00AD is a soft hyphen.
+        for version, character in enumerate(("\u200c", "\u200d", "\u00ad"), start=4):
+            with self.subTest(character=character):
+                shutil.rmtree(self.project)
+                self.adopt("0.1.0", V1)
+                name = f"notes{character}.md"
+                write(self.source, {name: "notes\n"})
+                git(self.source, "add", "-A")
+                git(self.source, "commit", "-q", "-m", f"feat: release 0.{version}.0")
+                git(self.source, "tag", "-a", f"v0.{version}.0", "-m", f"v0.{version}.0")
+                result = self.run_script("--to", f"0.{version}.0")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertTrue(os.path.exists(os.path.join(self.project, name)))
 
     def test_a_name_that_only_starts_like_git_is_updated(self):
         for version, directory in enumerate((".github", ".gitx", "git~2", "x.git"), start=4):

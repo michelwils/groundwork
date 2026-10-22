@@ -102,6 +102,14 @@ def conflicts(output):
     return re.findall(r"^- (.+)$", output, re.MULTILINE)
 
 
+def code(text):
+    """Return the text as a code span that holds all of it: a fence of backticks longer than any run in the text, and a
+    space on each side when the text starts or ends with a backtick or a space. Nothing in a code span is read as Markdown."""
+    fence = "`" * (max(map(len, re.findall("`+", text)), default=0) + 1)
+    pad = " " if text[:1] in ("`", " ") or text[-1:] in ("`", " ") else ""
+    return f"{fence}{pad}{text}{pad}{fence}"
+
+
 def body(old, new, conflicts, source, added=()):
     lines = [f"Moves the project from groundwork {old} to {new}."]
     if source.startswith("https://"):
@@ -110,7 +118,7 @@ def body(old, new, conflicts, source, added=()):
         lines += ["", "These ADRs enter the choice of the project because an ADR it keeps needs them: " + ", ".join(f"ADR {number}" for number in added) + "."]
     if conflicts:
         lines += ["", "These files are in conflict. Resolve the markers, then mark the pull request ready:", ""]
-        lines += [f"- `{path}`" for path in conflicts]
+        lines += [f"- {code(path)}" for path in conflicts]
     return "\n".join(lines) + "\n"
 
 
