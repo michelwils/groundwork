@@ -13,7 +13,7 @@ in the working tree: it does not commit, push or open a pull request.
 Files that concern groundwork itself, or that belong to the project, are left out, see EXCLUDED.
 A version whose files include a path that a file system can put in a directory .git, such as a hook,
 or a path that holds a control character or a line break, which would add a line to this report,
-or a format character, such as U+202E, which changes how the name is shown,
+or a bidirectional control, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
 
 The project may list the ADRs it keeps in `.groundwork-adrs` (choice.py). The script then reads,
@@ -56,6 +56,7 @@ ADDRESS_LENGTH = 2048
 PREFIX = "groundwork/"
 VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 # The characters that HFS+ ignores in a name, as git does for .git (core.protectHFS).
+BIDIRECTIONAL_CONTROLS = frozenset(chr(code) for code in (*range(0x202A, 0x202F), *range(0x2066, 0x206A)))
 HFS_IGNORED = dict.fromkeys([0x200C, 0x200D, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x206A, 0x2070), 0xFEFF])
 
 
@@ -169,7 +170,7 @@ def paths_of(raw):
     """Return the paths of the output of git, without EXCLUDED. Stop at one that holds a control character or a line
     break, which would add a line to the report that open_update_pull_request.py reads, at one that would land in a
     directory .git: the source would then write the hooks or the configuration of the project, and at one that holds a
-    format character, which changes how the name is shown. The callers read the output as bytes, so that Python
+    bidirectional control, which changes how the name is shown. The callers read the output as bytes, so that Python
     translates no line break."""
     paths = [path for path in raw.split("\0") if path]
     for path in paths:
@@ -177,8 +178,8 @@ def paths_of(raw):
             raise Failure(f"The source holds {path!r}, whose name holds a control character or a line break: nothing is changed.")
         if in_git_directory(path):
             raise Failure(f"The source holds {path}, which would land in a directory .git: nothing is changed.")
-        if any(unicodedata.category(character) == "Cf" for character in path):
-            raise Failure(f"The source holds {path!r}, whose name holds a format character, which changes how it is shown: nothing is changed.")
+        if any(character in BIDIRECTIONAL_CONTROLS for character in path):
+            raise Failure(f"The source holds {path!r}, whose name holds a bidirectional control, which changes how it is shown: nothing is changed.")
     return [path for path in paths if path not in EXCLUDED]
 
 
