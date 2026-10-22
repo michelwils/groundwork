@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -202,6 +203,77 @@ class Update(unittest.TestCase):
         self.assertIn("<<<<<<<", read(self.project, "CONTRIBUTING.md"))
         self.assertEqual(read(self.project, ".groundwork-version"), "0.2.0\n")
 
+    def result_file(self):
+        return os.path.join(self.directory.name, "result.json")
+
+    def result(self):
+        with open(self.result_file()) as handle:
+            return json.load(handle)
+
+    def test_gives_the_result_in_the_file_that_the_caller_names(self):
+        self.commit_project({"CONTRIBUTING.md": "one\ntwo mine\nthree\n"})
+        result = self.run_script("--to", "0.2.0", "--result", self.result_file())
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(
+            self.result(),
+            {
+                "branch": "chore/42-update-groundwork-to-v0-2-0",
+                "from": "0.1.0",
+                "to": "0.2.0",
+                "source": self.source,
+                "added": [],
+                "conflicts": ["CONTRIBUTING.md"],
+            },
+        )
+
+    def test_a_relative_path_of_the_result_is_the_one_of_the_directory_of_the_caller(self):
+        directory = os.path.join(self.project, "sub")
+        os.makedirs(directory)
+        result = subprocess.run(
+            [sys.executable, SCRIPT, "42", "--source", self.source, "--to", "0.2.0", "--result", "out.json"],
+            cwd=directory,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(os.path.exists(os.path.join(directory, "out.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.project, "out.json")))
+
+    def test_an_empty_path_of_the_result_stops_the_update_before_anything_changes(self):
+        result = self.run_script("--to", "0.2.0", "--result", "")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("--result", result.stderr)
+        self.assertEqual(self.branches(), ["main"])
+
+    def test_the_result_of_an_update_without_conflict_lists_none(self):
+        result = self.run_script("--to", "0.2.0", "--result", self.result_file())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.result()["conflicts"], [])
+
+    def test_writes_no_result_when_the_project_is_up_to_date(self):
+        self.run_script("--to", "0.3.0")
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "chore: update groundwork to v0.3.0")
+        result = self.run_script("--result", self.result_file(), issue=None)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(os.path.exists(self.result_file()))
+
+    def test_a_path_cannot_add_or_replace_a_field_of_the_result(self):
+        name = 'x", "branch": "victim.md'
+        self.assertEqual(json.loads(json.dumps({"conflicts": [name]}))["conflicts"], [name])  # the encoding the script relies on
+        self.commit_project({name: "mine\n"})
+        git(self.source, "checkout", "-q", "-b", "other", "v0.3.0")
+        write(self.source, {name: "theirs\n"})
+        git(self.source, "add", "-A")
+        git(self.source, "commit", "-q", "-m", "feat: release 0.4.0")
+        git(self.source, "tag", "-a", "v0.4.0", "-m", "v0.4.0")
+        result = self.run_script("--to", "0.4.0", "--result", self.result_file())
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        fields = self.result()
+        self.assertEqual(fields["conflicts"], [name])
+        self.assertEqual(fields["branch"], "chore/42-update-groundwork-to-v0-4-0")
+        self.assertEqual(sorted(fields), ["added", "branch", "conflicts", "from", "source", "to"])
+
     def test_accepts_a_project_already_ahead_of_its_recorded_version(self):
         self.commit_project({"new.md": "new\n", "CONTRIBUTING.md": V2["CONTRIBUTING.md"]})
         result = self.run_script("--to", "0.2.0")
@@ -287,7 +359,7 @@ class Update(unittest.TestCase):
                 self.assertEqual(self.branches(), ["main"])
 
     def test_a_version_that_holds_a_path_with_a_control_character_is_refused_before_anything_changes(self):
-        # A line break in a name would add a line to the report, which open_update_pull_request.py reads. A bidirectional
+        # A line break in a name would add a line to the text that the script prints. A bidirectional
         # control, such as U+202E, changes how the name is shown to the reviewer.
         for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029", "\u202a", "\u202e", "\u2066", "\u2069"), start=4):
             with self.subTest(character=character):
@@ -631,6 +703,17 @@ class Choice(unittest.TestCase):
         self.assertRegex(result.stdout, r"(?m)^branch: chore/42-update-groundwork-to-v0-2-0$")
         self.assertRegex(result.stdout, r"(?m)^from: 0\.1\.0$")
         self.assertRegex(result.stdout, r"(?m)^to: 0\.2\.0$")
+
+    def test_the_result_names_the_adrs_that_enter_the_choice(self):
+        self.releases(world("1"), world("2"))
+        self.adopt(trimmed(world("1"), {1}), "0003\n")
+        path = os.path.join(self.directory.name, "result.json")
+        result = self.run_script("--result", path)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with open(path) as handle:
+            added = json.load(handle)["added"]
+        self.assertTrue(added)
+        self.assertEqual(result.stdout.count("added: " + ", ".join(added)), 1)
 
     def test_an_adr_that_the_project_lists_is_not_said_to_be_added(self):
         self.releases(world("1"), world("2"))

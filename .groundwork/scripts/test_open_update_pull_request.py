@@ -124,6 +124,13 @@ class OpenUpdatePullRequest(unittest.TestCase):
         self.assertEqual(git(self.remote, "show", "groundwork/update-to-v0-2-0:.groundwork-version"), "0.2.0\n")
         self.assertIn("https://github.com/owner/project/pull/1", result.stdout)
 
+    def test_commits_no_file_of_the_result(self):
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        files = git(self.remote, "diff", "--name-only", "main", "groundwork/update-to-v0-2-0").split()
+        self.assertNotIn("result.json", [os.path.basename(name) for name in files])
+        self.assertEqual(git(self.project, "status", "--porcelain"), "")
+
     def test_runs_no_hook_of_the_project(self):
         hooks, ran = os.path.join(self.directory.name, "hooks"), os.path.join(self.directory.name, "ran")
         os.makedirs(hooks)
@@ -283,44 +290,57 @@ class Body(unittest.TestCase):
         self.assertNotIn("ADR", text)
         self.assertEqual(text, opener.body("0.1.0", "0.2.0", [], "https://github.com/o/g.git"))
 
-    def test_the_added_adrs_are_read_from_the_line_of_the_update(self):
-        output = "branch: b\nfrom: 0.1.0\nto: 0.2.0\nadded: 0002, 0003\n"
-        self.assertEqual(opener.added(output), ["0002", "0003"])
-        self.assertEqual(opener.added("branch: b\n"), [])
+    RESULT = {
+        "branch": "groundwork/update-to-v0-2-0",
+        "from": "0.1.0",
+        "to": "0.2.0",
+        "source": "https://github.com/o/g.git",
+        "added": ["0002", "0003"],
+        "conflicts": ["a.md", "b`c.md"],
+    }
 
-    def test_a_line_that_looks_like_the_report_is_not_read_in_the_middle_of_a_line(self):
-        self.assertEqual(opener.added("- file added: 0002\n"), [])
+    def read_result(self, fields):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "result.json")
+            with open(path, "w") as handle:
+                handle.write(fields if isinstance(fields, str) else json.dumps(fields))
+            return opener.result(path)
 
-    def test_the_added_adrs_are_not_taken_for_conflicts(self):
-        output = "branch: b\nfrom: 0.1.0\nto: 0.2.0\nadded: 0002\nResolve the conflicts in these files:\n- a.md\n"
-        self.assertEqual(opener.conflicts(output), ["a.md"])
+    def test_the_result_is_read_from_the_file(self):
+        self.assertEqual(self.read_result(self.RESULT), self.RESULT)
 
-
-    HEADER = "branch: groundwork/update-to-v0-2-0\nfrom: 0.1.0\nto: 0.2.0\nsource: https://github.com/o/g.git\n"
-
-    def test_the_header_is_read_from_the_first_lines_only(self):
-        output = self.HEADER + "Resolve the conflicts in these files:\n- a.md\nbranch: victim\nto: 9.9.9\n"
-        self.assertEqual(
-            opener.header(output),
-            {"branch": "groundwork/update-to-v0-2-0", "from": "0.1.0", "to": "0.2.0", "source": "https://github.com/o/g.git"},
-        )
-
-    def test_an_update_that_names_no_branch_has_no_header(self):
-        self.assertIsNone(opener.header("The project is up to date with groundwork 0.2.0.\n"))
-
-    def test_a_header_that_is_not_the_expected_one_is_refused(self):
-        for output in (
-            self.HEADER.replace("groundwork/update-to-v0-2-0", "victim"),
-            self.HEADER.replace("groundwork/update-to-v0-2-0", "groundwork/update-to-v0-2-0\nx"),
-            "branch: groundwork/update-to-v0-2-0\nfrom: 0.1.0\nsource: s\nto: 0.2.0\n",
-            "branch: groundwork/update-to-v0-2-0\nfrom: 0.1.0\n",
-            self.HEADER.replace("to: 0.2.0", "to: 0.3.0"),
-            self.HEADER.replace("to: 0.2.0", "to: 0.2.0 [x](https://example.org)"),
-            self.HEADER.replace("from: 0.1.0", "from: 0.1.0 [x](https://example.org)"),
-        ):
-            with self.subTest(output=output):
+    def test_the_status_of_the_update_must_agree_with_its_conflicts(self):
+        opener.agree(0, {"conflicts": []})
+        opener.agree(2, {"conflicts": ["a.md"]})
+        for status, conflicts in ((0, ["a.md"]), (2, []), (3, []), (-9, [])):
+            with self.subTest(status=status, conflicts=conflicts):
                 with self.assertRaises(opener.Failure):
-                    opener.header(output)
+                    opener.agree(status, {"conflicts": conflicts})
+
+    def test_an_update_that_wrote_no_result_has_none(self):
+        self.assertIsNone(opener.result(os.path.join(tempfile.gettempdir(), "no-such-groundwork-result.json")))
+
+    def test_a_result_that_is_not_the_expected_one_is_refused(self):
+        without = lambda name: {key: value for key, value in self.RESULT.items() if key != name}
+        for fields in (
+            "not json",
+            "[]",
+            without("branch"),
+            without("conflicts"),
+            {**self.RESULT, "extra": "x"},
+            {**self.RESULT, "branch": "victim"},
+            {**self.RESULT, "to": "0.3.0"},
+            {**self.RESULT, "to": "0.2.0 [x](https://example.org)"},
+            {**self.RESULT, "from": "0.1.0\nx"},
+            {**self.RESULT, "source": 3},
+            {**self.RESULT, "added": "0002"},
+            {**self.RESULT, "added": ["0002", "[x](https://example.org)"]},
+            {**self.RESULT, "conflicts": "a.md"},
+            {**self.RESULT, "conflicts": ["a.md", 3]},
+        ):
+            with self.subTest(fields=fields):
+                with self.assertRaises(opener.Failure):
+                    self.read_result(fields)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ in the working tree: it does not commit, push or open a pull request.
 
 Files that concern groundwork itself, or that belong to the project, are left out, see EXCLUDED.
 A version whose files include a path that a file system can put in a directory .git, such as a hook,
-or a path that holds a control character or a line break, which would add a line to this report,
+or a path that holds a control character or a line break, which would add a line to the text it prints,
 or a bidirectional control, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
 
@@ -28,12 +28,17 @@ Everything is read before the branch is created, so a choice that is refused cha
 Exit status: 0 when the project is updated or up to date, 1 on an error, 2 when some files are
 in conflict. A conflict leaves markers in the file, and the script names the files. After the
 lines `branch:`, `from:` and `to:`, the line `source:` names the source that was used, the line `added: 0002, 0003` names the ADRs that enter the
-choice and that the project does not list, and the lines `- path` name the files in conflict.
+choice and that the project does not list, and the lines `- path` name the files in conflict. This text is for a person.
 
-Usage: update_groundwork.py [ISSUE] [--to X.Y.Z] [--source URL]
+With `--result PATH`, the script also writes its result to PATH as one JSON object, once the branch is prepared,
+for open_update_pull_request.py to read (ADR 1003): `branch`, `from`, `to` and `source` as strings, `added` as a list
+of ADR numbers and `conflicts` as a list of paths. It writes none when the project is up to date.
+
+Usage: update_groundwork.py [ISSUE] [--to X.Y.Z] [--source URL] [--result PATH]
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -169,7 +174,7 @@ def inside(root, path):
 
 def paths_of(raw):
     """Return the paths of the output of git, without EXCLUDED. Stop at one that holds a control character or a line
-    break, which would add a line to the report that open_update_pull_request.py reads, at one that holds a
+    break, which would add a line to the text it prints, at one that holds a
     bidirectional control, which changes how the name is shown, and at one that would land in a directory .git: the
     source would then write the hooks or the configuration of the project. The callers read the output as bytes, so that Python
     translates no line break."""
@@ -379,6 +384,10 @@ def plan(old, new):
 def run(args):
     if args.issue is not None and not args.issue.isdigit():
         raise Failure(f"'{args.issue}' is not an issue number.")
+    if args.result is not None:
+        if not args.result:
+            raise Failure("--result needs the path of a file.")
+        args.result = os.path.abspath(args.result)  # the script goes to the root of the repository next
     os.chdir(git("rev-parse", "--show-toplevel").stdout.strip())
     old = recorded_version()
     if git("status", "--porcelain").stdout.strip():
@@ -429,14 +438,18 @@ def run(args):
         print("Resolve the conflicts in these files:")
         for path in conflicts:
             print(f"- {path}")
-        return 2
-    return 0
+    if args.result:
+        result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in said], "conflicts": conflicts}
+        with open(args.result, "w") as handle:
+            json.dump(result, handle)
+    return 2 if conflicts else 0
 
 
 def main():
     parser = argparse.ArgumentParser(description="Prepare the update of a project to a later version of groundwork.")
     parser.add_argument("issue", nargs="?", help="number of the issue of the update, used in the name of the branch")
     parser.add_argument("--to", help="version to update to, without the leading v (default: the latest)")
+    parser.add_argument("--result", help="file in which to write the result as JSON, for open_update_pull_request.py (ADR 1003)")
     parser.add_argument("--source", help=f"repository of groundwork (default: the address in {SOURCE_FILE}, else {SOURCE})")
     try:
         sys.exit(run(parser.parse_args()))

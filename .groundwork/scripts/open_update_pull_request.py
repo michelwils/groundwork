@@ -6,6 +6,8 @@ It runs update_groundwork.py without an issue, commits the result on the branch
 has no issue, like those of Dependabot. When files are in conflict, it is a draft that lists them,
 and the markers stay in the files for a maintainer to resolve.
 
+It reads the result of the update from a JSON file that update_groundwork.py writes (ADR 1003), not from the text it prints.
+
 It opens nothing when the project is up to date, when a pull request from a branch `groundwork/…`
 is already open, when the pull request of that version was closed without being merged, or when the
 project has no `.groundwork-version`. A later version is proposed again. The branch of an earlier
@@ -23,13 +25,15 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UPDATE = os.path.join(HERE, "update_groundwork.py")
 VERSION_FILE = ".groundwork-version"
 PREFIX = "groundwork/"
-HEADER = ("branch", "from", "to", "source")
+FIELDS = ("branch", "from", "to", "source", "added", "conflicts")
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+ADR_NUMBER = re.compile(r"[0-9]{4}")
 IDENTITY = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"]
 
 
@@ -71,35 +75,38 @@ def undo(branch, current, commit):
     run("git", "branch", "-q", "-D", branch)
 
 
-def header(output):
-    """Return the fields of the first lines of the output of the update script, or None when it names no branch.
-    No later line, such as the name of a file in conflict, can replace a field, and the branch is the one of the version."""
-    lines = output.split("\n")
-    if not lines[0].startswith("branch: "):
+def result(path):
+    """Return the result that the update script wrote to the file, or None when it wrote none: the project is up to date.
+    It holds the strings branch, from, to and source, the list added of numbers of four digits and the list conflicts of
+    paths, and no other field. The branch is the one of the version."""
+    try:
+        with open(path) as handle:
+            fields = json.load(handle)
+    except FileNotFoundError:
         return None
-    fields = {}
-    for name, line in zip(HEADER, lines):
-        if not line.startswith(f"{name}: "):
-            break
-        fields[name] = line[len(name) + 2:]
+    except ValueError as error:
+        raise Failure(f"The update script wrote a result that is not JSON: {error}.")
+    if not isinstance(fields, dict) or set(fields) != set(FIELDS):
+        raise Failure(f"The update script wrote an unexpected result: {fields!r}.")
+    for name in ("branch", "from", "to", "source"):
+        if not isinstance(fields[name], str):
+            raise Failure(f"The update script wrote an unexpected result: {name} is not a string.")
+    for name in ("added", "conflicts"):
+        if not isinstance(fields[name], list) or not all(isinstance(item, str) for item in fields[name]):
+            raise Failure(f"The update script wrote an unexpected result: {name} is not a list of strings.")
     if (
-        len(fields) < len(HEADER)
-        or not all(VERSION.fullmatch(fields[name]) for name in ("from", "to"))
+        not all(VERSION.fullmatch(fields[name]) for name in ("from", "to"))
         or fields["branch"] != f"{PREFIX}update-to-v{fields['to'].replace('.', '-')}"
+        or not all(ADR_NUMBER.fullmatch(number) for number in fields["added"])
     ):
-        raise Failure(f"The update script wrote an unexpected header: {lines[:len(HEADER)]!r}.")
+        raise Failure(f"The update script wrote an unexpected result: {fields!r}.")
     return fields
 
 
-def added(output):
-    """Return the numbers of the ADRs that the update script says it added to the choice."""
-    match = re.search(r"^added: (.+)$", output, re.MULTILINE)
-    return [number.strip() for number in match.group(1).split(",")] if match else []
-
-
-def conflicts(output):
-    """Return the files that the update script names as in conflict."""
-    return re.findall(r"^- (.+)$", output, re.MULTILINE)
+def agree(status, fields):
+    """Check that the status of the update says what its result says: 2 when files are in conflict, 0 when none is."""
+    if status != (2 if fields["conflicts"] else 0):
+        raise Failure(f"The update script ended with status {status} and a result with {len(fields['conflicts'])} files in conflict.")
 
 
 def code(text):
@@ -136,16 +143,21 @@ def main():
 
     current = run("git", "branch", "--show-current").strip()
     commit = run("git", "rev-parse", "HEAD").strip()
-    command = [sys.executable, UPDATE] + (["--source", args.source] if args.source else [])
-    update = subprocess.run(command, capture_output=True, text=True)
-    sys.stdout.write(update.stdout)
-    if update.returncode == 1:
-        sys.stderr.write(update.stderr)
-        return 1
-    fields = header(update.stdout)
+    with tempfile.TemporaryDirectory() as directory:  # outside the working tree, so that the commit cannot hold it
+        file = os.path.join(directory, "result.json")
+        command = [sys.executable, UPDATE, "--result", file] + (["--source", args.source] if args.source else [])
+        update = subprocess.run(command, capture_output=True, text=True)
+        sys.stdout.write(update.stdout)
+        if update.returncode == 1:
+            sys.stderr.write(update.stderr)
+            return 1
+        fields = result(file)
     if fields is None:
+        if update.returncode != 0:
+            raise Failure(f"The update script ended with status {update.returncode} and wrote no result.")
         return 0  # up to date, the update script said so
-    files = conflicts(update.stdout) if update.returncode == 2 else []
+    agree(update.returncode, fields)
+    files = fields["conflicts"]
 
     branch, old, new = fields["branch"], fields["from"], fields["to"]
     if rejected(branch):
@@ -159,7 +171,7 @@ def main():
 
     url = run(
         "gh", "pr", "create", "--head", branch, "--title", title,
-        "--body", body(old, new, files, fields["source"], added(update.stdout)),
+        "--body", body(old, new, files, fields["source"], fields["added"]),
         *(["--draft"] if files else []),
     ).strip()
     print(url)
