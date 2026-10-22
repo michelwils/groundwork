@@ -12,7 +12,9 @@ A template copies files, not settings. The script applies, to a repository on Gi
 - the ruleset of .groundwork/rulesets/main.json, last, since it rejects direct pushes: it is updated if
   a ruleset of that name exists and created otherwise. With --code-owner-review, it also requires the approval of
   a code owner (CODEOWNERS) and dismisses an approval when a commit is pushed after it; with --last-push-approval,
-  the approval must come from someone other than the person who pushed last (ADR 0014)
+  the approval must come from someone other than the person who pushed last (ADR 0014). The options are not
+  remembered: a run without them applies the ruleset of the file, which requires neither approval. --code-owner-review
+  needs a file of code owners, run from the directory of the project
 
 Run it again and the repository stays in the same state. It needs admin rights on the repository,
 and the `gh` command, logged in.
@@ -52,6 +54,19 @@ def current_repository():
 def ruleset_name():
     with open(RULESET) as handle:
         return json.load(handle)["name"]
+
+
+def check_owners():
+    """Stop when the project has no file of code owners, or still has the owner of the template: the requirement would do nothing, or
+    no one could approve. GitHub reads the first of these files that exists."""
+    for path in (os.path.join(".github", "CODEOWNERS"), "CODEOWNERS", os.path.join("docs", "CODEOWNERS")):
+        if os.path.exists(path):
+            with open(path) as handle:
+                lines = [line.split("#")[0] for line in handle]
+            if any("@OWNER" in line.split() for line in lines):
+                raise Failure(f"{path} still names @OWNER, the owner of the template: replace it with the reviewers of the project.")
+            return
+    raise Failure("the project has no file of code owners (.github/CODEOWNERS, CODEOWNERS or docs/CODEOWNERS): copy .groundwork/CODEOWNERS.template to .github/CODEOWNERS and replace @OWNER.")
 
 
 def protected(code_owner_review, last_push_approval):
@@ -103,6 +118,8 @@ def run(args):
     repository = args.repository or current_repository()
     if not REPOSITORY.match(repository):
         raise Failure(f"'{repository}' is not of the form OWNER/REPO")
+    if args.code_owner_review:
+        check_owners()
     print(f"repository: {repository}")
     try:
         steps = settings(repository, args.code_owner_review, args.last_push_approval)

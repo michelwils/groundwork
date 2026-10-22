@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import stat
 import subprocess
 import sys
@@ -37,11 +38,14 @@ class ApplySettings(unittest.TestCase):
         with open(gh, "w") as handle:
             handle.write(FAKE_GH)
         os.chmod(gh, os.stat(gh).st_mode | stat.S_IEXEC)
+        self.project = os.path.join(self.directory.name, "project")
+        os.makedirs(self.project)
 
     def tearDown(self):
         self.directory.cleanup()
 
     def run_script(self, *args, rulesets="[]", fail=""):
+        """Run the script from the directory of a project, which holds the CODEOWNERS that `self.owners` writes."""
         env = {
             **os.environ,
             "PATH": self.directory.name + os.pathsep + os.environ["PATH"],
@@ -49,7 +53,7 @@ class ApplySettings(unittest.TestCase):
             "FAKE_RULESETS": rulesets,
             "FAKE_FAIL": fail,
         }
-        return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env)
+        return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env, cwd=self.project)
 
     def calls(self):
         if not os.path.exists(self.log):
@@ -193,6 +197,12 @@ class ApplySettings(unittest.TestCase):
 
     RULESET = os.path.join(HERE, "..", "rulesets", "main.json")
 
+    def owners(self, text="/docs/adr/0*  @reviewers\n", where=os.path.join(".github", "CODEOWNERS")):
+        path = os.path.join(self.project, where)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as handle:
+            handle.write(text)
+
     def sent(self):
         """Return the ruleset that was sent on the standard input of gh, or None when the file of the repository was named."""
         if not os.path.exists(self.log + ".body"):
@@ -208,6 +218,7 @@ class ApplySettings(unittest.TestCase):
         self.assertIsNone(self.sent())
 
     def test_the_code_owner_review_requires_the_review_and_dismisses_the_stale_approvals(self):
+        self.owners()
         result = self.run_script("owner/repo", "--code-owner-review")
         self.assertEqual(result.returncode, 0, result.stderr)
         parameters = self.parameters(self.sent())
@@ -224,6 +235,7 @@ class ApplySettings(unittest.TestCase):
         self.assertFalse(parameters["dismiss_stale_reviews_on_push"])
 
     def test_the_options_change_nothing_else_of_the_ruleset(self):
+        self.owners()
         self.run_script("owner/repo", "--code-owner-review", "--last-push-approval")
         with open(self.RULESET) as handle:
             expected = json.load(handle)
@@ -233,12 +245,44 @@ class ApplySettings(unittest.TestCase):
         self.assertEqual(self.sent(), expected)
 
     def test_an_existing_ruleset_is_updated_with_the_options(self):
+        self.owners()
         self.run_script("owner/repo", "--code-owner-review", rulesets='[{"id": 7, "name": "main"}]')
         text = [" ".join(call) for call in self.writes()]
         self.assertTrue(any(call.startswith("api -X PUT repos/owner/repo/rulesets/7 --input -") for call in text))
         self.assertTrue(self.parameters(self.sent())["require_code_owner_review"])
 
+    def test_the_code_owner_review_needs_a_file_of_code_owners(self):
+        result = self.run_script("owner/repo", "--code-owner-review")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("CODEOWNERS", result.stderr)
+        self.assertIn("CODEOWNERS.template", result.stderr)
+        self.assertEqual(self.writes(), [])
+
+    def test_the_code_owner_review_refuses_the_owner_of_the_template(self):
+        self.owners("/docs/adr/0*  @OWNER\n")
+        result = self.run_script("owner/repo", "--code-owner-review")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("@OWNER", result.stderr)
+        self.assertEqual(self.writes(), [])
+
+    def test_the_dry_run_refuses_what_the_run_would_refuse(self):
+        result = self.run_script("owner/repo", "--dry-run", "--code-owner-review")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("CODEOWNERS", result.stderr)
+
+    def test_the_file_of_code_owners_can_be_at_the_root_or_in_docs(self):
+        for where in ("CODEOWNERS", os.path.join("docs", "CODEOWNERS")):
+            with self.subTest(where=where):
+                self.owners(where=where)
+                self.assertEqual(self.run_script("owner/repo", "--code-owner-review").returncode, 0)
+                shutil.rmtree(self.project)
+                os.makedirs(self.project)
+
+    def test_the_last_push_approval_alone_does_not_need_the_file(self):
+        self.assertEqual(self.run_script("owner/repo", "--last-push-approval").returncode, 0)
+
     def test_the_dry_run_shows_the_protection_that_the_ruleset_would_have(self):
+        self.owners()
         plain = self.run_script("owner/repo", "--dry-run")
         self.assertNotIn("code owner review", plain.stdout)
         result = self.run_script("owner/repo", "--dry-run", "--code-owner-review", "--last-push-approval")
