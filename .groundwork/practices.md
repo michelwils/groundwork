@@ -154,6 +154,15 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 - Shared lines:
   - `AGENTS.md`
 
+### 0014. [Protecting the files of groundwork in a project](../docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md)
+
+- Needs: ADR 0003, ADR 0007
+- Files:
+  - `.groundwork/CODEOWNERS.template`
+  - `.groundwork/scripts/test_codeowners_template.py`
+- Shared lines:
+  - `AGENTS.md`
+
 ## Shared files
 
 This file belongs to no ADR, and all its lines that belong to an ADR are in a block.

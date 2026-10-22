@@ -35,6 +35,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - A weekly workflow that opens the pull request that moves a project to a later version of groundwork, in [`.github/workflows/update-groundwork.yml`](.github/workflows/update-groundwork.yml)
 - A security policy, with the procedure to handle a vulnerability from its report to its disclosure, in [`SECURITY.md`](SECURITY.md)
 - Protection of the default branch with a ruleset, in [`.groundwork/rulesets/main.json`](.groundwork/rulesets/main.json)
+- A review by code owners of the files of groundwork in a project, which the project turns on, with a template of `CODEOWNERS` in [`.groundwork/CODEOWNERS.template`](.groundwork/CODEOWNERS.template) ([ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md))
 - A script that applies the repository settings, in [`.groundwork/scripts/apply_settings.py`](.groundwork/scripts/apply_settings.py)
 - Pre-commit checks and baseline CI that do not depend on a language or technology stack, and the rule that a project audits the dependencies of its stack ([ADR 0008](docs/adr/0008-automated-checks.md))
 - The platform's vulnerability alerts and security updates, turned on by the settings script
@@ -106,10 +107,10 @@ groundwork is a GitHub template repository.
 2. **Configure it.** A template copies files, not repository settings. Clone the repository, then run the script from it, logged in with `gh` and with admin rights on the repository:
 
    ```sh
-   python3 .groundwork/scripts/apply_settings.py [<owner>/<repo>] [--dry-run]
+   python3 .groundwork/scripts/apply_settings.py [<owner>/<repo>] [--dry-run] [--code-owner-review] [--last-push-approval]
    ```
 
-   It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. It also turns on the vulnerability alerts and the security updates for the dependencies. Last, it protects the default branch with this repository's ruleset, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
+   It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. It also turns on the vulnerability alerts and the security updates for the dependencies. Last, it protects the default branch with this repository's ruleset, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing. The two other options require a review of the files of groundwork by their code owners, as [ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md) tells. Copy `.groundwork/CODEOWNERS.template` to `.github/CODEOWNERS` first.
 
    If the project adds jobs to its CI, it adds one job that waits for all the others and fails if one of them failed, names that job in the `context` of [`.groundwork/rulesets/main.json`](.groundwork/rulesets/main.json) and runs the script again, so that the ruleset requires that job.
 
@@ -183,6 +184,7 @@ The fourth phase, the rules that no tool checks:
 - **ADR 0012**, responding to an incident. It brings `SECURITY.md`. The project's own is merged by hand. Check that it names who leads the response.
 - **ADR 0011**, confidential and personal data. The project classifies its data in its documentation. Check by review.
 - **ADR 0013**, licenses of the dependencies. The project writes the licenses it accepts. Check by review.
+- **ADR 0014**, protecting the files of groundwork. It brings `.groundwork/CODEOWNERS.template` and a line of `AGENTS.md`. Copy the template to `.github/CODEOWNERS` and replace `@OWNER`. When someone other than the maintainer can approve, run `apply_settings.py --code-owner-review`, and add `--last-push-approval` for several reviewers. Check with `python3 .groundwork/scripts/apply_settings.py --dry-run --code-owner-review`, which shows the ruleset it would apply.
 
 ### Recording the gaps
 

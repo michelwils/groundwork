@@ -16,6 +16,9 @@ import json, os, sys
 args = sys.argv[1:]
 with open(os.environ["FAKE_LOG"], "a") as log:
     log.write(json.dumps(args) + "\\n")
+if "--input" in args and args[args.index("--input") + 1] == "-":
+    with open(os.environ["FAKE_LOG"] + ".body", "w") as body:
+        body.write(sys.stdin.read())
 if os.environ.get("FAKE_FAIL") and os.environ["FAKE_FAIL"] in " ".join(args):
     print("gh: HTTP 403: Must have admin rights to Repository.", file=sys.stderr)
     sys.exit(1)
@@ -187,6 +190,63 @@ class ApplySettings(unittest.TestCase):
     def test_does_not_look_up_the_repository_when_it_is_given(self):
         self.run_script("owner/repo")
         self.assertFalse(any(call[:2] == ["repo", "view"] for call in self.calls()))
+
+    RULESET = os.path.join(HERE, "..", "rulesets", "main.json")
+
+    def sent(self):
+        """Return the ruleset that was sent on the standard input of gh, or None when the file of the repository was named."""
+        if not os.path.exists(self.log + ".body"):
+            return None
+        with open(self.log + ".body") as handle:
+            return json.load(handle)
+
+    def parameters(self, ruleset):
+        return next(rule["parameters"] for rule in ruleset["rules"] if rule["type"] == "pull_request")
+
+    def test_without_an_option_the_ruleset_is_the_file_of_the_repository(self):
+        self.run_script("owner/repo")
+        self.assertIsNone(self.sent())
+
+    def test_the_code_owner_review_requires_the_review_and_dismisses_the_stale_approvals(self):
+        result = self.run_script("owner/repo", "--code-owner-review")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        parameters = self.parameters(self.sent())
+        self.assertTrue(parameters["require_code_owner_review"])
+        self.assertTrue(parameters["dismiss_stale_reviews_on_push"])
+        self.assertFalse(parameters["require_last_push_approval"])
+
+    def test_the_last_push_approval_changes_only_its_own_parameter(self):
+        result = self.run_script("owner/repo", "--last-push-approval")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        parameters = self.parameters(self.sent())
+        self.assertTrue(parameters["require_last_push_approval"])
+        self.assertFalse(parameters["require_code_owner_review"])
+        self.assertFalse(parameters["dismiss_stale_reviews_on_push"])
+
+    def test_the_options_change_nothing_else_of_the_ruleset(self):
+        self.run_script("owner/repo", "--code-owner-review", "--last-push-approval")
+        with open(self.RULESET) as handle:
+            expected = json.load(handle)
+        self.parameters(expected).update(
+            require_code_owner_review=True, dismiss_stale_reviews_on_push=True, require_last_push_approval=True
+        )
+        self.assertEqual(self.sent(), expected)
+
+    def test_an_existing_ruleset_is_updated_with_the_options(self):
+        self.run_script("owner/repo", "--code-owner-review", rulesets='[{"id": 7, "name": "main"}]')
+        text = [" ".join(call) for call in self.writes()]
+        self.assertTrue(any(call.startswith("api -X PUT repos/owner/repo/rulesets/7 --input -") for call in text))
+        self.assertTrue(self.parameters(self.sent())["require_code_owner_review"])
+
+    def test_the_dry_run_shows_the_protection_that_the_ruleset_would_have(self):
+        plain = self.run_script("owner/repo", "--dry-run")
+        self.assertNotIn("code owner review", plain.stdout)
+        result = self.run_script("owner/repo", "--dry-run", "--code-owner-review", "--last-push-approval")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.writes(), [])
+        self.assertIsNone(self.sent())
+        for text in ("code owner review required", "stale approvals dismissed", "last push approval required"):
+            self.assertIn(text, result.stdout)
 
     def test_refuses_a_repository_that_is_not_owner_slash_name(self):
         result = self.run_script("repo")
