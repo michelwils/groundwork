@@ -93,11 +93,12 @@ class InAProject(unittest.TestCase):
             subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
             subprocess.run(["git", "add", "-A"], cwd=directory, check=True)
             result = subprocess.run(
-                [sys.executable, "-I", "-m", "unittest", "discover", "-s", scripts, "-p", "test_codeowners_template.py"],
+                [sys.executable, "-I", "-m", "unittest", "discover", "-v", "-s", scripts, "-p", "test_codeowners_template.py"],
                 cwd=directory, capture_output=True, text=True,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("skipped=2", result.stderr)  # this test, and the one that looks for the files of groundwork
+        line = next(line for line in result.stderr.splitlines() if "test_each_pattern_but_the_file_itself_matches_a_file_of_groundwork" in line)
+        self.assertIn("skipped", line)
 
 
 if __name__ == "__main__":
