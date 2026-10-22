@@ -28,12 +28,17 @@ Everything is read before the branch is created, so a choice that is refused cha
 Exit status: 0 when the project is updated or up to date, 1 on an error, 2 when some files are
 in conflict. A conflict leaves markers in the file, and the script names the files. After the
 lines `branch:`, `from:` and `to:`, the line `source:` names the source that was used, the line `added: 0002, 0003` names the ADRs that enter the
-choice and that the project does not list, and the lines `- path` name the files in conflict.
+choice and that the project does not list, and the lines `- path` name the files in conflict. This text is for a person.
 
-Usage: update_groundwork.py [ISSUE] [--to X.Y.Z] [--source URL]
+With `--result PATH`, the script also writes its result to PATH as one JSON object, once the branch is prepared,
+for open_update_pull_request.py to read (ADR 1003): `branch`, `from`, `to` and `source` as strings, `added` as a list
+of ADR numbers and `conflicts` as a list of paths. It writes none when the project is up to date.
+
+Usage: update_groundwork.py [ISSUE] [--to X.Y.Z] [--source URL] [--result PATH]
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -429,14 +434,18 @@ def run(args):
         print("Resolve the conflicts in these files:")
         for path in conflicts:
             print(f"- {path}")
-        return 2
-    return 0
+    if args.result:
+        result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in said], "conflicts": conflicts}
+        with open(args.result, "w") as handle:
+            json.dump(result, handle)
+    return 2 if conflicts else 0
 
 
 def main():
     parser = argparse.ArgumentParser(description="Prepare the update of a project to a later version of groundwork.")
     parser.add_argument("issue", nargs="?", help="number of the issue of the update, used in the name of the branch")
     parser.add_argument("--to", help="version to update to, without the leading v (default: the latest)")
+    parser.add_argument("--result", help="file in which to write the result as JSON, for open_update_pull_request.py (ADR 1003)")
     parser.add_argument("--source", help=f"repository of groundwork (default: the address in {SOURCE_FILE}, else {SOURCE})")
     try:
         sys.exit(run(parser.parse_args()))
