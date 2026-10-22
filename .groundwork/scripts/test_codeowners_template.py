@@ -1,11 +1,15 @@
 import fnmatch
 import os
+import shutil
 import subprocess
+import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 TEMPLATE = os.path.join(ROOT, ".groundwork", "CODEOWNERS.template")
+IN_A_PROJECT = os.path.exists(os.path.join(ROOT, ".groundwork-version"))
 
 # What a project cannot change without a review: the files of groundwork, and the file that says who reviews them.
 PROTECTED = [
@@ -50,6 +54,7 @@ class CodeownersTemplate(unittest.TestCase):
     def test_it_protects_the_files_of_groundwork(self):
         self.assertEqual([fields[0] for fields in rules()], PROTECTED)
 
+    @unittest.skipIf(IN_A_PROJECT, "a project may have left out the ADRs that own these files")
     def test_each_pattern_but_the_file_itself_matches_a_file_of_groundwork(self):
         files = tracked()
         for pattern in PROTECTED:
@@ -72,6 +77,27 @@ class CodeownersTemplate(unittest.TestCase):
         for path in (".groundwork-version", ".groundwork-source", ".groundwork-adrs", ".groundwork-ranges", ".groundwork/scripts/update_groundwork.py"):
             with self.subTest(path=path):
                 self.assertTrue(any(matches(fields[0], path) for fields in rules()))
+
+
+class InAProject(unittest.TestCase):
+    @unittest.skipIf(IN_A_PROJECT, "it builds the project itself")
+    def test_a_project_that_left_out_the_adrs_that_own_other_files_does_not_fail(self):
+        # ADR 0014 needs ADR 0003 and ADR 0007 only: a project may keep it without .pre-commit-config.yaml, dependabot.yml or zizmor.yml.
+        with tempfile.TemporaryDirectory() as directory:
+            scripts = os.path.join(directory, ".groundwork", "scripts")
+            os.makedirs(scripts)
+            shutil.copy(TEMPLATE, os.path.join(directory, ".groundwork"))
+            shutil.copy(os.path.join(HERE, "test_codeowners_template.py"), scripts)
+            with open(os.path.join(directory, ".groundwork-version"), "w") as handle:
+                handle.write("0.6.0\n")
+            subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=directory, check=True)
+            result = subprocess.run(
+                [sys.executable, "-I", "-m", "unittest", "discover", "-s", scripts, "-p", "test_codeowners_template.py"],
+                cwd=directory, capture_output=True, text=True,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("skipped=2", result.stderr)  # this test, and the one that looks for the files of groundwork
 
 
 if __name__ == "__main__":
