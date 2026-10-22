@@ -8,7 +8,16 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 TEMPLATE = os.path.join(ROOT, ".groundwork", "CODEOWNERS.template")
 
 # What a project cannot change without a review: the files of groundwork, and the file that says who reviews them.
-PROTECTED = ["/docs/adr/0*", "/docs/adr/template.md", "/.groundwork*", "/.github/workflows/", "/.pre-commit-config.yaml", "/.github/CODEOWNERS"]
+PROTECTED = [
+    "/docs/adr/0*",
+    "/docs/adr/template.md",
+    "/.groundwork*",
+    "/.github/workflows/",
+    "/.github/zizmor.yml",
+    "/.github/dependabot.yml",
+    "/.pre-commit-config.yaml",
+    "/.github/CODEOWNERS",
+]
 # What a project is meant to change by itself.
 LEFT_TO_THE_PROJECT = ["CONTRIBUTING.md", "AGENTS.md", "README.md", "docs/adr/1000-own-decision.md"]
 
@@ -53,6 +62,11 @@ class CodeownersTemplate(unittest.TestCase):
         for path in LEFT_TO_THE_PROJECT:
             with self.subTest(path=path):
                 self.assertFalse(any(matches(fields[0], path) for fields in rules()))
+
+    def test_it_covers_the_configuration_of_the_audits_and_of_the_updates_of_dependencies(self):
+        for path in (".github/zizmor.yml", ".github/dependabot.yml"):
+            with self.subTest(path=path):
+                self.assertTrue(any(matches(fields[0], path) for fields in rules()))
 
     def test_it_covers_the_files_that_decide_where_the_updates_come_from(self):
         for path in (".groundwork-version", ".groundwork-source", ".groundwork-adrs", ".groundwork-ranges", ".groundwork/scripts/update_groundwork.py"):

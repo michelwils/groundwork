@@ -5,5 +5,7 @@
 /docs/adr/template.md     @OWNER
 /.groundwork*             @OWNER
 /.github/workflows/       @OWNER
+/.github/zizmor.yml       @OWNER
+/.github/dependabot.yml   @OWNER
 /.pre-commit-config.yaml  @OWNER
 /.github/CODEOWNERS       @OWNER
