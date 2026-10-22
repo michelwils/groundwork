@@ -313,7 +313,7 @@ class BreakingWithoutText(unittest.TestCase):
             result = repo.run()
             self.assertEqual(result.returncode, 1, result.stdout)
             self.assertIn("the breaking change 'feat!: change it (#9)' (" + self.sha(repo)[0] + ")", result.stderr)
-            self.assertIn("--notes-extra", result.stderr)
+            self.assertIn('--notes-extra (the field "notes" of the release workflow)', result.stderr)
             self.assertNotIn("version:", result.stdout)
 
     def test_a_footer_without_text_stops(self):
@@ -334,9 +334,9 @@ class BreakingWithoutText(unittest.TestCase):
             repo.commit("refactor!: move it")
             result = repo.run()
             self.assertEqual(result.returncode, 1, result.stdout)
-            second, first = self.sha(repo, 3)[0], self.sha(repo, 3)[2]
-            self.assertIn(f"'feat!: change it' ({first})", result.stderr)
-            self.assertIn(f"'refactor!: move it' ({second})", result.stderr)
+            newest, _, oldest = self.sha(repo, 3)
+            self.assertIn(f"'feat!: change it' ({oldest})", result.stderr)
+            self.assertIn(f"'refactor!: move it' ({newest})", result.stderr)
             self.assertNotIn("fix: correct it", result.stderr)
 
     def test_a_change_with_a_footer_is_not_affected(self):

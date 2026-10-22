@@ -203,7 +203,7 @@ def main():
     if bare and not extra.strip():
         sys.exit("\n".join(
             [f"error: the breaking change '{commit['title']}' ({commit['sha'][:7]}) has no BREAKING CHANGE: text in its commit." for commit in bare]
-            + ["Give the migration with --notes-extra."]
+            + ['Give the migration with --notes-extra (the field "notes" of the release workflow).']
         ))
     major = int((previous or "0.0.0").split(".")[0])
     level = max((increment(c, major) for c in commits), key=LEVELS.get, default="none")
