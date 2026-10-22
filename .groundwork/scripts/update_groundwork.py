@@ -12,7 +12,7 @@ in the working tree: it does not commit, push or open a pull request.
 
 Files that concern groundwork itself, or that belong to the project, are left out, see EXCLUDED.
 A version whose files include a path that a file system can put in a directory .git, such as a hook,
-or a path that holds a control character or a line break, which would add a line to this report,
+or a path that holds a control character or a line break, which would add a line to the text it prints,
 or a bidirectional control, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
 
@@ -174,7 +174,7 @@ def inside(root, path):
 
 def paths_of(raw):
     """Return the paths of the output of git, without EXCLUDED. Stop at one that holds a control character or a line
-    break, which would add a line to the report that open_update_pull_request.py reads, at one that holds a
+    break, which would add a line to the text it prints, at one that holds a
     bidirectional control, which changes how the name is shown, and at one that would land in a directory .git: the
     source would then write the hooks or the configuration of the project. The callers read the output as bytes, so that Python
     translates no line break."""
@@ -384,7 +384,9 @@ def plan(old, new):
 def run(args):
     if args.issue is not None and not args.issue.isdigit():
         raise Failure(f"'{args.issue}' is not an issue number.")
-    if args.result:
+    if args.result is not None:
+        if not args.result:
+            raise Failure("--result needs the path of a file.")
         args.result = os.path.abspath(args.result)  # the script goes to the root of the repository next
     os.chdir(git("rev-parse", "--show-toplevel").stdout.strip())
     old = recorded_version()

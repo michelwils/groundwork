@@ -309,6 +309,14 @@ class Body(unittest.TestCase):
     def test_the_result_is_read_from_the_file(self):
         self.assertEqual(self.read_result(self.RESULT), self.RESULT)
 
+    def test_the_status_of_the_update_must_agree_with_its_conflicts(self):
+        opener.agree(0, {"conflicts": []})
+        opener.agree(2, {"conflicts": ["a.md"]})
+        for status, conflicts in ((0, ["a.md"]), (2, []), (3, []), (-9, [])):
+            with self.subTest(status=status, conflicts=conflicts):
+                with self.assertRaises(opener.Failure):
+                    opener.agree(status, {"conflicts": conflicts})
+
     def test_an_update_that_wrote_no_result_has_none(self):
         self.assertIsNone(opener.result(os.path.join(tempfile.gettempdir(), "no-such-groundwork-result.json")))
 

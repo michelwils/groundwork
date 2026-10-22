@@ -239,6 +239,12 @@ class Update(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(directory, "out.json")))
         self.assertFalse(os.path.exists(os.path.join(self.project, "out.json")))
 
+    def test_an_empty_path_of_the_result_stops_the_update_before_anything_changes(self):
+        result = self.run_script("--to", "0.2.0", "--result", "")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("--result", result.stderr)
+        self.assertEqual(self.branches(), ["main"])
+
     def test_the_result_of_an_update_without_conflict_lists_none(self):
         result = self.run_script("--to", "0.2.0", "--result", self.result_file())
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -353,7 +359,7 @@ class Update(unittest.TestCase):
                 self.assertEqual(self.branches(), ["main"])
 
     def test_a_version_that_holds_a_path_with_a_control_character_is_refused_before_anything_changes(self):
-        # A line break in a name would add a line to the report, which open_update_pull_request.py reads. A bidirectional
+        # A line break in a name would add a line to the text that the script prints. A bidirectional
         # control, such as U+202E, changes how the name is shown to the reviewer.
         for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029", "\u202a", "\u202e", "\u2066", "\u2069"), start=4):
             with self.subTest(character=character):

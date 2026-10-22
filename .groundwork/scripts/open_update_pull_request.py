@@ -103,6 +103,12 @@ def result(path):
     return fields
 
 
+def agree(status, fields):
+    """Check that the status of the update says what its result says: 2 when files are in conflict, 0 when none is."""
+    if status != (2 if fields["conflicts"] else 0):
+        raise Failure(f"The update script ended with status {status} and a result with {len(fields['conflicts'])} files in conflict.")
+
+
 def code(text):
     """Return the text as a code span that holds all of it: a fence of backticks longer than any run in the text, and a
     space on each side when the text starts or ends with a backtick or a space. Nothing in a code span is read as Markdown."""
@@ -147,9 +153,10 @@ def main():
             return 1
         fields = result(file)
     if fields is None:
-        if update.returncode == 2:
-            raise Failure("The update script reported conflicts but wrote no result.")
+        if update.returncode != 0:
+            raise Failure(f"The update script ended with status {update.returncode} and wrote no result.")
         return 0  # up to date, the update script said so
+    agree(update.returncode, fields)
     files = fields["conflicts"]
 
     branch, old, new = fields["branch"], fields["from"], fields["to"]
