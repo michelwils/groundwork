@@ -5,7 +5,8 @@ The version is decided from the commit titles since the previous tag reachable
 from HEAD, by the highest increment among them. A change undone by a `revert`
 before the release is ignored together with its revert. A revert whose description matches more than one
 change, released or not, is paired with none and stops the command: give the version. The text of the `BREAKING CHANGE:` footer
-of a change is given under it in the notes, and the text of --notes-extra comes first.
+of a change is given under it in the notes, and the text of --notes-extra comes first. A breaking change whose commit
+has no such text stops the command too, unless --notes-extra gives the migration.
 
 Usage: release.py [--version X.Y.Z] [--notes FILE] [--notes-extra FILE]
 """
@@ -129,6 +130,11 @@ def cancel_reverts(commits, released=None):
     return ambiguous
 
 
+def without_text(commits):
+    """Return the breaking changes that stay in the notes and whose commit has no text in its `BREAKING CHANGE:` footer."""
+    return [commit for commit in commits if commit["breaking"] and not commit["undone"] and not commit["footer"]]
+
+
 def increment(commit, major):
     if commit["undone"] or commit["type"] is None:
         return "none"
@@ -192,6 +198,12 @@ def main():
             [f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches" + "".join(f"\n  {title}" for title in titles)
              for revert, titles in ambiguous]
             + ["Give the version with --version."]
+        ))
+    bare = without_text(commits)
+    if bare and not extra.strip():
+        sys.exit("\n".join(
+            [f"error: the breaking change '{commit['title']}' ({commit['sha'][:7]}) has no BREAKING CHANGE: text in its commit." for commit in bare]
+            + ['Give the migration with --notes-extra (the field "notes" of the release workflow).']
         ))
     major = int((previous or "0.0.0").split(".")[0])
     level = max((increment(c, major) for c in commits), key=LEVELS.get, default="none")

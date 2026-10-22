@@ -8,7 +8,7 @@ on:
         required: false
         type: string
       notes:
-        description: Text that opens the release notes, for example how to migrate from a breaking change. Leave empty for none.
+        description: "Text that opens the release notes, for example how to migrate from a breaking change. Required when a breaking change has no BREAKING CHANGE: text in its commit, otherwise leave it empty."
         required: false
         type: string
       publish:
