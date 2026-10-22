@@ -8,6 +8,9 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import apply_settings  # noqa: E402
+
 SCRIPT = os.path.join(HERE, "apply_settings.py")
 
 # A stand-in for the `gh` command: it logs its arguments, and answers like the platform would.
@@ -27,6 +30,8 @@ if args[:2] == ["repo", "view"]:
     print("default-owner/default-repo")
 elif args[0] == "api" and args[1].endswith("/rulesets") and "-X" not in args:
     print(os.environ.get("FAKE_RULESETS", "[]"))
+elif args[0] == "api" and "/rulesets/" in args[1] and "-X" not in args:
+    print(os.environ.get("FAKE_RULESET", "{}"))
 """
 
 
@@ -44,13 +49,14 @@ class ApplySettings(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_script(self, *args, rulesets="[]", fail=""):
+    def run_script(self, *args, rulesets="[]", fail="", ruleset="{}"):
         """Run the script from the directory of a project, which holds the CODEOWNERS that `self.owners` writes."""
         env = {
             **os.environ,
             "PATH": self.directory.name + os.pathsep + os.environ["PATH"],
             "FAKE_LOG": self.log,
             "FAKE_RULESETS": rulesets,
+            "FAKE_RULESET": ruleset,
             "FAKE_FAIL": fail,
         }
         return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env, cwd=self.project)
@@ -226,13 +232,20 @@ class ApplySettings(unittest.TestCase):
         self.assertTrue(parameters["dismiss_stale_reviews_on_push"])
         self.assertFalse(parameters["require_last_push_approval"])
 
-    def test_the_last_push_approval_changes_only_its_own_parameter(self):
-        result = self.run_script("owner/repo", "--last-push-approval")
+    def test_the_last_push_approval_is_added_to_the_code_owner_review(self):
+        self.owners()
+        result = self.run_script("owner/repo", "--code-owner-review", "--last-push-approval")
         self.assertEqual(result.returncode, 0, result.stderr)
-        parameters = self.parameters(self.sent())
-        self.assertTrue(parameters["require_last_push_approval"])
-        self.assertFalse(parameters["require_code_owner_review"])
-        self.assertFalse(parameters["dismiss_stale_reviews_on_push"])
+        self.assertTrue(self.parameters(self.sent())["require_last_push_approval"])
+        self.owners()
+        self.run_script("owner/repo", "--code-owner-review")
+        self.assertFalse(self.parameters(self.sent())["require_last_push_approval"])
+
+    def test_the_last_push_approval_alone_is_refused_since_no_approval_is_required_without_the_review(self):
+        result = self.run_script("owner/repo", "--last-push-approval")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("--code-owner-review", result.stderr)
+        self.assertEqual(self.writes(), [])
 
     def test_the_options_change_nothing_else_of_the_ruleset(self):
         self.owners()
@@ -278,8 +291,53 @@ class ApplySettings(unittest.TestCase):
                 shutil.rmtree(self.project)
                 os.makedirs(self.project)
 
-    def test_the_last_push_approval_alone_does_not_need_the_file(self):
-        self.assertEqual(self.run_script("owner/repo", "--last-push-approval").returncode, 0)
+    def test_a_file_of_code_owners_without_a_rule_is_refused(self):
+        self.owners("# who reviews\n\n")
+        result = self.run_script("owner/repo", "--code-owner-review")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no owner", result.stderr)
+
+    def test_a_byte_that_is_not_text_in_the_file_of_code_owners_does_not_stop_the_script(self):
+        path = os.path.join(self.project, ".github", "CODEOWNERS")
+        os.makedirs(os.path.dirname(path))
+        with open(path, "wb") as handle:
+            handle.write(b"# caf\xff\n/docs/adr/0*  @reviewers\n")
+        self.assertEqual(self.run_script("owner/repo", "--code-owner-review").returncode, 0)
+
+    def test_the_message_says_where_the_file_is_looked_for(self):
+        self.assertIn("this directory", self.run_script("owner/repo", "--code-owner-review").stderr)
+
+    PROTECTED = '{"rules": [{"type": "pull_request", "parameters": {"require_code_owner_review": true, "require_last_push_approval": false}}]}'
+
+    def test_a_run_without_the_options_warns_when_it_turns_off_a_review_that_the_ruleset_has(self):
+        for arguments in ((), ("--dry-run",)):
+            with self.subTest(arguments=arguments):
+                result = self.run_script("owner/repo", *arguments, rulesets='[{"id": 7, "name": "main"}]', ruleset=self.PROTECTED)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("warning", result.stderr)
+                self.assertIn("code owner review", result.stderr)
+                self.assertIn("same options", result.stderr)
+
+    def test_no_warning_when_the_options_are_given_or_the_ruleset_has_no_review(self):
+        self.owners()
+        given = self.run_script("owner/repo", "--code-owner-review", rulesets='[{"id": 7, "name": "main"}]', ruleset=self.PROTECTED)
+        self.assertNotIn("warning", given.stderr)
+        plain = self.run_script("owner/repo", rulesets='[{"id": 7, "name": "main"}]', ruleset='{"rules": [{"type": "pull_request", "parameters": {}}]}')
+        self.assertNotIn("warning", plain.stderr)
+        created = self.run_script("owner/repo")
+        self.assertNotIn("warning", created.stderr)
+
+    def test_a_ruleset_file_without_a_pull_request_rule_is_an_error_not_a_crash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "main.json")
+            with open(path, "w") as handle:
+                json.dump({"name": "main", "rules": [{"type": "deletion"}]}, handle)
+            previous, apply_settings.RULESET = apply_settings.RULESET, path
+            try:
+                with self.assertRaises(apply_settings.Failure):
+                    apply_settings.protected(True, False)
+            finally:
+                apply_settings.RULESET = previous
 
     def test_the_dry_run_shows_the_protection_that_the_ruleset_would_have(self):
         self.owners()

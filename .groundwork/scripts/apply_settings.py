@@ -14,7 +14,7 @@ A template copies files, not settings. The script applies, to a repository on Gi
   a code owner (CODEOWNERS) and dismisses an approval when a commit is pushed after it; with --last-push-approval,
   the approval must come from someone other than the person who pushed last (ADR 0014). The options are not
   remembered: a run without them applies the ruleset of the file, which requires neither approval. --code-owner-review
-  needs a file of code owners, run from the directory of the project
+  needs a file of code owners, run from the directory of the project, and --last-push-approval needs --code-owner-review
 
 Run it again and the repository stays in the same state. It needs admin rights on the repository,
 and the `gh` command, logged in.
@@ -57,23 +57,31 @@ def ruleset_name():
 
 
 def check_owners():
-    """Stop when the project has no file of code owners, or still has the owner of the template: the requirement would do nothing, or
-    no one could approve. GitHub reads the first of these files that exists."""
+    """Stop when the directory has no file of code owners, or one without an owner or with the owner of the template: the
+    requirement would do nothing, or no one could approve. GitHub reads the first of these files that exists."""
     for path in (os.path.join(".github", "CODEOWNERS"), "CODEOWNERS", os.path.join("docs", "CODEOWNERS")):
         if os.path.exists(path):
-            with open(path) as handle:
-                lines = [line.split("#")[0] for line in handle]
-            if any("@OWNER" in line.split() for line in lines):
+            with open(path, errors="replace") as handle:
+                rules = [line.split("#")[0].split() for line in handle]
+            rules = [fields for fields in rules if fields]
+            if not rules:
+                raise Failure(f"{path} names no owner: add the rules of the template, with the reviewers of the project.")
+            if any("@OWNER" in fields for fields in rules):
                 raise Failure(f"{path} still names @OWNER, the owner of the template: replace it with the reviewers of the project.")
             return
-    raise Failure("the project has no file of code owners (.github/CODEOWNERS, CODEOWNERS or docs/CODEOWNERS): copy .groundwork/CODEOWNERS.template to .github/CODEOWNERS and replace @OWNER.")
+    raise Failure(
+        "this directory has no file of code owners (.github/CODEOWNERS, CODEOWNERS or docs/CODEOWNERS): run the script from the clone of the project, "
+        "after copying .groundwork/CODEOWNERS.template to .github/CODEOWNERS and replacing @OWNER."
+    )
 
 
 def protected(code_owner_review, last_push_approval):
     """Return the ruleset of the file with the approvals that the options ask for, and the words that tell them."""
     with open(RULESET) as handle:
         ruleset = json.load(handle)
-    parameters = next(rule["parameters"] for rule in ruleset["rules"] if rule["type"] == "pull_request")
+    parameters = next((rule["parameters"] for rule in ruleset["rules"] if rule["type"] == "pull_request"), None)
+    if parameters is None:
+        raise Failure(f"{os.path.relpath(RULESET)} has no rule of type pull_request: the approvals cannot be required.")
     words = []
     if code_owner_review:
         parameters.update(require_code_owner_review=True, dismiss_stale_reviews_on_push=True)
@@ -84,17 +92,30 @@ def protected(code_owner_review, last_push_approval):
     return ruleset, words
 
 
+def lowered(detail):
+    """Return the approvals that a ruleset on the platform requires, which the ruleset of the file would turn off."""
+    rules = detail.get("rules") or []
+    parameters = next((rule.get("parameters") or {} for rule in rules if rule.get("type") == "pull_request"), {})
+    return [name for key, name in (("require_code_owner_review", "code owner review"), ("require_last_push_approval", "last push approval")) if parameters.get(key)]
+
+
 def settings(repository, code_owner_review=False, last_push_approval=False):
-    """Return the steps, in the order they are applied, as (description, arguments of gh api, standard input of gh)."""
+    """Return the steps, in the order they are applied, as (description, arguments of gh api, standard input of gh),
+    and the warnings: what a run without the options would turn off in the ruleset that exists."""
     api = f"repos/{repository}"
     ruleset_id = next((r["id"] for r in json.loads(gh("api", f"{api}/rulesets")) if r["name"] == ruleset_name()), None)
     ruleset = ("-X", "PUT", f"{api}/rulesets/{ruleset_id}") if ruleset_id else ("-X", "POST", f"{api}/rulesets")
+    warnings = []
+    if ruleset_id and not (code_owner_review or last_push_approval):
+        turned_off = lowered(json.loads(gh("api", f"{api}/rulesets/{ruleset_id}") or "{}"))
+        if turned_off:
+            warnings.append(f"the ruleset '{ruleset_name()}' requires {' and '.join(turned_off)}, and this run turns it off: give the same options to keep it.")
     if code_owner_review or last_push_approval:
         body, words = protected(code_owner_review, last_push_approval)
         file, text, stdin = "-", f" ({', '.join(words)})", json.dumps(body)
     else:
         file, text, stdin = os.path.abspath(RULESET), "", None
-    return [
+    steps = [
         (
             "merge: squash only, pull request title as commit title, empty message, branches deleted after a merge",
             ("-X", "PATCH", api,
@@ -112,19 +133,24 @@ def settings(repository, code_owner_review=False, last_push_approval=False):
             stdin,
         ),
     ]
+    return steps, warnings
 
 
 def run(args):
     repository = args.repository or current_repository()
     if not REPOSITORY.match(repository):
         raise Failure(f"'{repository}' is not of the form OWNER/REPO")
+    if args.last_push_approval and not args.code_owner_review:
+        raise Failure("--last-push-approval goes with --code-owner-review: with no approval required, it enforces nothing.")
     if args.code_owner_review:
         check_owners()
     print(f"repository: {repository}")
     try:
-        steps = settings(repository, args.code_owner_review, args.last_push_approval)
+        steps, warnings = settings(repository, args.code_owner_review, args.last_push_approval)
     except Failure as failure:
         raise Failure(f"could not read the rulesets of {repository}: {failure}. This needs admin rights on the repository.")
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
     for description, arguments, *stdin in steps:
         if args.dry_run:
             print(f"would apply {description}")
