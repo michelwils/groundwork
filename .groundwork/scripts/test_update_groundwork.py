@@ -226,6 +226,19 @@ class Update(unittest.TestCase):
             },
         )
 
+    def test_a_relative_path_of_the_result_is_the_one_of_the_directory_of_the_caller(self):
+        directory = os.path.join(self.project, "sub")
+        os.makedirs(directory)
+        result = subprocess.run(
+            [sys.executable, SCRIPT, "42", "--source", self.source, "--to", "0.2.0", "--result", "out.json"],
+            cwd=directory,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(os.path.exists(os.path.join(directory, "out.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.project, "out.json")))
+
     def test_the_result_of_an_update_without_conflict_lists_none(self):
         result = self.run_script("--to", "0.2.0", "--result", self.result_file())
         self.assertEqual(result.returncode, 0, result.stderr)

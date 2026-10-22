@@ -384,6 +384,8 @@ def plan(old, new):
 def run(args):
     if args.issue is not None and not args.issue.isdigit():
         raise Failure(f"'{args.issue}' is not an issue number.")
+    if args.result:
+        args.result = os.path.abspath(args.result)  # the script goes to the root of the repository next
     os.chdir(git("rev-parse", "--show-toplevel").stdout.strip())
     old = recorded_version()
     if git("status", "--porcelain").stdout.strip():
