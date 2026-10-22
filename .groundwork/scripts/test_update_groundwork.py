@@ -287,8 +287,9 @@ class Update(unittest.TestCase):
                 self.assertEqual(self.branches(), ["main"])
 
     def test_a_version_that_holds_a_path_with_a_control_character_is_refused_before_anything_changes(self):
-        # A line break in a name would add a line to the report, which open_update_pull_request.py reads.
-        for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029"), start=4):
+        # A line break in a name would add a line to the report, which open_update_pull_request.py reads. A format
+        # character, such as U+202E, changes how the name is shown to the reviewer.
+        for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029", "\u202e", "\u200b", "\ufeff"), start=4):
             with self.subTest(character=character):
                 shutil.rmtree(self.project)
                 self.adopt("0.1.0", V1)

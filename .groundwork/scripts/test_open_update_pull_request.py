@@ -270,6 +270,14 @@ class Body(unittest.TestCase):
         text = opener.body("0.1.0", "0.2.0", [], "https://github.com/o/g.git", ["0002", "0003"])
         self.assertIn("ADR 0002, ADR 0003", text)
 
+    def test_a_path_in_conflict_is_shown_as_text(self):
+        paths = ["a`@team`.md", "`x.md", "[x](https://example.org).md", "CONTRIBUTING.md"]
+        lines = opener.body("0.1.0", "0.2.0", paths, "https://github.com/o/g.git").splitlines()
+        self.assertEqual(
+            lines[-4:],
+            ["- ``a`@team`.md``", "- `` `x.md ``", "- `[x](https://example.org).md`", "- `CONTRIBUTING.md`"],
+        )
+
     def test_it_says_nothing_of_the_adrs_when_none_was_added(self):
         text = opener.body("0.1.0", "0.2.0", [], "https://github.com/o/g.git", [])
         self.assertNotIn("ADR", text)

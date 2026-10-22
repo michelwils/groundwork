@@ -13,6 +13,7 @@ in the working tree: it does not commit, push or open a pull request.
 Files that concern groundwork itself, or that belong to the project, are left out, see EXCLUDED.
 A version whose files include a path that a file system can put in a directory .git, such as a hook,
 or a path that holds a control character or a line break, which would add a line to this report,
+or a format character, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
 
 The project may list the ADRs it keeps in `.groundwork-adrs` (choice.py). The script then reads,
@@ -166,15 +167,18 @@ def inside(root, path):
 
 def paths_of(raw):
     """Return the paths of the output of git, without EXCLUDED. Stop at one that holds a control character or a line
-    break, which would add a line to the report that open_update_pull_request.py reads, and at one that would land in a
-    directory .git: the source would then write the hooks or the configuration of the project. The callers read the
-    output as bytes, so that Python translates no line break."""
+    break, which would add a line to the report that open_update_pull_request.py reads, at one that would land in a
+    directory .git: the source would then write the hooks or the configuration of the project, and at one that holds a
+    format character, which changes how the name is shown. The callers read the output as bytes, so that Python
+    translates no line break."""
     paths = [path for path in raw.split("\0") if path]
     for path in paths:
         if any(unicodedata.category(character) in ("Cc", "Zl", "Zp") for character in path):
             raise Failure(f"The source holds {path!r}, whose name holds a control character or a line break: nothing is changed.")
         if in_git_directory(path):
             raise Failure(f"The source holds {path}, which would land in a directory .git: nothing is changed.")
+        if any(unicodedata.category(character) == "Cf" for character in path):
+            raise Failure(f"The source holds {path!r}, whose name holds a format character, which changes how it is shown: nothing is changed.")
     return [path for path in paths if path not in EXCLUDED]
 
 
