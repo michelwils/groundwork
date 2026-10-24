@@ -17,7 +17,7 @@ We will require that the unit tests cover at least 95 % of the scripts, in the C
 - **What is measured.** The statements and branches of the scripts in `.groundwork/scripts/`, without the test files. The code that a test runs in a subprocess is counted.
 - **The level.** 95 % of the total of statements and branches. The coverage.py documentation describes a level for the total only (`fail_under`), not one per file. The threshold is written in `.groundwork/scripts/coveragerc` and in the section "Working on groundwork" of the README.
 - **The tool.** coverage.py, under the Apache-2.0 license, which the README lists among the licenses accepted for the scripts' dependencies. It is pinned at an exact version in `.groundwork/scripts/requirements.txt`, so that Dependabot updates it and the dependency audit reads it.
-- **Where.** In the CI of a source of ADRs, that is a repository without `.groundwork-version` or one that sets the variable `GROUNDWORK_SOURCE` to `true`. A project runs the plain tests.
+- **Where.** In the CI of a source of ADRs, that is a repository without `.groundwork-version` or one that sets the variable `GROUNDWORK_SOURCE` to `true`. A project runs the plain tests, all of them when the scripts or the workflow changed and otherwise only those that read the files of the repository, which the project edits. The scripts come to a project through the update ([ADR 0014](0014-protecting-the-files-of-groundwork-in-a-project.md)), and the source has already run their tests on the same version.
 - **When.** On a push to the main branch, and on a pull request that changes a file under `.groundwork/scripts/` or the workflow `checks.yml`. The coverage can change only with them, so any other pull request runs the plain tests. The decision is a step of the job, not a filter on the workflow, so that no required check is skipped.
 - **Lowering it.** A change that brings the coverage under the level adds tests. The level is lowered only by a change of this ADR.
 
@@ -29,7 +29,7 @@ We will require that the unit tests cover at least 95 % of the scripts, in the C
 - The least covered scripts are `apply_choice.py` (90 %) and `run_with_requirements.py` (88 %). The total is above the level, so no issue is opened for them.
 - The environment that `run_with_requirements.py` makes for the hook that checks the links installs coverage.py too, since it takes all the requirements.
 - A community base that sets the variable gets the same requirement, and the scripts it left out change its percentage.
-- A project receives the configuration and the step of the workflow, and does not run the measure.
+- A project receives the configuration and the steps of the workflow, and does not run the measure. A pull request of a project that leaves the scripts alone runs a few seconds of tests instead of about three minutes. A test module that reads a file of the repository must be named in the step "Test the configuration of the project", and a test checks it.
 
 ## Options considered
 

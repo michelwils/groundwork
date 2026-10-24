@@ -64,12 +64,35 @@ jobs:
           "$RUNNER_TEMP/scripts/bin/python" -m coverage combine --rcfile=.groundwork/scripts/coveragerc
           "$RUNNER_TEMP/scripts/bin/python" -m coverage report --rcfile=.groundwork/scripts/coveragerc
 
+      # A project gets its scripts through the update (ADR 0014), and the source has already run their
+      # tests on the same version. So a project runs all the tests only when the scripts or this
+      # workflow changed, which includes the update pull request and a push to the main branch.
       - name: Test the scripts
-        if: ${{ !((hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true') && steps.scripts.outputs.changed == 'true') }}
+        if: ${{ !((hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true') && steps.scripts.outputs.changed == 'true') && (hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true' || steps.scripts.outputs.changed == 'true') }}
         env:
           GROUNDWORK_SOURCE: ${{ vars.GROUNDWORK_SOURCE }}
         run: |
           "$RUNNER_TEMP/scripts/bin/python" -m unittest discover -s .groundwork/scripts -p 'test_*.py'
+
+      # Otherwise a project runs the tests that read the files of the repository, which it edits: the
+      # workflows, the checks, the map of the practices. A pattern of -k matches the name of a test, and
+      # a project that left a practice out has not all the modules, so a missing one is no error.
+      # Keep the list in step with the modules that read a file of the repository (it is tested).
+      - name: Test the configuration of the project
+        if: ${{ !(hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true') && steps.scripts.outputs.changed != 'true' }}
+        env:
+          GROUNDWORK_SOURCE: ${{ vars.GROUNDWORK_SOURCE }}
+        run: |
+          "$RUNNER_TEMP/scripts/bin/python" -m unittest discover -s .groundwork/scripts -p 'test_*.py' \
+            -k 'test_apply_choice_on_the_real_files.' \
+            -k 'test_checks_workflow.' \
+            -k 'test_codeowners_template.' \
+            -k 'test_filtered_trees.' \
+            -k 'test_pre_commit_config.' \
+            -k 'test_release.Workflow.' \
+            -k 'test_script_dependencies.' \
+            -k 'test_shared_files.' \
+            -k 'test_update_workflow.'
 
       # Dependabot starts the title of its pull requests with a capital letter (ADR 0003). The
       # branch is not enough to be skipped, since anyone can name a branch dependabot/…

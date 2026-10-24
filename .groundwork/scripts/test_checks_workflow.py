@@ -62,6 +62,24 @@ class ChecksWorkflow(unittest.TestCase):
 
 
 SCRIPTS_STEP = "Find whether the scripts changed"
+CONFIGURATION_STEP = "Test the configuration of the project"
+READS_THE_REPOSITORY = re.compile(r'^ROOT = |"\.\.", "\.\."', flags=re.MULTILINE)
+
+
+def configuration_patterns():
+    """Return the patterns of the tests that a project runs when its scripts did not change."""
+    return re.findall(r"-k '([^']+)'", command(CONFIGURATION_STEP))
+
+
+def modules_reading_the_repository():
+    """Return the test modules that read a file of the repository, which a project edits."""
+    found = []
+    for name in sorted(os.listdir(HERE)):
+        if name.startswith("test_") and name.endswith(".py"):
+            with open(os.path.join(HERE, name), encoding="utf-8") as handle:
+                if READS_THE_REPOSITORY.search(handle.read()):
+                    found.append(name[:-3])
+    return found
 
 
 def command(name):
@@ -172,9 +190,9 @@ class CoverageGate(unittest.TestCase):
     def condition(self, name):
         return re.search(r"^        if: (.+)$", steps()[name], flags=re.MULTILINE).group(1)
 
-    def test_the_measure_runs_in_a_source_when_the_scripts_changed_and_the_plain_tests_everywhere_else(self):
+    def test_the_measure_runs_in_a_source_when_the_scripts_changed_and_the_plain_tests_do_not_then(self):
         self.assertEqual(self.condition(COVERAGE_STEP), "${{ " + MEASURE + " }}")
-        self.assertEqual(self.condition("Test the scripts"), "${{ !(" + MEASURE + ") }}")
+        self.assertTrue(self.condition("Test the scripts").startswith("${{ !(" + MEASURE + ") && "))
 
     def test_the_step_that_decides_receives_the_base_by_the_environment_only(self):
         step = steps()[SCRIPTS_STEP]
@@ -200,6 +218,30 @@ class CoverageGate(unittest.TestCase):
         self.assertLess(step.index(COMMANDS[0]), step.index(COMMANDS[1]))
         self.assertLess(step.index(COMMANDS[1]), step.index(COMMANDS[2]))
         self.assertNotIn("--fail-under", step)
+
+    def test_a_project_runs_all_the_tests_when_the_scripts_changed_and_those_of_its_configuration_otherwise(self):
+        self.assertEqual(self.condition("Test the scripts"), "${{ !(" + MEASURE + ") && (" + SOURCE_CONDITION + " || steps.scripts.outputs.changed == 'true') }}")
+        self.assertEqual(self.condition(CONFIGURATION_STEP), "${{ !(" + SOURCE_CONDITION + ") && steps.scripts.outputs.changed != 'true' }}")
+
+    def test_the_tests_of_the_configuration_run_after_the_step_that_decides_and_do_not_measure(self):
+        names = list(steps())
+        self.assertLess(names.index(SCRIPTS_STEP), names.index(CONFIGURATION_STEP))
+        self.assertNotIn("coverage", steps()[CONFIGURATION_STEP])
+        self.assertRegex(steps()[CONFIGURATION_STEP], re.compile(r"^        env:\n          GROUNDWORK_SOURCE: \$\{\{ vars\.GROUNDWORK_SOURCE \}\}$", flags=re.MULTILINE))
+
+    def test_the_tests_of_the_configuration_name_each_module_that_reads_the_files_of_the_repository(self):
+        """A test that reads a file of the repository, such as the workflow or the map of the practices, checks
+        something that a project edits, so it runs on every pull request. A module that does not read one is
+        left out, since the update brings the scripts and the source has already run their tests."""
+        patterns = configuration_patterns()
+        for module in modules_reading_the_repository():
+            with self.subTest(module=module):
+                self.assertTrue(any(pattern.startswith(module + ".") for pattern in patterns))
+
+    def test_the_tests_of_the_configuration_name_only_modules_that_exist(self):
+        for pattern in configuration_patterns():
+            with self.subTest(pattern=pattern):
+                self.assertTrue(os.path.isfile(os.path.join(HERE, pattern.split(".")[0] + ".py")))
 
     def test_the_plain_step_does_not_measure(self):
         self.assertIn("unittest discover", steps()["Test the scripts"])
