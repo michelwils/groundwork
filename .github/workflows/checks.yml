@@ -29,7 +29,7 @@ jobs:
         run: pipx install "pre-commit==${PRE_COMMIT_VERSION}"
 
       # An environment of a hook is made with the interpreter that pre-commit runs with, which is the
-      # one in the first line of its script, in its own environment of pipx. The key follows that
+      # one in the first line of its script (without its options), in its own environment of pipx. The key follows that
       # Python, whose version the log shows, the system, pre-commit and the configuration, and the hash
       # holds the folder of the environments too, since they hold absolute paths and are not moved.
       - name: Find the key of the cache of pre-commit
@@ -38,7 +38,7 @@ jobs:
           CONFIG_HASH: ${{ hashFiles('.pre-commit-config.yaml') }}
         run: |
           echo "PRE_COMMIT_HOME=$RUNNER_TEMP/pre-commit" >> "$GITHUB_ENV"
-          python="$(head -n 1 "$(command -v pre-commit)" | cut -c 3-)"
+          python="$(head -n 1 "$(command -v pre-commit)" | cut -c 3- | cut -d ' ' -f 1)"
           "$python" -VV
           hash="$({ "$python" -VV; echo "$RUNNER_TEMP"; } | sha256sum | cut -d ' ' -f 1)"
           echo "key=pre-commit-${RUNNER_OS}-${PRE_COMMIT_VERSION}-${hash}-${CONFIG_HASH}" >> "$GITHUB_OUTPUT"

@@ -137,7 +137,7 @@ class KeyOfTheCache(unittest.TestCase):
     def run_step(self, version="Python 3.12.3", config="c0ffee", temp="/tmp/runner"):
         """Return the lines written to the output and to the environment of the job."""
         self.executable("venv/bin/python", f"#!/bin/sh\necho '{version}'\n")
-        self.executable("bin/pre-commit", f"#!{self.root}/venv/bin/python\nprint('pre-commit')\n")
+        self.executable("bin/pre-commit", f"#!{self.root}/venv/bin/python -E\nprint('pre-commit')\n")
         paths = {name: os.path.join(self.root, name) for name in ("output", "environment")}
         env = {**os.environ, "PATH": os.path.join(self.root, "bin") + os.pathsep + os.environ["PATH"], "GITHUB_OUTPUT": paths["output"], "GITHUB_ENV": paths["environment"],
                "RUNNER_OS": "Linux", "RUNNER_TEMP": temp, "PRE_COMMIT_VERSION": "4.7.0", "CONFIG_HASH": config}
