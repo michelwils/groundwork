@@ -23,6 +23,7 @@ We will check the repository automatically, in two places, from one configuratio
 - Mechanical mistakes are found before the review, which can concentrate on the content.
 - Contributors need the tool that runs the hooks. One who does not install it is caught later, by the CI.
 - The pinned versions age and are updated by hand, as any other change.
+- The CI keeps the environments of the hooks in a cache, since installing them is most of its time. The key follows the configuration, the version of pre-commit and the Python that it runs with, with no fallback to another key. The first run that installs them saves them, even when a check fails. A cache entry is never overwritten, so a run that stopped in the middle of the installation leaves an entry with fewer environments, which pre-commit completes at each run until the key changes or the entry is evicted. A pull request restores the cache that a push to the main branch saved and writes only in its own scope, so it cannot change what the main branch restores. GitHub evicts an entry that nobody reads for some days (seven when this was written), and the next run installs the environments again: when the CI gets slow, look at the cache of the main branch.
 - A check that rejects valid work costs time until it is fixed.
 - Rules that need judgement, such as whether the type of a commit is right, stay with the review.
 - The condition that a pull request's checks pass before it is merged can be verified.
