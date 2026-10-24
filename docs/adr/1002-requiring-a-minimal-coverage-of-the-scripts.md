@@ -29,7 +29,7 @@ We will require that the unit tests cover at least 95 % of the scripts, in the C
 - The least covered scripts are `apply_choice.py` (90 %) and `run_with_requirements.py` (88 %). The total is above the level, so no issue is opened for them.
 - The environment that `run_with_requirements.py` makes for the hook that checks the links installs coverage.py too, since it takes all the requirements.
 - A community base that sets the variable gets the same requirement, and the scripts it left out change its percentage.
-- A project receives the configuration and the steps of the workflow, and does not run the measure. A pull request of a project that leaves the scripts alone runs a few seconds of tests instead of about three minutes. A test module that reads a file of the repository must be named in the step "Test the configuration of the project", and a test checks it.
+- A project receives the configuration and the steps of the workflow, and does not run the measure. A pull request of a project that leaves the scripts alone runs about 4 seconds of tests instead of the whole suite (about 100 seconds on a developer machine). A test module that reads a file of the repository must be named in the step "Test the configuration of the project", and a test checks it.
 
 ## Options considered
 
