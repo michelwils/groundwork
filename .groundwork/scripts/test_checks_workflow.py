@@ -61,6 +61,50 @@ class ChecksWorkflow(unittest.TestCase):
         self.assertRegex(step, re.compile(r"^        env:\n          GROUNDWORK_SOURCE: \$\{\{ vars\.GROUNDWORK_SOURCE \}\}$", flags=re.MULTILINE))
 
 
+CACHE_STEP = "Restore the environments of pre-commit"
+PYTHON_STEP = "Find the version of Python of pre-commit"
+
+
+class CacheOfTheHooks(unittest.TestCase):
+    """The environments of the hooks depend only on the configuration and on pre-commit, so the CI keeps them."""
+
+    def setUp(self):
+        self.step = steps()[CACHE_STEP]
+
+    def test_the_cache_is_restored_between_the_installation_of_pre_commit_and_the_checks(self):
+        names = list(steps())
+        self.assertLess(names.index("Install pre-commit"), names.index(PYTHON_STEP))
+        self.assertEqual(names.index(PYTHON_STEP) + 1, names.index(CACHE_STEP))
+        self.assertEqual(names.index(CACHE_STEP) + 1, names.index("Run every check"))
+
+    def test_the_version_of_python_that_runs_pre_commit_goes_in_the_key(self):
+        """An environment of a hook is made with an interpreter, so a new Python needs a new cache."""
+        self.assertIn("python3 -VV", command(PYTHON_STEP))
+        self.assertIn("id: python", steps()[PYTHON_STEP])
+        self.assertIn("steps.python.outputs.hash", self.step)
+
+    def test_the_action_is_pinned_to_a_commit_with_its_version_in_a_comment(self):
+        self.assertRegex(self.step, re.compile(r"^        uses: actions/cache@[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+$", flags=re.MULTILINE))
+
+    def test_the_cache_holds_the_environments_of_pre_commit(self):
+        self.assertRegex(self.step, re.compile(r"^          path: ~/\.cache/pre-commit$", flags=re.MULTILINE))
+
+    def test_the_key_follows_the_configuration_the_version_of_pre_commit_and_the_system(self):
+        key = re.search(r"^          key: (.+)$", self.step, flags=re.MULTILINE).group(1)
+        for part in ("runner.os", "env.PRE_COMMIT_VERSION", "hashFiles('.pre-commit-config.yaml')"):
+            with self.subTest(part=part):
+                self.assertIn(part, key)
+
+    def test_no_cache_of_another_configuration_is_restored(self):
+        self.assertNotIn("restore-keys", self.step)
+
+    def test_no_other_step_uses_a_cache(self):
+        for name, step in steps().items():
+            if name != CACHE_STEP:
+                with self.subTest(step=name):
+                    self.assertNotIn("actions/cache", step)
+
+
 SCRIPTS_STEP = "Find whether the scripts changed"
 CONFIGURATION_STEP = "Test the configuration of the project"
 READS_THE_REPOSITORY = re.compile(r'^ROOT = |"\.\.", "\.\."|os\.getcwd\(\)|dirname\(HERE\)', flags=re.MULTILINE)

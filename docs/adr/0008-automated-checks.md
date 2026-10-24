@@ -23,6 +23,7 @@ We will check the repository automatically, in two places, from one configuratio
 - Mechanical mistakes are found before the review, which can concentrate on the content.
 - Contributors need the tool that runs the hooks. One who does not install it is caught later, by the CI.
 - The pinned versions age and are updated by hand, as any other change.
+- The CI keeps the environments of the hooks in a cache, since installing them is most of its time. The key follows the configuration, the version of pre-commit and the Python that runs it, with no fallback to another key. A pull request restores the cache that a push to the main branch saved and writes only in its own scope, so it cannot change what the main branch restores. An entry that nobody reads for seven days is evicted, and the next run installs the environments again.
 - A check that rejects valid work costs time until it is fixed.
 - Rules that need judgement, such as whether the type of a commit is right, stay with the review.
 - The condition that a pull request's checks pass before it is merged can be verified.
