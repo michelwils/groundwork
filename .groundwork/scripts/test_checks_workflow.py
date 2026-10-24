@@ -63,8 +63,7 @@ class ChecksWorkflow(unittest.TestCase):
 
 RESTORE_STEP = "Restore the environments of pre-commit"
 SAVE_STEP = "Save the environments of pre-commit"
-PYTHON_STEP = "Find the version of Python of pre-commit"
-CACHE_KEY = "pre-commit-${{ runner.os }}-${{ env.PRE_COMMIT_VERSION }}-${{ steps.python.outputs.hash }}-${{ hashFiles('.pre-commit-config.yaml') }}"
+KEY_STEP = "Find the key of the cache of pre-commit"
 
 
 class CacheOfTheHooks(unittest.TestCase):
@@ -72,8 +71,8 @@ class CacheOfTheHooks(unittest.TestCase):
 
     def test_the_cache_is_restored_before_the_checks_and_saved_after_them(self):
         names = list(steps())
-        self.assertLess(names.index("Install pre-commit"), names.index(PYTHON_STEP))
-        self.assertEqual(names.index(PYTHON_STEP) + 1, names.index(RESTORE_STEP))
+        self.assertLess(names.index("Install pre-commit"), names.index(KEY_STEP))
+        self.assertEqual(names.index(KEY_STEP) + 1, names.index(RESTORE_STEP))
         self.assertEqual(names.index(RESTORE_STEP) + 1, names.index("Run every check"))
         self.assertEqual(names.index("Run every check") + 1, names.index(SAVE_STEP))
 
@@ -88,16 +87,16 @@ class CacheOfTheHooks(unittest.TestCase):
 
     def test_the_cache_holds_the_folder_that_pre_commit_is_told_to_use(self):
         """Pre-commit reads PRE_COMMIT_HOME before its default, so the folder is not a guess."""
-        with open(WORKFLOW) as handle:
-            self.assertRegex(handle.read(), re.compile(r"^  PRE_COMMIT_HOME: /home/runner/\.cache/pre-commit$", flags=re.MULTILINE))
+        self.assertIn('echo "PRE_COMMIT_HOME=$RUNNER_TEMP/pre-commit" >> "$GITHUB_ENV"', command(KEY_STEP))
         for name in (RESTORE_STEP, SAVE_STEP):
             with self.subTest(step=name):
                 self.assertRegex(steps()[name], re.compile(r"^          path: \$\{\{ env\.PRE_COMMIT_HOME \}\}$", flags=re.MULTILINE))
 
-    def test_the_key_follows_the_system_pre_commit_its_python_and_the_configuration(self):
+    def test_the_two_steps_use_the_one_key_that_the_step_before_computes(self):
+        self.assertIn("id: key", steps()[KEY_STEP])
         for name in (RESTORE_STEP, SAVE_STEP):
             with self.subTest(step=name):
-                self.assertRegex(steps()[name], re.compile(r"^          key: " + re.escape(CACHE_KEY) + "$", flags=re.MULTILINE))
+                self.assertRegex(steps()[name], re.compile(r"^          key: \$\{\{ steps\.key\.outputs\.key \}\}$", flags=re.MULTILINE))
 
     def test_no_cache_of_another_configuration_is_restored(self):
         for name in (RESTORE_STEP, SAVE_STEP):
@@ -116,16 +115,14 @@ class CacheOfTheHooks(unittest.TestCase):
                     self.assertNotIn("actions/cache", step)
 
 
-class PythonOfPreCommit(unittest.TestCase):
-    """The step that gives the key the interpreter that pre-commit runs with, not the one of the PATH."""
+class KeyOfTheCache(unittest.TestCase):
+    """The step that computes the key, with the interpreter that pre-commit runs with and not the one of the PATH."""
 
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.root = self.directory.name
-        self.venvs = os.path.join(self.root, "venvs")
-        os.makedirs(os.path.join(self.venvs, "pre-commit", "bin"))
         os.makedirs(os.path.join(self.root, "bin"))
-        self.executable("bin/pipx", f'#!/bin/sh\nprintf "%s" "{self.venvs}"\n')
+        os.makedirs(os.path.join(self.root, "venv", "bin"))
         self.executable("bin/python3", "#!/bin/sh\necho 'Python of the PATH'\n")
 
     def tearDown(self):
@@ -137,24 +134,48 @@ class PythonOfPreCommit(unittest.TestCase):
             handle.write(text)
         os.chmod(path, 0o755)
 
-    def hash(self, version):
-        self.executable("venvs/pre-commit/bin/python", f"#!/bin/sh\necho '{version}'\n")
-        output = os.path.join(self.root, "output")
-        env = {**os.environ, "PATH": os.path.join(self.root, "bin") + os.pathsep + os.environ["PATH"], "GITHUB_OUTPUT": output}
-        subprocess.run(["bash", "-e", "-c", command(PYTHON_STEP)], env=env, check=True, capture_output=True, text=True)
-        try:
-            with open(output) as handle:
-                return handle.read().strip()
-        finally:
-            os.remove(output)
+    def run_step(self, version="Python 3.12.3", config="c0ffee", temp="/tmp/runner"):
+        """Return the lines written to the output and to the environment of the job."""
+        self.executable("venv/bin/python", f"#!/bin/sh\necho '{version}'\n")
+        self.executable("bin/pre-commit", f"#!{self.root}/venv/bin/python\nprint('pre-commit')\n")
+        paths = {name: os.path.join(self.root, name) for name in ("output", "environment")}
+        env = {**os.environ, "PATH": os.path.join(self.root, "bin") + os.pathsep + os.environ["PATH"], "GITHUB_OUTPUT": paths["output"], "GITHUB_ENV": paths["environment"],
+               "RUNNER_OS": "Linux", "RUNNER_TEMP": temp, "PRE_COMMIT_VERSION": "4.7.0", "CONFIG_HASH": config}
+        result = subprocess.run(["bash", "-e", "-c", command(KEY_STEP)], env=env, check=True, capture_output=True, text=True)
+        found = {}
+        for name, path in paths.items():
+            with open(path) as handle:
+                found[name] = handle.read().strip()
+            os.remove(path)
+        return found, result.stdout
 
-    def test_it_gives_a_hash_to_the_output_named_in_the_key(self):
-        self.assertRegex(self.hash("Python 3.12.3"), r"^hash=[0-9a-f]{64}$")
-        self.assertIn("id: python", steps()[PYTHON_STEP])
+    def test_the_key_has_the_system_pre_commit_the_python_of_pre_commit_and_the_configuration(self):
+        found, _ = self.run_step(config="c0ffee")
+        self.assertRegex(found["output"], r"^key=pre-commit-Linux-4\.7\.0-[0-9a-f]{64}-c0ffee$")
 
-    def test_the_hash_follows_the_python_of_pre_commit_and_not_the_one_of_the_path(self):
-        self.assertNotEqual(self.hash("Python 3.12.3"), self.hash("Python 3.13.1"))
-        self.assertEqual(self.hash("Python 3.12.3"), self.hash("Python 3.12.3"))
+    def test_the_key_follows_the_python_of_pre_commit_and_not_the_one_of_the_path(self):
+        first, _ = self.run_step("Python 3.12.3")
+        self.assertNotEqual(first["output"], self.run_step("Python 3.13.1")[0]["output"])
+        self.assertEqual(first["output"], self.run_step("Python 3.12.3")[0]["output"])
+
+    def test_the_key_follows_the_folder_of_the_environments(self):
+        """The environments of the hooks hold absolute paths, so a cache is not restored into another folder."""
+        self.assertNotEqual(self.run_step(temp="/tmp/a")[0]["output"], self.run_step(temp="/tmp/b")[0]["output"])
+
+    def test_the_key_follows_the_configuration(self):
+        self.assertNotEqual(self.run_step(config="aaa")[0]["output"], self.run_step(config="bbb")[0]["output"])
+
+    def test_the_log_names_the_python_that_the_key_was_computed_from(self):
+        _, log = self.run_step("Python 3.12.3 (the build)")
+        self.assertIn("Python 3.12.3 (the build)", log)
+
+    def test_the_folder_of_pre_commit_is_set_for_the_next_steps(self):
+        found, _ = self.run_step()
+        self.assertEqual(found["environment"], "PRE_COMMIT_HOME=/tmp/runner/pre-commit")
+
+    def test_the_configuration_hash_comes_to_the_step_through_the_environment(self):
+        self.assertRegex(steps()[KEY_STEP], re.compile(r"^          CONFIG_HASH: \$\{\{ hashFiles\('\.pre-commit-config\.yaml'\) \}\}$", flags=re.MULTILINE))
+        self.assertNotIn("${{", command(KEY_STEP))
 
 
 SCRIPTS_STEP = "Find whether the scripts changed"
