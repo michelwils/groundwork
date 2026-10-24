@@ -15,6 +15,9 @@ concurrency:
 
 env:
   PRE_COMMIT_VERSION: 4.7.0
+  # Where pre-commit keeps its environments, which the cache holds. It is the default folder
+  # of the runner, written out so that the cache does not depend on a guess.
+  PRE_COMMIT_HOME: /home/runner/.cache/pre-commit
 
 jobs:
   checks:
@@ -28,26 +31,37 @@ jobs:
       - name: Install pre-commit
         run: pipx install "pre-commit==${PRE_COMMIT_VERSION}"
 
-      # An environment of a hook is made with an interpreter, so the key follows the Python that
-      # runs pre-commit.
+      # An environment of a hook is made with the interpreter that pre-commit runs with, which is
+      # the one of its own environment of pipx, so the key follows that Python.
       - name: Find the version of Python of pre-commit
         id: python
         run: |
-          echo "hash=$(python3 -VV | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          python="$(pipx environment --value PIPX_LOCAL_VENVS)/pre-commit/bin/python"
+          echo "hash=$("$python" -VV | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
 
       # The environments of the hooks depend only on the configuration, on pre-commit and on that
-      # Python. A pull request restores those that the last push to the default branch saved, and
-      # the cache it writes stays in its own scope (the merge ref), so it cannot change what the
+      # Python. A pull request restores those that a push to the default branch saved, and the
+      # cache it writes stays in its own scope (the merge ref), so it cannot change what the
       # default branch restores. There is no restore-keys: a cache of another configuration is
       # not used.
       - name: Restore the environments of pre-commit
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/pre-commit
+          path: ${{ env.PRE_COMMIT_HOME }}
           key: pre-commit-${{ runner.os }}-${{ env.PRE_COMMIT_VERSION }}-${{ steps.python.outputs.hash }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Run every check
         run: pre-commit run --all-files --hook-stage manual
+
+      # Saved even when a check failed, since the environments are installed by then. Nothing is
+      # saved after a hit: the key does not change, so the entry stays as it is.
+      - name: Save the environments of pre-commit
+        if: ${{ !cancelled() && steps.cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PRE_COMMIT_HOME }}
+          key: pre-commit-${{ runner.os }}-${{ env.PRE_COMMIT_VERSION }}-${{ steps.python.outputs.hash }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install the dependencies of the scripts
         run: |
