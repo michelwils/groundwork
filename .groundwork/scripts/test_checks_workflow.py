@@ -63,7 +63,7 @@ class ChecksWorkflow(unittest.TestCase):
 
 SCRIPTS_STEP = "Find whether the scripts changed"
 CONFIGURATION_STEP = "Test the configuration of the project"
-READS_THE_REPOSITORY = re.compile(r'^ROOT = |"\.\.", "\.\."', flags=re.MULTILINE)
+READS_THE_REPOSITORY = re.compile(r'^ROOT = |"\.\.", "\.\."|os\.getcwd\(\)|dirname\(HERE\)', flags=re.MULTILINE)
 
 
 def configuration_patterns():
@@ -72,7 +72,8 @@ def configuration_patterns():
 
 
 def modules_reading_the_repository():
-    """Return the test modules that read a file of the repository, which a project edits."""
+    """Return the test modules that read a file of the repository, which a project edits. A module reads it
+    when it defines ROOT, builds a path up from its folder with "..", "..", or uses the working directory."""
     found = []
     for name in sorted(os.listdir(HERE)):
         if name.startswith("test_") and name.endswith(".py"):
@@ -167,10 +168,11 @@ class ScriptsChanged(unittest.TestCase):
         self.assertEqual(self.changed(), "changed=false")
 
 
+KIND_STEP = "Find whether the repository is a source of ADRs"
 SOURCE_CONDITION = "hashFiles('.groundwork-version') == '' || vars.GROUNDWORK_SOURCE == 'true'"
 RCFILE = ".groundwork/scripts/coveragerc"
 COVERAGE_STEP = "Test the scripts and measure the coverage"
-MEASURE = f"({SOURCE_CONDITION}) && steps.scripts.outputs.changed == 'true'"
+MEASURE = "steps.kind.outputs.source == 'true' && steps.scripts.outputs.changed == 'true'"
 COMMANDS = [
     f"-m coverage run --rcfile={RCFILE} -m unittest discover -s .groundwork/scripts -p 'test_*.py'",
     f"-m coverage combine --rcfile={RCFILE}",
@@ -192,7 +194,7 @@ class CoverageGate(unittest.TestCase):
 
     def test_the_measure_runs_in_a_source_when_the_scripts_changed_and_the_plain_tests_do_not_then(self):
         self.assertEqual(self.condition(COVERAGE_STEP), "${{ " + MEASURE + " }}")
-        self.assertTrue(self.condition("Test the scripts").startswith("${{ !(" + MEASURE + ") && "))
+        self.assertEqual(self.condition("Test the scripts"), "${{ steps.kind.outputs.source != steps.scripts.outputs.changed }}")
 
     def test_the_step_that_decides_receives_the_base_by_the_environment_only(self):
         step = steps()[SCRIPTS_STEP]
@@ -220,8 +222,28 @@ class CoverageGate(unittest.TestCase):
         self.assertNotIn("--fail-under", step)
 
     def test_a_project_runs_all_the_tests_when_the_scripts_changed_and_those_of_its_configuration_otherwise(self):
-        self.assertEqual(self.condition("Test the scripts"), "${{ !(" + MEASURE + ") && (" + SOURCE_CONDITION + " || steps.scripts.outputs.changed == 'true') }}")
-        self.assertEqual(self.condition(CONFIGURATION_STEP), "${{ !(" + SOURCE_CONDITION + ") && steps.scripts.outputs.changed != 'true' }}")
+        self.assertEqual(self.condition("Test the scripts"), "${{ steps.kind.outputs.source != steps.scripts.outputs.changed }}")
+        self.assertEqual(self.condition(CONFIGURATION_STEP), "${{ steps.kind.outputs.source != 'true' && steps.scripts.outputs.changed != 'true' }}")
+
+    def test_the_kind_of_the_repository_is_decided_once_from_the_files_and_the_variable(self):
+        step = steps()[KIND_STEP]
+        self.assertIn("id: kind", step)
+        self.assertIn("SOURCE: ${{ " + SOURCE_CONDITION + " }}", step)
+        self.assertNotIn("${{", command(KIND_STEP))
+        self.assertLess(list(steps()).index(KIND_STEP), list(steps()).index(COVERAGE_STEP))
+
+    def test_each_pattern_of_the_tests_of_the_configuration_matches_a_test(self):
+        """A pattern that matches nothing runs nothing, and the step fails only when no pattern matches."""
+        names = []
+
+        def collect(suite):
+            for item in suite:
+                collect(item) if isinstance(item, unittest.TestSuite) else names.append(item.id())
+
+        collect(unittest.defaultTestLoader.discover(HERE, "test_*.py"))
+        for pattern in configuration_patterns():
+            with self.subTest(pattern=pattern):
+                self.assertTrue(any(pattern in name for name in names))
 
     def test_the_tests_of_the_configuration_run_after_the_step_that_decides_and_do_not_measure(self):
         names = list(steps())
