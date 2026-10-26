@@ -112,7 +112,7 @@ groundwork is a GitHub template repository.
 
    It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on, and makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. It also turns on the vulnerability alerts and the security updates for the dependencies. Last, it protects the default branch with this repository's ruleset, which rejects direct pushes and requires the `checks` job of the CI. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing. `--code-owner-review` and `--last-push-approval` require a review of the files of groundwork by their code owners, as [ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md) tells. The script stops when a run would lower an approval setting that the ruleset already has, unless it gets `--turn-off-reviews`. Copy `.groundwork/CODEOWNERS.template` to `.github/CODEOWNERS` first, and merge it into the default branch.
 
-   If the project adds jobs to its CI, it adds one job that waits for all the others and fails if one of them failed, names that job in the `context` of [`.groundwork/rulesets/main.json`](.groundwork/rulesets/main.json) and runs the script again with the same options, so that the ruleset requires that job.
+   The jobs that the project adds to its CI go in [`.github/workflows/project-checks.yml`](.github/workflows/project-checks.yml), which the required job `checks` waits for ([ADR 0008](docs/adr/0008-automated-checks.md)): the ruleset needs no change, nor a new run of the script.
 
    Also create the secret `GROUNDWORK_UPDATE_TOKEN`, which the [automatic update](#automatic-update) of groundwork needs.
 3. **Create** the first milestone, then the first issue, which adapts the template to the project.
@@ -175,7 +175,7 @@ The second phase, the workflow:
 
 The third phase, the checks:
 
-- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks in `.pre-commit-config.yaml` and add groundwork's. Check with `pre-commit run --all-files --hook-stage manual`.
+- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks in its own lines of `.pre-commit-config.yaml` and its jobs in `.github/workflows/project-checks.yml`, and add groundwork's. Check with `pre-commit run --all-files --hook-stage manual`.
 
 The fourth phase, the rules that no tool checks:
 

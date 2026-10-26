@@ -12,19 +12,61 @@ sys.path.insert(0, HERE)
 from test_filtered_trees import is_source  # noqa: E402
 
 WORKFLOW = os.path.join(HERE, "..", "..", ".github", "workflows", "checks.yml")
+PROJECT_WORKFLOW = os.path.join(HERE, "..", "..", ".github", "workflows", "project-checks.yml")
 BOT_PULL_REQUEST = "!(startsWith(github.head_ref, 'dependabot/') && github.event.pull_request.user.login == 'dependabot[bot]')"
 
 
+def without_comments(path):
+    with open(path) as handle:
+        return re.sub(r"^\s*#.*\n", "", handle.read(), flags=re.MULTILINE)
+
+
+def job(name):
+    """Return the text of a job of the workflow, without its comments, or an empty text if it has none."""
+    found = re.search(rf"^  {name}:\n((?:(?:    .*)?\n?)+)", without_comments(WORKFLOW), flags=re.MULTILINE)
+    return found.group(1) if found else ""
+
+
 def steps():
-    """Return the text of each step of the workflow, by name, without its comments."""
-    with open(WORKFLOW) as handle:
-        text = re.sub(r"^\s*#.*\n", "", handle.read(), flags=re.MULTILINE)
+    """Return the text of each step of the job of groundwork, by name, without its comments."""
+    text = job("groundwork")
     parts = re.split(r"^      - (?=name:|uses:)", text, flags=re.MULTILINE)[1:]
     found = {}
     for part in parts:
         match = re.match(r"name: (.+)", part)
         found[match.group(1).strip() if match else part.splitlines()[0]] = part
     return found
+
+
+class JobsOfTheProject(unittest.TestCase):
+    """The job that the ruleset requires, `checks`, waits for the checks of groundwork and for those of the project."""
+
+    def test_the_job_of_the_project_calls_the_workflow_that_the_project_owns(self):
+        self.assertRegex(job("project"), re.compile(r"^    uses: \$/\.github/workflows/project-checks\.yml$", flags=re.MULTILINE))
+
+    def test_the_required_job_waits_for_the_checks_of_groundwork_and_of_the_project(self):
+        self.assertRegex(job("checks"), re.compile(r"^    needs: \[groundwork, project\]$", flags=re.MULTILINE))
+
+    def test_the_required_job_runs_when_a_job_it_waits_for_failed_or_was_skipped(self):
+        self.assertRegex(job("checks"), re.compile(r"^    if: \$\{\{ always\(\) \}\}$", flags=re.MULTILINE))
+
+    def test_the_required_job_fails_unless_both_jobs_succeeded(self):
+        text = job("checks")
+        self.assertIn("GROUNDWORK: ${{ needs.groundwork.result }}", text)
+        self.assertIn("PROJECT: ${{ needs.project.result }}", text)
+        self.assertIn('[ "$GROUNDWORK" = success ] && [ "$PROJECT" = success ]', text)
+
+    def test_the_required_job_does_not_run_the_checks_itself(self):
+        self.assertNotIn("pre-commit", job("checks"))
+        self.assertNotIn("actions/checkout", job("checks"))
+
+    def test_the_workflow_of_the_project_is_called_by_the_workflow_and_nothing_else(self):
+        text = without_comments(PROJECT_WORKFLOW)
+        self.assertRegex(text, re.compile(r"^on:\n  workflow_call:\n(?!  )", flags=re.MULTILINE))
+
+    def test_the_workflow_of_the_project_reads_the_contents_and_nothing_more(self):
+        text = without_comments(PROJECT_WORKFLOW)
+        self.assertRegex(text, re.compile(r"^permissions:\n  contents: read\n(?!  )", flags=re.MULTILINE))
 
 
 class ChecksWorkflow(unittest.TestCase):

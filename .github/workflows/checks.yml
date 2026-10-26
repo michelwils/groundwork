@@ -17,7 +17,7 @@ env:
   PRE_COMMIT_VERSION: 4.7.0
 
 jobs:
-  checks:
+  groundwork:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -156,3 +156,20 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: python3 .groundwork/scripts/check_pull_request.py "$BRANCH" "$BASE" "$BODY" "$PR_TITLE"
+
+  # The checks of the project, in a workflow that it owns and that groundwork does not change again.
+  project:
+    uses: $/.github/workflows/project-checks.yml
+
+  # The ruleset requires this job only. It runs even when a job it waits for failed or was skipped, since the
+  # platform counts a skipped job as a success, and it fails unless both succeeded.
+  checks:
+    needs: [groundwork, project]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the checks of groundwork and of the project
+        env:
+          GROUNDWORK: ${{ needs.groundwork.result }}
+          PROJECT: ${{ needs.project.result }}
+        run: '[ "$GROUNDWORK" = success ] && [ "$PROJECT" = success ]'
