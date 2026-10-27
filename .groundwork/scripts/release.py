@@ -26,7 +26,8 @@ BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
 BREAKING_TEXT = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*(.*)\Z", re.MULTILINE | re.DOTALL)
 TRAILER = re.compile(
     r"^(?:(?:Co-Authored-By|Signed-off-by|Reviewed-by|Acked-by|Tested-by|Reported-by|Suggested-by|Helped-by|Cc): "
-    r"|(?:Refs|Closes|Fixes) #\d)"
+    r"|(?:Refs|Closes|Fixes) #\d)",
+    re.IGNORECASE,  # git reads the key of a trailer in any case, and the platform writes Co-authored-by
 )
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 TAG = re.compile(r"^v(\d+\.\d+\.\d+)$")
