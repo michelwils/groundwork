@@ -60,6 +60,7 @@ def branch_problems(branch, base, body):
 
 def main():
     if len(sys.argv) != 5:
+        print(f"error: expected 4 arguments, got {len(sys.argv) - 1}", file=sys.stderr)
         print(__doc__, file=sys.stderr)
         return 2
     problems = check(*sys.argv[1:])

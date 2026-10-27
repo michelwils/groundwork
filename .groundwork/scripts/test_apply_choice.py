@@ -250,7 +250,7 @@ class Narrowed(Fixture):
     def test_a_file_that_the_project_changed_is_kept_and_said(self):
         self.adopt({**world("1"), "three.txt": "three 1, mine\n"}, version="0.1.0", choice="0001\n0002\n")
         result = self.run_script()
-        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
         self.assertEqual(read(self.project, "three.txt"), "three 1, mine\n")
         self.assertIn("three.txt (changed by the project)", self.lines(result, "keep: "))
         self.assertFalse(self.has(adr(3)))
@@ -259,7 +259,7 @@ class Narrowed(Fixture):
         shared = world("1")["SHARED.md"].replace("middle 3", "middle 3, mine")
         self.adopt({**world("1"), "SHARED.md": shared}, version="0.1.0", choice="0001\n0002\n")
         result = self.run_script()
-        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
         text = read(self.project, "SHARED.md")
         self.assertIn("middle 3, mine", text)
         self.assertNotIn("last 4", text)

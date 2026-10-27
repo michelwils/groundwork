@@ -149,14 +149,14 @@ class Update(unittest.TestCase):
     def test_keeps_and_reports_a_file_removed_by_groundwork_that_the_project_changed(self):
         self.commit_project({"old.md": "old, adjusted\n"})
         result = self.run_script()
-        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.returncode, 3, result.stderr)
         self.assertIn("old.md", result.stdout)
         self.assertEqual(read(self.project, "old.md"), "old, adjusted\n")
 
     def test_keeps_and_reports_a_binary_file_changed_on_both_sides(self):
         self.commit_project({"logo.bin": "a\0d"})
         result = self.run_script("--to", "0.2.0")
-        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.returncode, 3, result.stderr)
         self.assertIn("logo.bin", result.stdout)
         self.assertEqual(read(self.project, "logo.bin"), "a\0d")
 
@@ -197,7 +197,7 @@ class Update(unittest.TestCase):
     def test_reports_the_files_in_conflict(self):
         self.commit_project({"CONTRIBUTING.md": "one\ntwo mine\nthree\n"})
         result = self.run_script("--to", "0.2.0")
-        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.returncode, 3, result.stderr)
         self.assertIn("CONTRIBUTING.md", result.stdout)
         self.assertNotIn("new.md", result.stdout)
         self.assertIn("<<<<<<<", read(self.project, "CONTRIBUTING.md"))
@@ -213,7 +213,7 @@ class Update(unittest.TestCase):
     def test_gives_the_result_in_the_file_that_the_caller_names(self):
         self.commit_project({"CONTRIBUTING.md": "one\ntwo mine\nthree\n"})
         result = self.run_script("--to", "0.2.0", "--result", self.result_file())
-        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.returncode, 3, result.stderr)
         self.assertEqual(
             self.result(),
             {
@@ -268,7 +268,7 @@ class Update(unittest.TestCase):
         git(self.source, "commit", "-q", "-m", "feat: release 0.4.0")
         git(self.source, "tag", "-a", "v0.4.0", "-m", "v0.4.0")
         result = self.run_script("--to", "0.4.0", "--result", self.result_file())
-        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
         fields = self.result()
         self.assertEqual(fields["conflicts"], [name])
         self.assertEqual(fields["branch"], "chore/42-update-groundwork-to-v0-4-0")
@@ -877,7 +877,7 @@ class Choice(unittest.TestCase):
         self.releases(world("1"), world("2"))
         self.adopt({name: text for name, text in world("1").items() if name != "four.txt"})
         result = self.run_script()
-        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.returncode, 3)
         self.assertIn("- four.txt", result.stdout)
         self.assertNotIn("added:", result.stdout)
 
@@ -966,7 +966,7 @@ class Chain(unittest.TestCase):
     def test_an_entry_of_the_base_after_those_of_groundwork_conflicts_with_a_new_entry_of_groundwork(self):
         self.found_base([1, 13, 9000])
         result = self.update(self.base, self.groundwork)
-        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
         self.assertIn("- .groundwork/practices.md", result.stdout)
 
     def test_the_project_gets_the_change_of_groundwork_and_the_range_of_the_base_from_the_base(self):

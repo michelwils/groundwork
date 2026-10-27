@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import stat
 import subprocess
 import sys
@@ -255,6 +256,18 @@ class OpenUpdatePullRequest(unittest.TestCase):
         self.assertEqual(self.created(), [])
         self.assertEqual(self.remote_branches(), ["main"])
 
+    def test_shows_the_error_of_the_update_whatever_its_status(self):
+        copy = os.path.join(self.directory.name, "copy")
+        os.makedirs(copy)
+        shutil.copy(SCRIPT, copy)
+        with open(os.path.join(copy, "update_groundwork.py"), "w") as handle:
+            handle.write("import sys\nprint('error: the update stopped at a step', file=sys.stderr)\nsys.exit(4)\n")
+        env = {**os.environ, "PATH": self.bin + os.pathsep + os.environ["PATH"], "FAKE_LOG": self.log}
+        result = subprocess.run([sys.executable, os.path.join(copy, "open_update_pull_request.py"), "--source", self.source], cwd=self.project, capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("error: the update stopped at a step", result.stderr)
+        self.assertIn("status 4", result.stderr)
+
     def test_replaces_a_branch_left_by_an_earlier_run_that_has_no_pull_request(self):
         git(self.project, "switch", "-q", "-c", "groundwork/update-to-v0-2-0")
         write(self.project, {"stale.md": "stale\n"})
@@ -311,8 +324,8 @@ class Body(unittest.TestCase):
 
     def test_the_status_of_the_update_must_agree_with_its_conflicts(self):
         opener.agree(0, {"conflicts": []})
-        opener.agree(2, {"conflicts": ["a.md"]})
-        for status, conflicts in ((0, ["a.md"]), (2, []), (3, []), (-9, [])):
+        opener.agree(3, {"conflicts": ["a.md"]})
+        for status, conflicts in ((0, ["a.md"]), (3, []), (2, ["a.md"]), (2, []), (-9, [])):
             with self.subTest(status=status, conflicts=conflicts):
                 with self.assertRaises(opener.Failure):
                     opener.agree(status, {"conflicts": conflicts})

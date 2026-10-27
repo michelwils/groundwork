@@ -29,6 +29,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UPDATE = os.path.join(HERE, "update_groundwork.py")
+CONFLICTS = 3  # the status of the update when it leaves files in conflict, as update_groundwork.py ends
 VERSION_FILE = ".groundwork-version"
 PREFIX = "groundwork/"
 FIELDS = ("branch", "from", "to", "source", "added", "conflicts")
@@ -104,8 +105,8 @@ def result(path):
 
 
 def agree(status, fields):
-    """Check that the status of the update says what its result says: 2 when files are in conflict, 0 when none is."""
-    if status != (2 if fields["conflicts"] else 0):
+    """Check that the status of the update says what its result says: CONFLICTS (3) when files are in conflict, 0 when none is."""
+    if status != (CONFLICTS if fields["conflicts"] else 0):
         raise Failure(f"The update script ended with status {status} and a result with {len(fields['conflicts'])} files in conflict.")
 
 
@@ -148,8 +149,8 @@ def main():
         command = [sys.executable, UPDATE, "--result", file] + (["--source", args.source] if args.source else [])
         update = subprocess.run(command, capture_output=True, text=True)
         sys.stdout.write(update.stdout)
+        sys.stderr.write(update.stderr)
         if update.returncode == 1:
-            sys.stderr.write(update.stderr)
             return 1
         fields = result(file)
     if fields is None:

@@ -25,7 +25,7 @@ nothing, so that its files are not taken for deletions: an ADR kept whose file t
 file that no ADR left out owns any more, an ADR of a range that the source reserves from now on.
 Everything is read before the branch is created, so a choice that is refused changes nothing.
 
-Exit status: 0 when the project is updated or up to date, 1 on an error, 2 when some files are
+Exit status: 0 when the project is updated or up to date, 1 on an error, 2 when the arguments are wrong, 3 when some files are
 in conflict. A conflict leaves markers in the file, and the script names the files. After the
 lines `branch:`, `from:` and `to:`, the line `source:` names the source that was used, the line `added: 0002, 0003` names the ADRs that enter the
 choice and that the project does not list, and the lines `- path` name the files in conflict. This text is for a person.
@@ -53,6 +53,7 @@ import markers  # noqa: E402
 import practices_map  # noqa: E402
 
 SOURCE = "https://github.com/michelwils/groundwork.git"
+CONFLICTS = 3  # the status of a run that finished and leaves files to resolve; 2 is a wrong use of the script (argparse)
 VERSION_FILE = ".groundwork-version"
 SOURCE_FILE = ".groundwork-source"
 EXCLUDED = ("README.md", "LICENSE", VERSION_FILE, choice.CHOICE_FILE, SOURCE_FILE)
@@ -442,7 +443,7 @@ def run(args):
         result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in said], "conflicts": conflicts}
         with open(args.result, "w") as handle:
             json.dump(result, handle)
-    return 2 if conflicts else 0
+    return CONFLICTS if conflicts else 0
 
 
 def main():

@@ -175,8 +175,13 @@ class CommandLine(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("error:", result.stderr)
 
+    def test_wrong_number_of_arguments_gives_an_error_line_and_the_usage(self):
+        result = self.run_script("feat/12-add-a-check")
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(result.stderr.startswith("error: expected 4 arguments, got 1\n"), result.stderr)
+        self.assertIn("Usage:", result.stderr)
+
     def test_wrong_number_of_arguments(self):
-        self.assertEqual(self.run_script("feat/12-add-a-check").returncode, 2)
         self.assertEqual(self.run_script("feat/12-add-a-check", "main", "Closes #12").returncode, 2)
 
 
