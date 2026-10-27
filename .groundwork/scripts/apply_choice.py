@@ -355,7 +355,7 @@ def run(args):
         print(line)
     if args.dry_run:
         print("dry run: no file of the working tree is changed.")
-    return 3 if changes.attention else 0
+    return update.CONFLICTS if changes.attention else 0
 
 
 def main():

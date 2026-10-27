@@ -53,6 +53,7 @@ import markers  # noqa: E402
 import practices_map  # noqa: E402
 
 SOURCE = "https://github.com/michelwils/groundwork.git"
+CONFLICTS = 3  # the status of a run that finished and leaves files to resolve; 2 is a wrong use of the script (argparse)
 VERSION_FILE = ".groundwork-version"
 SOURCE_FILE = ".groundwork-source"
 EXCLUDED = ("README.md", "LICENSE", VERSION_FILE, choice.CHOICE_FILE, SOURCE_FILE)
@@ -442,7 +443,7 @@ def run(args):
         result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in said], "conflicts": conflicts}
         with open(args.result, "w") as handle:
             json.dump(result, handle)
-    return 3 if conflicts else 0
+    return CONFLICTS if conflicts else 0
 
 
 def main():
