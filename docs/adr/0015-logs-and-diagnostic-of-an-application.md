@@ -1,6 +1,6 @@
 # 0015. Logs and diagnostic of an application
 
-**Status:** proposed
+**Status:** accepted
 
 ## Context
 
