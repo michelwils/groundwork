@@ -131,6 +131,7 @@ jobs:
             -k 'test_apply_choice_on_the_real_files.' \
             -k 'test_checks_workflow.' \
             -k 'test_codeowners_template.' \
+            -k 'test_entries_of_the_project.' \
             -k 'test_filtered_trees.' \
             -k 'test_pre_commit_config.' \
             -k 'test_release.Workflow.' \

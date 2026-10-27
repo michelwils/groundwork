@@ -103,7 +103,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `.groundwork/scripts/test_check_practices.py`
   - `.groundwork/scripts/test_run_with_requirements.py`
   - `.groundwork/scripts/test_checks_workflow.py`
-  - `.groundwork/scripts/test_dependabot_config.py`
+  - `.groundwork/scripts/test_entries_of_the_project.py`
   - `.groundwork/scripts/test_pre_commit_config.py`
   - `.groundwork/scripts/test_script_dependencies.py`
   - `.pre-commit-config.yaml`
