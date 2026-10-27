@@ -133,7 +133,7 @@ class NoSuggestedRange(unittest.TestCase):
 CONVENTIONAL = {
     "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "README.md", "LICENSE", ".editorconfig", ".gitignore", ".gitattributes",
     ".github/dependabot.yml", ".github/PULL_REQUEST_TEMPLATE.md", ".github/ISSUE_TEMPLATE/change.md", ".github/zizmor.yml",
-    ".github/workflows/checks.yml", ".github/workflows/release.yml", ".github/workflows/update-groundwork.yml",
+    ".github/workflows/checks.yml", ".github/workflows/project-checks.yml", ".github/workflows/release.yml", ".github/workflows/update-groundwork.yml",
     ".markdownlint.yaml", ".markdownlintignore", ".pre-commit-config.yaml", "docs/adr/template.md",
 }
 FORMER_PATHS = (

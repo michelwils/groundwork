@@ -91,6 +91,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `.editorconfig`
   - `.github/dependabot.yml`
   - `.github/workflows/checks.yml`
+  - `.github/workflows/project-checks.yml`
   - `.github/zizmor.yml`
   - `.markdownlint.yaml`
   - `.markdownlintignore`
