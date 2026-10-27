@@ -1,6 +1,7 @@
 # The checks of the project, which the job `checks` of checks.yml waits for. The file is the project's: it puts its
-# own jobs here, and groundwork does not change it after it has brought it (ADR 0008). A job here has the
-# permissions of checks.yml at most, so a job that needs more goes in a workflow of its own, which no ruleset requires.
+# own jobs here, and groundwork does not change it after it has brought it (ADR 0008). The job `none` goes when the
+# project adds its own. A job here has the permissions of checks.yml at most, so a job that needs more goes in a
+# workflow of its own, which no ruleset requires.
 name: project checks
 
 on:

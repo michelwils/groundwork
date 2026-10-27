@@ -162,10 +162,10 @@ jobs:
     uses: $/.github/workflows/project-checks.yml
 
   # The ruleset requires this job only. It runs even when a job it waits for failed or was skipped, since the
-  # platform counts a skipped job as a success, and it fails unless both succeeded.
+  # platform counts a skipped job as a success, but not when the run is cancelled, and it fails unless both succeeded.
   checks:
     needs: [groundwork, project]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Require the checks of groundwork and of the project

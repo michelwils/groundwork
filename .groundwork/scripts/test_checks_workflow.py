@@ -47,8 +47,8 @@ class JobsOfTheProject(unittest.TestCase):
     def test_the_required_job_waits_for_the_checks_of_groundwork_and_of_the_project(self):
         self.assertRegex(job("checks"), re.compile(r"^    needs: \[groundwork, project\]$", flags=re.MULTILINE))
 
-    def test_the_required_job_runs_when_a_job_it_waits_for_failed_or_was_skipped(self):
-        self.assertRegex(job("checks"), re.compile(r"^    if: \$\{\{ always\(\) \}\}$", flags=re.MULTILINE))
+    def test_the_required_job_runs_when_a_job_it_waits_for_failed_or_was_skipped_but_not_when_cancelled(self):
+        self.assertRegex(job("checks"), re.compile(r"^    if: \$\{\{ !cancelled\(\) \}\}$", flags=re.MULTILINE))
 
     def test_the_required_job_fails_unless_both_jobs_succeeded(self):
         text = job("checks")
