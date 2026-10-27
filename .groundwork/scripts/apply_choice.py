@@ -35,7 +35,7 @@ tags of the source.
 
 Output: the lines `add:`, `merge:`, `delete:`, `edit:`, `keep:`, `conflict:` and `write:`, `added:` for
 the ADRs that enter and that the project does not list. Exit status: 0 when done, 1 on an error, 2
-when some files are kept or in conflict.
+when the arguments are wrong, 3 when some files are kept or in conflict.
 """
 
 import argparse
@@ -355,7 +355,7 @@ def run(args):
         print(line)
     if args.dry_run:
         print("dry run: no file of the working tree is changed.")
-    return 2 if changes.attention else 0
+    return 3 if changes.attention else 0
 
 
 def main():

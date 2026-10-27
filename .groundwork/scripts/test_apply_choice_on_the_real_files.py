@@ -202,7 +202,7 @@ class ExistingProject(RealTree):
                 put(project, {".groundwork-adrs": "".join(f"{number:04d}\n" for number in kept)})
                 commit(project, "chore: list the ADRs of the step")
                 result = self.run_in(project, source)
-                self.assertIn(result.returncode, (0, 2), result.stdout + result.stderr)
+                self.assertIn(result.returncode, (0, 3), result.stdout + result.stderr)
                 for path in [line[len("conflict: "):] for line in result.stdout.splitlines() if line.startswith("conflict: ")]:
                     self.assertIn(path, self.OWN, f"{path} is in conflict and the project did not have it")
                     with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
