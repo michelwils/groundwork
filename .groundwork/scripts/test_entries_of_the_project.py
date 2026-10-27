@@ -15,8 +15,10 @@ GROUNDWORK = "  - package-ecosystem: docker\n    directory: /\n    schedule:\n  
 
 
 def read():
+    """Return the entries of groundwork and the comment, whatever a community base writes below it."""
     with open(CONFIG, encoding="utf-8") as handle:
-        return handle.read()
+        text = handle.read()
+    return text[: text.index(ANCHOR) + len(ANCHOR)] if ANCHOR in text else text
 
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the file of groundwork, which a project extends with its own entries")
@@ -29,9 +31,10 @@ class EntriesOfTheProject(unittest.TestCase):
         return content.decode(), conflict
 
     def test_the_entries_of_groundwork_end_with_the_comment_for_those_of_the_project(self):
-        text = read()
-        self.assertTrue(text.endswith(ANCHOR), "the file does not end with the comment of the entries of the project")
-        self.assertEqual(text.count(ANCHOR), 1)
+        with open(CONFIG, encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertEqual(text.count(ANCHOR), 1, "the file lacks the comment of the entries of the project, or has it twice")
+        self.assertTrue(text.split(ANCHOR)[0].endswith("]\n\n"), "the comment does not follow a blank line after the last entry of groundwork")
 
     def test_an_entry_of_the_project_and_an_entry_that_groundwork_adds_above_merge_without_conflict(self):
         text = read()
@@ -45,8 +48,9 @@ class EntriesOfTheProject(unittest.TestCase):
 
     def test_an_entry_of_the_project_and_a_change_of_the_last_entry_of_groundwork_merge_without_conflict(self):
         text = read()
-        changed = text.replace("      prefix: ci(deps)\n", "      prefix: ci(deps)\n      include: scope\n")
-        self.assertNotEqual(changed, text)
+        last = text.rindex("      prefix: ")
+        changed = text[:last] + "      include: scope\n" + text[last:]
+        self.assertTrue(last < text.index(ANCHOR) and "include: scope" in changed)
         merged, conflict = self.merge(text + PROJECT, changed)
         self.assertFalse(conflict, merged)
         self.assertIn("include: scope", merged)
