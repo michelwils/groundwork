@@ -27,6 +27,9 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 <!-- groundwork:0011 -->
 - The principles for confidential and personal data are in [ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md).
 <!-- /groundwork -->
+<!-- groundwork:0015 -->
+- The principles for the logs and the diagnostic of an application are in [ADR 0015](docs/adr/0015-logs-and-diagnostic-of-an-application.md).
+<!-- /groundwork -->
 <!-- groundwork:0013 -->
 - The licenses accepted for the dependencies are those that the project states, as [ADR 0013](docs/adr/0013-licenses-of-the-dependencies.md) asks.
 <!-- /groundwork -->

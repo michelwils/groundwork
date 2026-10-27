@@ -164,6 +164,15 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 - Shared lines:
   - `AGENTS.md`
 
+### 0015. [Logs and diagnostic of an application](../docs/adr/0015-logs-and-diagnostic-of-an-application.md)
+
+- Needs: ADR 0010, ADR 0011, ADR 0012
+- Files:
+  - none
+- Shared lines:
+  - `CONTRIBUTING.md`
+  - `AGENTS.md`
+
 ## Shared files
 
 This file belongs to no ADR, and all its lines that belong to an ADR are in a block.
