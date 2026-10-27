@@ -22,6 +22,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 - Rules for the security of the code of an application ([ADR 0010](docs/adr/0010-security-of-the-code-of-an-application.md))
 - Principles for the protection of confidential and personal data ([ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md))
 - Principles for responding to an incident ([ADR 0012](docs/adr/0012-responding-to-an-incident.md))
+- Principles for the logs and the diagnostic of an application ([ADR 0015](docs/adr/0015-logs-and-diagnostic-of-an-application.md))
 - A rule for the licenses of the dependencies, which each project states for itself ([ADR 0013](docs/adr/0013-licenses-of-the-dependencies.md))
 - How a user checks the origin of a release ([ADR 0005](docs/adr/0005-semantic-versioning-and-releases.md))
 - Issue and pull request templates and a review checklist
@@ -42,7 +43,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 
 ## What it does not cover
 
-Anything specific to a language, technology stack or type of application: code formatting and linting, test frameworks, test commands and coverage, updates of a stack's dependencies, dev environment, publishing, reference architecture and operations. That belongs in the projects that adopt groundwork.
+Anything specific to a language, technology stack or type of application: code formatting and linting, test frameworks, test commands and coverage, updates of a stack's dependencies, dev environment, publishing, reference architecture and operations, including the collection, the storage and the retention of the logs, the metrics and the tracing. That belongs in the projects that adopt groundwork.
 
 ## Decisions
 
@@ -185,6 +186,7 @@ The fourth phase, the rules that no tool checks:
 - **ADR 0011**, confidential and personal data. The project classifies its data in its documentation. Check by review.
 - **ADR 0013**, licenses of the dependencies. The project writes the licenses it accepts. Check by review.
 - **ADR 0014**, protecting the files of groundwork. It brings `.groundwork/CODEOWNERS.template` and a line of `AGENTS.md`. Copy the template to `.github/CODEOWNERS`, replace `@OWNER` and merge it. When someone other than the maintainer can approve, run `apply_settings.py --code-owner-review`, and add `--last-push-approval` for several reviewers. Check with `python3 .groundwork/scripts/apply_settings.py --dry-run --code-owner-review`, which names the approvals the ruleset would require.
+- **ADR 0015**, logs and diagnostic. The project states its fields and the meaning of its levels in its documentation. Check by review.
 
 ### Recording the gaps
 

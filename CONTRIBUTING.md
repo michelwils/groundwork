@@ -105,6 +105,9 @@ A reviewer, and whoever checks their own work, check:
 <!-- groundwork:0011 -->
 - the data that the change collects, keeps or sends, against the principles of [ADR 0011](docs/adr/0011-protection-of-confidential-and-personal-data.md)
 <!-- /groundwork -->
+<!-- groundwork:0015 -->
+- what the change logs and how it turns diagnostic on, against the principles of [ADR 0015](docs/adr/0015-logs-and-diagnostic-of-an-application.md)
+<!-- /groundwork -->
 - wording that can be read in two ways, or that leaves the reader to guess
 
 <!-- groundwork:0008 -->
