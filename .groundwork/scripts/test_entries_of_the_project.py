@@ -58,7 +58,8 @@ class EntriesOfTheProject(unittest.TestCase):
         self.assertIn("package-ecosystem: cargo", merged)
 
 
-HOOKS = os.path.join(ROOT, ".pre-commit-config.yaml")
+HOOKS_PATH = ".pre-commit-config.yaml"
+HOOKS = os.path.join(ROOT, HOOKS_PATH)
 HOOKS_ANCHOR = "  # The repositories of hooks of the project go below this line. groundwork adds its own above it.\n"
 HOOKS_PROJECT = "\n  - repo: https://github.com/example/hooks\n    rev: v1.0.0\n    hooks:\n      - id: example\n"
 HOOKS_GROUNDWORK = "  # groundwork:0009\n  - repo: local\n    hooks:\n      - id: added\n        name: Added\n        language: system\n        entry: true\n  # /groundwork\n\n"
@@ -69,6 +70,16 @@ def read_hooks():
     with open(HOOKS, encoding="utf-8") as handle:
         text = handle.read()
     return text[: text.index(HOOKS_ANCHOR) + len(HOOKS_ANCHOR)] if HOOKS_ANCHOR in text else text
+
+
+class AllBut:
+    """The ADRs of a choice that keeps every ADR except the ones given."""
+
+    def __init__(self, *left_out):
+        self.left_out = left_out
+
+    def __contains__(self, number):
+        return number not in self.left_out
 
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the file of groundwork, which a project extends with its own hooks")
@@ -100,14 +111,11 @@ class HooksOfTheProject(unittest.TestCase):
     def test_the_merge_holds_when_the_project_leaves_out_the_adr_of_the_block_before_it(self):
         text = read_hooks()
         above = text.replace(HOOKS_ANCHOR, HOOKS_GROUNDWORK + HOOKS_ANCHOR)
-        kept = set(range(1, 9)) - {7}
+        kept = AllBut(7)
         merged, conflict = self.merge(text + HOOKS_PROJECT, above, kept)
         self.assertFalse(conflict, merged)
         self.assertNotIn("groundwork:0007", merged)
         self.assertGreater(merged.index("id: example"), merged.index(HOOKS_ANCHOR))
-
-
-HOOKS_PATH = ".pre-commit-config.yaml"
 
 
 if __name__ == "__main__":
