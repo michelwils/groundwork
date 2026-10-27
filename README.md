@@ -176,7 +176,7 @@ The second phase, the workflow:
 
 The third phase, the checks:
 
-- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks in its own lines of `.pre-commit-config.yaml`, its jobs in `.github/workflows/project-checks.yml` and its Dependabot entries below the comment of `.github/dependabot.yml`, and add groundwork's. Check with `pre-commit run --all-files --hook-stage manual`.
+- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks below the comment of `.pre-commit-config.yaml`, its jobs in `.github/workflows/project-checks.yml` and its Dependabot entries below the comment of `.github/dependabot.yml`, and add groundwork's. Check with `pre-commit run --all-files --hook-stage manual`.
 
 The fourth phase, the rules that no tool checks:
 
