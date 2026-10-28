@@ -19,7 +19,7 @@ We will let a person move a project to the head of its source with `update_groun
 - **Base.** The next update merges from the commit, not from the release. The commit must be in the source: the script fetches its head, and refuses a head that does not contain the commit, since the source was rewritten, and a commit that the source does not have.
 - **Next update.** Without `--to`, the project goes to the latest release if that release contains the commit, and is up to date while none does. `--to X.Y.Z` is refused for a release that does not contain the commit. `--to head` is up to date when the head is the commit.
 - **Branch.** The branch of the update to a commit is named after its first 12 characters instead of the version: `chore/<issue>-update-groundwork-to-<commit>` and `groundwork/update-to-<commit>`.
-- **Result.** The result for the pull request script ([ADR 1003](1003-giving-the-result-of-the-update-to-the-pull-request-script.md)) has the recorded form in `to` and in `from`. `open_update_pull_request.py` accepts a commit in `from` and refuses a result that moves the project to a commit.
+- **Result.** The result for the pull request script ([ADR 1003](1003-giving-the-result-of-the-update-to-the-pull-request-script.md)) holds the versions as `.groundwork-version` holds them, before and after the update. `open_update_pull_request.py` accepts a commit in `from`, for a project that a person moved there, and refuses a commit in `to`, since it never asks for the head.
 - **The choice of the ADRs.** `apply_choice.py` reads a project that is based on a commit from that commit. `--version` of a new project stays a release.
 
 ## Consequences
