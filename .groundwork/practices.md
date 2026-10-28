@@ -158,7 +158,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
 
 ### 0014. [Protecting the files of groundwork in a project](../docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md)
 
-- Needs: ADR 0003, ADR 0007
+- Needs: ADR 0003, ADR 0007, ADR 0008
 - Files:
   - `.groundwork/CODEOWNERS.template`
   - `.groundwork/scripts/test_codeowners_template.py`
