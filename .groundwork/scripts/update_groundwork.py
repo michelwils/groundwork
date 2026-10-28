@@ -2,7 +2,8 @@
 """Prepare the update of a project to a later version of groundwork.
 
 The version of groundwork the project is based on is in `.groundwork-version`, at the root of
-the project: one line `X.Y.Z`. The source of the updates is `--source`, or else the address in
+the project: one line `X.Y.Z`, or `X.Y.Z+<commit>` for a project that was moved to a commit that no
+release has yet (`--to head`, below). The source of the updates is `--source`, or else the address in
 `.groundwork-source` (one line `https://…`), or else groundwork. The script fetches the tags of the
 source under `groundwork/`, after it has deleted the ones an earlier source left there,
 creates the branch `chore/<issue>-update-groundwork-to-v<X-Y-Z>`, or
@@ -34,7 +35,13 @@ With `--result PATH`, the script also writes its result to PATH as one JSON obje
 for open_update_pull_request.py to read (ADR 1003): `branch`, `from`, `to` and `source` as strings, `added` as a list
 of ADR numbers and `conflicts` as a list of paths. It writes none when the project is up to date.
 
-Usage: update_groundwork.py [ISSUE] [--to X.Y.Z] [--source URL] [--result PATH]
+With `--to head`, the script moves the project to the head of the source, that is its default branch, to try a change
+before its release. It is never the default, and open_update_pull_request.py never uses it (ADR 1004). The script
+records `X.Y.Z+<commit>`, where X.Y.Z is the latest release in the history of the commit, or `X.Y.Z` alone when the
+head is that release. The next update merges from that commit: it goes to a release that has the commit, and says that
+the project is up to date while no release has it.
+
+Usage: update_groundwork.py [ISSUE] [--to X.Y.Z|head] [--source URL] [--result PATH]
 """
 
 import argparse
@@ -60,7 +67,11 @@ EXCLUDED = ("README.md", "LICENSE", VERSION_FILE, choice.CHOICE_FILE, SOURCE_FIL
 ADDRESS = re.compile(r"https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[A-Za-z0-9._~%/-]*)?")
 ADDRESS_LENGTH = 2048
 PREFIX = "groundwork/"
-VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+RELEASE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+COMMIT = r"[0-9a-f]{40}|[0-9a-f]{64}"
+VERSION = re.compile(rf"^[0-9]+\.[0-9]+\.[0-9]+(?:\+(?:{COMMIT}))?$")
+HEAD = "head"
+HEAD_REF = f"refs/tags/{PREFIX}{HEAD}"
 # The controls of the direction of the text, which change how a name is shown: embeddings, overrides and isolates.
 BIDIRECTIONAL_CONTROLS = frozenset(chr(code) for code in (*range(0x202A, 0x202F), *range(0x2066, 0x206A)))
 # The characters that HFS+ ignores in a name, as git does for .git (core.protectHFS).
@@ -80,7 +91,22 @@ def git(*args, check=True, text=True, input=None):
 
 
 def as_tuple(version):
-    return tuple(int(part) for part in version.split("."))
+    return tuple(int(part) for part in version.partition("+")[0].split("."))
+
+
+def commit_of(version):
+    """Return the commit that the version names, or None for a release."""
+    return version.partition("+")[2] or None
+
+
+def revision(version):
+    """Return the revision of git that holds the files of the version: the commit it names, else the tag of the release."""
+    return commit_of(version) or f"refs/tags/{PREFIX}v{version}"
+
+
+def label(version):
+    """Return the text that names the version in a branch."""
+    return commit_of(version)[:12] if commit_of(version) else f"v{version.replace('.', '-')}"
 
 
 def recorded_version():
@@ -91,7 +117,7 @@ def recorded_version():
         raise Failure(f"{VERSION_FILE} is missing: create it with the version of groundwork the project is based on.")
     version = content.strip()
     if content != version + "\n" or not VERSION.match(version):
-        raise Failure(f"{VERSION_FILE} must hold one line of the form X.Y.Z, without 'v'.")
+        raise Failure(f"{VERSION_FILE} must hold one line of the form X.Y.Z, without 'v', or X.Y.Z+ and the 40 or 64 lowercase hexadecimal characters of a commit.")
     return version
 
 
@@ -143,17 +169,52 @@ def fetch_releases(source):
 
 def released_versions():
     tags = git("tag", "--list", f"{PREFIX}v[0-9]*").stdout.split()
-    return sorted((tag[len(PREFIX) + 1:] for tag in tags if VERSION.match(tag[len(PREFIX) + 1:])), key=as_tuple)
+    return sorted((tag[len(PREFIX) + 1:] for tag in tags if RELEASE.match(tag[len(PREFIX) + 1:])), key=as_tuple)
+
+
+def fetch_head(source):
+    """Copy the head of the source, which is its default branch, under `groundwork/head` and return its commit."""
+    git("fetch", "--quiet", "--no-tags", "--", source, f"+HEAD:{HEAD_REF}")
+    return git("rev-parse", "--verify", f"{HEAD_REF}^{{commit}}").stdout.strip()
+
+
+def fetch_base(source, old, head=False):
+    """Fetch what the update reads from the source: its tags, and its head when the project is on a commit or asks for
+    the head. Return the versions and whether the recorded version is known to the source: a release it published, or
+    a commit that it has."""
+    versions = fetch_releases(source)
+    if head or commit_of(old):
+        fetch_head(source)
+    if commit_of(old):
+        return versions, git("cat-file", "-e", f"{commit_of(old)}^{{commit}}", check=False).returncode == 0
+    return versions, old in versions
+
+
+def is_ancestor(ancestor, descendant):
+    result = git("merge-base", "--is-ancestor", ancestor, descendant, check=False)
+    if result.returncode > 1:
+        raise Failure(f"git merge-base failed: {result.stderr.strip()}")
+    return result.returncode == 0
+
+
+def version_of_head(commit):
+    """Return the version to record for the commit: its latest release, with the commit unless the release is that commit."""
+    tags = git("tag", "--merged", commit, "--list", f"{PREFIX}v[0-9]*").stdout.split()
+    releases = sorted((tag[len(PREFIX) + 1:] for tag in tags if RELEASE.match(tag[len(PREFIX) + 1:])), key=as_tuple)
+    if not releases:
+        raise Failure("No release of the source is in the history of its head: the head cannot be recorded.")
+    release_commit = git("rev-parse", f"refs/tags/{PREFIX}v{releases[-1]}^{{commit}}").stdout.strip()
+    return releases[-1] if release_commit == commit else f"{releases[-1]}+{commit}"
 
 
 def blob(version, path):
     """Return the content of the path in the version, or None when it does not exist there."""
-    result = git("cat-file", "blob", f"refs/tags/{PREFIX}v{version}:{path}", check=False, text=False)
+    result = git("cat-file", "blob", f"{revision(version)}:{path}", check=False, text=False)
     return result.stdout if result.returncode == 0 else None
 
 
 def mode(version, path):
-    line = git("ls-tree", f"refs/tags/{PREFIX}v{version}", "--", path).stdout.split()
+    line = git("ls-tree", revision(version), "--", path).stdout.split()
     return int(line[0], 8) if line else 0o100644
 
 
@@ -191,11 +252,11 @@ def paths_of(raw):
 
 
 def tree_paths(version):
-    return paths_of(git("ls-tree", "-r", "--name-only", "-z", f"refs/tags/{PREFIX}v{version}", text=False).stdout.decode())
+    return paths_of(git("ls-tree", "-r", "--name-only", "-z", revision(version), text=False).stdout.decode())
 
 
 def changed_paths(old, new):
-    raw = git("diff", "--no-renames", "--name-only", "-z", f"refs/tags/{PREFIX}v{old}", f"refs/tags/{PREFIX}v{new}", text=False).stdout
+    raw = git("diff", "--no-renames", "--name-only", "-z", revision(old), revision(new), text=False).stdout
     return paths_of(raw.decode())
 
 
@@ -395,26 +456,38 @@ def run(args):
         raise Failure("The working tree is not clean: commit or stash the changes first.")
 
     source = source_of(args.source)
-    versions = fetch_releases(source)
-    if old not in versions:
-        raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.")
+    head = args.to == HEAD
+    versions, known = fetch_base(source, old, head)
+    if not known:
+        what = f"commit {commit_of(old)}" if commit_of(old) else f"version {old}"
+        raise Failure(f"The recorded {what} is not {'in' if commit_of(old) else 'a release of groundwork at'} {source}.")
 
-    if args.to:
-        if not VERSION.match(args.to):
-            raise Failure(f"'{args.to}' is not a version of the form X.Y.Z.")
-        if as_tuple(args.to) <= as_tuple(old):
+    if head:
+        commit = git("rev-parse", "--verify", f"{HEAD_REF}^{{commit}}").stdout.strip()
+        if not is_ancestor(revision(old), commit):
+            raise Failure(f"The head of {source} does not contain {old}: it was perhaps rewritten.")
+        new = version_of_head(commit)
+        if commit == (commit_of(old) or git("rev-parse", f"{revision(old)}^{{commit}}").stdout.strip()):
+            print(f"The project is up to date with groundwork {old}.")
+            return 0
+    elif args.to:
+        if not RELEASE.match(args.to):
+            raise Failure(f"'{args.to}' is not a version of the form X.Y.Z, or {HEAD}.")
+        if not commit_of(old) and as_tuple(args.to) <= as_tuple(old):
             raise Failure(f"{args.to} is not a later version than the recorded {old}.")
         if args.to not in versions:
             raise Failure(f"{args.to} is not a release of groundwork at {source}.")
+        if commit_of(old) and not is_ancestor(commit_of(old), revision(args.to)):
+            raise Failure(f"{args.to} does not contain the commit {commit_of(old)} that the project is based on.")
         new = args.to
     else:
         new = versions[-1]
-        if as_tuple(new) <= as_tuple(old):
+        if as_tuple(new) <= as_tuple(old) or (commit_of(old) and not is_ancestor(commit_of(old), revision(new))):
             print(f"The project is up to date with groundwork {old}.")
             return 0
 
-    slug = f"update-groundwork-to-v{new.replace('.', '-')}"
-    branch = f"chore/{args.issue}-{slug}" if args.issue else f"groundwork/update-to-v{new.replace('.', '-')}"
+    slug = f"update-groundwork-to-{label(new)}"
+    branch = f"chore/{args.issue}-{slug}" if args.issue else f"groundwork/update-to-{label(new)}"
     if git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
         raise Failure(f"The branch {branch} already exists.")
     made = plan(old, new)
@@ -449,7 +522,7 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description="Prepare the update of a project to a later version of groundwork.")
     parser.add_argument("issue", nargs="?", help="number of the issue of the update, used in the name of the branch")
-    parser.add_argument("--to", help="version to update to, without the leading v (default: the latest)")
+    parser.add_argument("--to", help=f"version to update to, without the leading v, or {HEAD} for the head of the source (default: the latest release)")
     parser.add_argument("--result", help="file in which to write the result as JSON, for open_update_pull_request.py (ADR 1003)")
     parser.add_argument("--source", help=f"repository of groundwork (default: the address in {SOURCE_FILE}, else {SOURCE})")
     try:

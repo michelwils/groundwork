@@ -139,6 +139,14 @@ class NewProject(Fixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(read(self.project, ".groundwork-source"), ADDRESS + "\n")
 
+    def test_a_commit_is_not_a_version_to_start_a_project_from(self):
+        head = git(self.source, "rev-parse", "HEAD").strip()
+        self.adopt(self.template())
+        result = self.run_new("--version", f"0.1.0+{head}")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("not a release", result.stderr)
+        self.assertFalse(self.has(".groundwork-version"))
+
     def test_an_address_that_cannot_be_recorded_changes_nothing(self):
         self.adopt(self.template())
         result = self.run_script("--source", "http://example.org/base.git", "0001", source=False)
@@ -291,6 +299,25 @@ class Narrowed(Fixture):
         result = self.run_script()
         self.assertEqual(result.returncode, 1)
         self.assertIn("0.9.9", result.stderr)
+
+    def test_a_project_that_is_based_on_a_commit_of_the_source_applies_its_choice_from_that_commit(self):
+        put(self.source, {"extra.txt": "extra\n"})
+        commit(self.source, "feat: work after the release")
+        head = git(self.source, "rev-parse", "HEAD").strip()
+        self.adopt({**world("1"), "extra.txt": "extra\n"}, version=f"0.1.0+{head}", choice="0001\n0002\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for name in ("three.txt", "four.txt", adr(3), adr(4)):
+            self.assertFalse(self.has(name), name)
+        self.assertTrue(self.has("extra.txt"))
+        self.assertEqual(read(self.project, ".groundwork-version"), f"0.1.0+{head}\n")
+
+    def test_a_commit_that_the_source_does_not_have_is_refused(self):
+        self.adopt(world("1"), version=f"0.1.0+{'a' * 40}", choice="0001\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("commit", result.stderr)
+        self.assertEqual(self.status(), "")
 
     def test_a_refused_choice_changes_nothing(self):
         self.adopt(world("1"), version="0.1.0", choice="0001\n1000\n")

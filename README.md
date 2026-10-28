@@ -218,7 +218,7 @@ A copy shares no history with groundwork and does not receive later changes. To 
 2. Open an issue for the update, then run the script from a clean working tree, with the number of that issue:
 
    ```sh
-   python3 .groundwork/scripts/update_groundwork.py <issue-number> [--to X.Y.Z]
+   python3 .groundwork/scripts/update_groundwork.py <issue-number> [--to X.Y.Z|head]
    ```
 
    The script:
@@ -227,6 +227,7 @@ A copy shares no history with groundwork and does not receive later changes. To 
    - creates the branch `chore/<issue-number>-update-groundwork-to-v<X-Y-Z>`, and applies on it what changed between the two versions, file by file, keeping the project's changes;
    - leaves out `README.md` and `LICENSE`, which concern groundwork itself, and sets the new version in `.groundwork-version`;
    - goes to the latest version unless `--to` names another;
+   - moves the project to the head of the source, which is its default branch, with `--to head`. Use it to try a change before its release, never in the weekly workflow. The file `.groundwork-version` then holds `X.Y.Z+<commit>`, where `X.Y.Z` is the latest release before the commit ([ADR 1004](docs/adr/1004-moving-a-project-to-a-commit-of-its-source.md)). The next update merges from that commit, goes to the first release that has it, and says that the project is up to date until then;
    - does not commit, push or open a pull request.
 
    **A project at v0.5.0 or before** does its first update with the script of the release it moves to, whether it has a choice or not. Its own script leaves out only `README.md` and `LICENSE`, so it would bring the ADRs numbered `1000` or more, which are decisions of groundwork, next to the project's own ADRs numbered from 1000. Clone groundwork at the tag of that release and run its script from the project's directory, as step 3 of [Adopting in an existing project](#adopting-in-an-existing-project) does: `python3 <clone>/.groundwork/scripts/update_groundwork.py <issue-number>`. Do it before the weekly workflow runs, or start the workflow by hand only after that update, since the workflow runs the project's script. If an update has already brought those ADRs, delete them, and restore the project's ADR 1000 if they replaced it.

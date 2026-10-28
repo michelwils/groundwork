@@ -322,6 +322,29 @@ class Body(unittest.TestCase):
     def test_the_result_is_read_from_the_file(self):
         self.assertEqual(self.read_result(self.RESULT), self.RESULT)
 
+    def test_a_project_that_is_on_a_commit_is_moved_to_a_release(self):
+        fields = {**self.RESULT, "from": "0.1.0+" + "a" * 40}
+        self.assertEqual(self.read_result(fields), fields)
+        fields = {**self.RESULT, "from": "0.1.0+" + "b" * 64}
+        self.assertEqual(self.read_result(fields), fields)
+
+    def test_a_result_that_moves_the_project_to_a_commit_is_refused(self):
+        commit = "0.2.0+" + "a" * 40
+        for fields in (
+            {**self.RESULT, "to": commit},
+            {**self.RESULT, "to": commit, "branch": "groundwork/update-to-" + "a" * 12},
+            {**self.RESULT, "to": commit, "branch": "groundwork/update-to-v0-2-0"},
+        ):
+            with self.subTest(fields=fields):
+                with self.assertRaises(opener.Failure):
+                    self.read_result(fields)
+
+    def test_a_commit_that_is_not_lowercase_hexadecimal_is_refused_in_from(self):
+        for commit in ("A" * 40, "a" * 39, "a" * 41, "a" * 40 + "\nx", "g" * 40):
+            with self.subTest(commit=commit):
+                with self.assertRaises(opener.Failure):
+                    self.read_result({**self.RESULT, "from": "0.1.0+" + commit})
+
     def test_the_status_of_the_update_must_agree_with_its_conflicts(self):
         opener.agree(0, {"conflicts": []})
         opener.agree(3, {"conflicts": ["a.md"]})
