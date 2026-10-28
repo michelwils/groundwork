@@ -14,7 +14,15 @@ The platform cannot tell a maintainer from an agent that holds the maintainer's 
 
 We will let a project require the review of its code owners for the files of groundwork, with an option that is off by default.
 
-- **Protected files.** The reserved ADRs and `docs/adr/template.md`, `.groundwork/`, the files `.groundwork-version`, `.groundwork-adrs`, `.groundwork-source` and `.groundwork-ranges` (the last decides where the next update comes from), `.github/workflows/`, `.github/zizmor.yml` and `.github/dependabot.yml` (the rules of the audit of the workflows and the updates of the dependencies), `.pre-commit-config.yaml` and `.github/CODEOWNERS`. `CONTRIBUTING.md`, `AGENTS.md`, the README and the lines of the project in a shared file that is not in this list are not. "Protected" does not mean locked: it means that, when the project requires the review of its code owners, a change to one of these files needs the approval of an owner. The project changes them in its own pull requests. The platform matches whole files, so its own lines in a protected file, such as its hooks, its jobs and its Dependabot entries, which go where [ADR 0008](0008-automated-checks.md) says, are protected with it.
+- **Protected files.** "Protected" does not mean locked: when the project requires the review of its code owners, a change to one of these files needs the approval of an owner. The project makes its changes in its own pull requests.
+  - The reserved ADRs and `docs/adr/template.md`.
+  - `.groundwork/`.
+  - `.groundwork-version`, `.groundwork-adrs`, `.groundwork-source` and `.groundwork-ranges`, the last of which decides where the next update comes from.
+  - `.github/workflows/`.
+  - `.github/zizmor.yml` and `.github/dependabot.yml`, which hold the rules of the audit of the workflows and of the updates of the dependencies.
+  - `.pre-commit-config.yaml` and `.github/CODEOWNERS`.
+  - Not protected: `CONTRIBUTING.md`, `AGENTS.md`, the README, and the lines of the project in a shared file that is not in this list.
+  - The platform matches whole files, so the lines of the project in a protected file, such as its hooks, its jobs and its Dependabot entries, which go where [ADR 0008](0008-automated-checks.md) says, are protected with it.
 - **Owners.** groundwork provides `.groundwork/CODEOWNERS.template`. The project copies it to `.github/CODEOWNERS` and replaces `@OWNER` with its reviewers, who need write access. The copy is the project's own: the update does not touch it, and the project merges it into its default branch before it turns the requirement on. A community base that reserves numbers outside 0001-0999 adds its ranges.
 - **Requirement.** `apply_settings.py --code-owner-review` makes the ruleset require the approval of a code owner and dismiss an approval when a commit is pushed after it, so that a push after the review needs a new one. `--last-push-approval` goes with it and adds that the approval comes from someone other than the person who pushed last, for a project with several reviewers.
 - **Update pull request.** It changes protected files, so it needs the approval of an owner other than its author, which is the owner of the token that opens it.
