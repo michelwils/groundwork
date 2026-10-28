@@ -264,6 +264,7 @@ class Update(unittest.TestCase):
         self.advance({**V3, "extra.md": "extra\n"})
         self.assertEqual(self.run_script("--to", "head").returncode, 0)
         self.commit_update()
+        git(self.source, "tag", "-a", "v0.4.0", "-m", "v0.4.0")  # a release keeps the commit when the head is rewritten
         git(self.source, "reset", "-q", "--hard", "v0.3.0")
         self.advance({**V3, "other.md": "other\n"})
         branches = self.branches()
@@ -280,6 +281,29 @@ class Update(unittest.TestCase):
                 self.assertEqual(result.returncode, 1)
                 self.assertIn("commit", result.stderr)
                 self.assertEqual(self.branches(), ["main"])
+
+    def test_a_commit_that_an_earlier_source_left_in_the_repository_is_not_one_of_this_source(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        other = os.path.join(self.directory.name, "other")
+        git(self.directory.name, "clone", "-q", self.source, other)
+        git(other, "reset", "-q", "--hard", "v0.3.0")
+        branches = self.branches()
+        for args in ((), ("--to", "head")):
+            with self.subTest(args=args):
+                result = self.run_script(*args, "--source", other)
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn("is not in", result.stderr)
+                self.assertEqual(self.branches(), branches)
+
+    def test_the_message_of_a_project_on_a_commit_says_that_no_release_has_it_yet(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        self.assertIn("No release has its commit yet", self.run_script().stdout)
 
     def test_fails_with_a_malformed_commit_in_the_version_file(self):
         for content in ("0.3.0+abc\n", f"0.3.0+{'A' * 40}\n", f"0.3.0+{'a' * 39}\n", f"0.3.0+{'a' * 41}\n", f"0.3.0+{'a' * 40}+{'a' * 40}\n", f"+{'a' * 40}\n"):

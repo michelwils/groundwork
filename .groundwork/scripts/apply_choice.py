@@ -17,8 +17,8 @@ written), records in `.groundwork-version` the latest release of the source or `
 `--source` in `.groundwork-source`, and deletes the files and the blocks of the ADRs left out and the
 ADRs that no range reserves, which are decisions of groundwork itself.
 
-A project that has a `.groundwork-version`, which names a release or a commit of the source (ADR 1004), and that changed its choice in the file, whether it
-narrowed it or widened it:
+A project that has a `.groundwork-version`, which names a release or a commit of the source (ADR 1004), and that
+changed its choice in the file, whether it narrowed it or widened it:
 
     apply_choice.py [--dry-run] [--source URL]
 
@@ -261,8 +261,7 @@ def existing_project(args, root):
             f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.{inherited(unknown)}"
         )
     if unknown:
-        what = f"commit {update.commit_of(old)} is not in" if update.commit_of(old) else f"version {old} is not a release of groundwork at"
-        raise Failure(f"The recorded {what} {source}.{inherited(unknown)}")
+        raise Failure(update.unknown_message(old, source) + inherited(unknown))
     made = update.plan(old, old)
     changes = Changes()
     if made.kept.adopted is None:

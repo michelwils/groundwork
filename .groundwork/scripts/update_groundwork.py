@@ -167,8 +167,9 @@ def fetch_releases(source):
     return released_versions()
 
 
-def released_versions():
-    tags = git("tag", "--list", f"{PREFIX}v[0-9]*").stdout.split()
+def released_versions(merged=None):
+    """Return the releases that the tags hold, the oldest first, or those in the history of the commit `merged`."""
+    tags = git("tag", *(["--merged", merged] if merged else []), "--list", f"{PREFIX}v[0-9]*").stdout.split()
     return sorted((tag[len(PREFIX) + 1:] for tag in tags if RELEASE.match(tag[len(PREFIX) + 1:])), key=as_tuple)
 
 
@@ -183,11 +184,27 @@ def fetch_base(source, old, head=False):
     the head. Return the versions and whether the recorded version is known to the source: a release it published, or
     a commit that it has."""
     versions = fetch_releases(source)
-    if head or commit_of(old):
+    if head:
         fetch_head(source)
+    if not commit_of(old):
+        return versions, old in versions
+    if not reached(commit_of(old)) and not head:
+        fetch_head(source)
+    return versions, reached(commit_of(old))
+
+
+def reached(commit):
+    """Tell whether a tag of the source that was just fetched, a release or its head, has the commit in its history. The
+    objects of an earlier source stay in the repository, so that having the commit does not say that this source has it."""
+    result = git("tag", "--contains", commit, "--list", f"{PREFIX}*", check=False)
+    return result.returncode == 0 and bool(result.stdout.split())
+
+
+def unknown_message(old, source):
+    """Return the sentence for a recorded version that the source does not have."""
     if commit_of(old):
-        return versions, git("cat-file", "-e", f"{commit_of(old)}^{{commit}}", check=False).returncode == 0
-    return versions, old in versions
+        return f"The recorded commit {commit_of(old)} is not in {source}."
+    return f"The recorded version {old} is not a release of groundwork at {source}."
 
 
 def is_ancestor(ancestor, descendant):
@@ -199,8 +216,7 @@ def is_ancestor(ancestor, descendant):
 
 def version_of_head(commit):
     """Return the version to record for the commit: its latest release, with the commit unless the release is that commit."""
-    tags = git("tag", "--merged", commit, "--list", f"{PREFIX}v[0-9]*").stdout.split()
-    releases = sorted((tag[len(PREFIX) + 1:] for tag in tags if RELEASE.match(tag[len(PREFIX) + 1:])), key=as_tuple)
+    releases = released_versions(commit)
     if not releases:
         raise Failure("No release of the source is in the history of its head: the head cannot be recorded.")
     release_commit = git("rev-parse", f"refs/tags/{PREFIX}v{releases[-1]}^{{commit}}").stdout.strip()
@@ -459,8 +475,7 @@ def run(args):
     head = args.to == HEAD
     versions, known = fetch_base(source, old, head)
     if not known:
-        what = f"commit {commit_of(old)}" if commit_of(old) else f"version {old}"
-        raise Failure(f"The recorded {what} is not {'in' if commit_of(old) else 'a release of groundwork at'} {source}.")
+        raise Failure(unknown_message(old, source))
 
     if head:
         commit = git("rev-parse", "--verify", f"{HEAD_REF}^{{commit}}").stdout.strip()
@@ -483,7 +498,7 @@ def run(args):
     else:
         new = versions[-1]
         if as_tuple(new) <= as_tuple(old) or (commit_of(old) and not is_ancestor(commit_of(old), revision(new))):
-            print(f"The project is up to date with groundwork {old}.")
+            print(f"The project is up to date with groundwork {old}." + (" No release has its commit yet." if commit_of(old) else ""))
             return 0
 
     slug = f"update-groundwork-to-{label(new)}"
