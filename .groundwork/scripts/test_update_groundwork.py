@@ -166,6 +166,162 @@ class Update(unittest.TestCase):
         self.assertEqual(read(self.project, "SECURITY.md"), V1["SECURITY.md"])
         self.assertEqual(read(self.project, ".groundwork-version"), "0.2.0\n")
 
+    def advance(self, files, tag=None):
+        """Commit the files on the main branch of the source, after its last release, and return the commit."""
+        for name in os.listdir(self.source):
+            if name != ".git":
+                os.remove(os.path.join(self.source, name))
+        write(self.source, files)
+        git(self.source, "add", "-A")
+        git(self.source, "commit", "-q", "-m", "feat: work after the release")
+        if tag:
+            git(self.source, "tag", "-a", f"v{tag}", "-m", f"v{tag}")
+        return git(self.source, "rev-parse", "HEAD").strip()
+
+    def at_the_third_release(self):
+        self.commit_project({**V3, ".groundwork-version": "0.3.0\n"})
+
+    def commit_update(self):
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "chore: update groundwork")
+
+    def test_moves_the_project_to_the_head_of_the_source_and_records_the_commit(self):
+        self.at_the_third_release()
+        head = self.advance({**V3, "SECURITY.md": "security head\n", "extra.md": "extra\n"})
+        result = self.run_script("--to", "head")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), f"chore/42-update-groundwork-to-{head[:12]}")
+        self.assertEqual(read(self.project, "SECURITY.md"), "security head\n")
+        self.assertEqual(read(self.project, "extra.md"), "extra\n")
+        self.assertEqual(read(self.project, ".groundwork-version"), f"0.3.0+{head}\n")
+        self.assertIn(f"to: 0.3.0+{head}", result.stdout)
+
+    def test_the_head_that_is_a_release_is_recorded_as_that_release(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"}, tag="0.4.0")
+        result = self.run_script("--to", "head")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), "chore/42-update-groundwork-to-v0-4-0")
+        self.assertEqual(read(self.project, ".groundwork-version"), "0.4.0\n")
+
+    def test_an_update_to_the_head_reports_the_files_in_conflict_as_an_update_to_a_release_does(self):
+        self.commit_project({**V3, ".groundwork-version": "0.3.0\n", "SECURITY.md": "project security\n"})
+        self.advance({**V3, "SECURITY.md": "security head\n"})
+        result = self.run_script("--to", "head")
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertIn("- SECURITY.md", result.stdout)
+        self.assertIn("<<<<<<<", read(self.project, "SECURITY.md"))
+
+    def test_the_project_that_has_the_head_is_up_to_date(self):
+        self.advance({**V3, "extra.md": "extra\n"})
+        head = git(self.source, "rev-parse", "HEAD").strip()
+        self.commit_project({".groundwork-version": f"0.3.0+{head}\n"})
+        result = self.run_script("--to", "head")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("up to date", result.stdout)
+        self.assertEqual(self.branches(), ["main"])
+
+    def test_the_head_that_is_the_recorded_release_is_up_to_date(self):
+        self.commit_project({".groundwork-version": "0.3.0\n"})
+        result = self.run_script("--to", "head")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("up to date", result.stdout)
+        self.assertEqual(self.branches(), ["main"])
+
+    def test_the_next_update_to_a_release_that_has_the_commit_has_no_conflict_on_what_was_applied(self):
+        self.at_the_third_release()
+        self.advance({**V3, "CONTRIBUTING.md": "one\ntwo head\nthree\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        self.advance({**V3, "CONTRIBUTING.md": "one\ntwo release\nthree\n"}, tag="0.4.0")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "CONTRIBUTING.md"), "one\ntwo release\nthree\n")
+        self.assertEqual(read(self.project, ".groundwork-version"), "0.4.0\n")
+
+    def test_a_project_on_a_commit_is_up_to_date_while_no_release_has_the_commit(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        branches = self.branches()
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("up to date", result.stdout)
+        self.assertEqual(self.branches(), branches)
+
+    def test_a_project_on_a_commit_is_not_moved_to_a_release_that_lacks_it(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        result = self.run_script("--to", "0.3.0")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("contain", result.stderr)
+
+    def test_a_head_that_does_not_have_the_recorded_commit_is_refused(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        git(self.source, "tag", "-a", "v0.4.0", "-m", "v0.4.0")  # a release keeps the commit when the head is rewritten
+        git(self.source, "reset", "-q", "--hard", "v0.3.0")
+        self.advance({**V3, "other.md": "other\n"})
+        branches = self.branches()
+        result = self.run_script("--to", "head")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("does not contain", result.stderr)
+        self.assertEqual(self.branches(), branches)
+
+    def test_a_recorded_commit_that_the_source_does_not_have_is_refused(self):
+        self.commit_project({".groundwork-version": f"0.3.0+{'a' * 40}\n"})
+        for args in ((), ("--to", "head")):
+            with self.subTest(args=args):
+                result = self.run_script(*args)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("commit", result.stderr)
+                self.assertEqual(self.branches(), ["main"])
+
+    def test_a_commit_that_an_earlier_source_left_in_the_repository_is_not_one_of_this_source(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        other = os.path.join(self.directory.name, "other")
+        git(self.directory.name, "clone", "-q", self.source, other)
+        git(other, "reset", "-q", "--hard", "v0.3.0")
+        branches = self.branches()
+        for args in ((), ("--to", "head")):
+            with self.subTest(args=args):
+                result = self.run_script(*args, "--source", other)
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn("is not in", result.stderr)
+                self.assertEqual(self.branches(), branches)
+
+    def test_the_message_of_a_project_on_a_commit_says_that_no_release_has_it_yet(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        self.assertEqual(self.run_script("--to", "head").returncode, 0)
+        self.commit_update()
+        self.assertIn("No release has its commit yet", self.run_script().stdout)
+
+    def test_fails_with_a_malformed_commit_in_the_version_file(self):
+        for content in ("0.3.0+abc\n", f"0.3.0+{'A' * 40}\n", f"0.3.0+{'a' * 39}\n", f"0.3.0+{'a' * 41}\n", f"0.3.0+{'a' * 40}+{'a' * 40}\n", f"+{'a' * 40}\n"):
+            with self.subTest(content=content):
+                self.commit_project({".groundwork-version": content})
+                result = self.run_script("--to", "head")
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("X.Y.Z", result.stderr)
+                self.assertEqual(self.branches(), ["main"])
+
+    def test_the_head_is_never_the_default(self):
+        self.at_the_third_release()
+        self.advance({**V3, "extra.md": "extra\n"})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("up to date", result.stdout)
+        self.assertEqual(self.branches(), ["main"])
+
     def test_leaves_out_the_files_of_groundwork_itself(self):
         self.run_script()
         self.assertEqual(read(self.project, "README.md"), V1["README.md"])

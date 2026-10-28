@@ -17,8 +17,8 @@ written), records in `.groundwork-version` the latest release of the source or `
 `--source` in `.groundwork-source`, and deletes the files and the blocks of the ADRs left out and the
 ADRs that no range reserves, which are decisions of groundwork itself.
 
-A project that has a `.groundwork-version`, and that changed its choice in the file, whether it
-narrowed it or widened it:
+A project that has a `.groundwork-version`, which names a release or a commit of the source (ADR 1004), and that
+changed its choice in the file, whether it narrowed it or widened it:
 
     apply_choice.py [--dry-run] [--source URL]
 
@@ -201,7 +201,7 @@ def new_project(args, root):
     if not versions:
         raise Failure(f"The source {source} has no release.")
     if args.version:
-        if not update.VERSION.match(args.version) or args.version not in versions:
+        if not update.RELEASE.match(args.version) or args.version not in versions:
             raise Failure(f"{args.version} is not a release of groundwork at {source}.")
         version = args.version
     else:
@@ -254,14 +254,14 @@ def existing_project(args, root):
         raise Failure("--version is for a new project: the version is the one that .groundwork-version records.")
     old = update.recorded_version()
     source = update.source_of(args.source)
-    versions = update.fetch_releases(source)
-    unknown = old not in versions
+    _, known = update.fetch_base(source, old)
+    unknown = not known
     if args.adrs:
         raise Failure(
             f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.{inherited(unknown)}"
         )
     if unknown:
-        raise Failure(f"The recorded version {old} is not a release of groundwork at {source}.{inherited(unknown)}")
+        raise Failure(update.unknown_message(old, source) + inherited(unknown))
     made = update.plan(old, old)
     changes = Changes()
     if made.kept.adopted is None:

@@ -34,6 +34,7 @@ VERSION_FILE = ".groundwork-version"
 PREFIX = "groundwork/"
 FIELDS = ("branch", "from", "to", "source", "added", "conflicts")
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+RECORDED = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:\+(?:[0-9a-f]{40}|[0-9a-f]{64}))?")  # what `.groundwork-version` holds (ADR 1004)
 ADR_NUMBER = re.compile(r"[0-9]{4}")
 IDENTITY = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"]
 
@@ -79,7 +80,9 @@ def undo(branch, current, commit):
 def result(path):
     """Return the result that the update script wrote to the file, or None when it wrote none: the project is up to date.
     It holds the strings branch, from, to and source, the list added of numbers of four digits and the list conflicts of
-    paths, and no other field. The branch is the one of the version."""
+    paths, and no other field. `to` is always a release, `X.Y.Z`, with the branch of that version: this script never asks
+    the update for the head (ADR 1004), so a result that names a commit there is refused. `from` may name a commit, when a
+    person moved the project there by hand."""
     try:
         with open(path) as handle:
             fields = json.load(handle)
@@ -96,7 +99,8 @@ def result(path):
         if not isinstance(fields[name], list) or not all(isinstance(item, str) for item in fields[name]):
             raise Failure(f"The update script wrote an unexpected result: {name} is not a list of strings.")
     if (
-        not all(VERSION.fullmatch(fields[name]) for name in ("from", "to"))
+        not RECORDED.fullmatch(fields["from"])
+        or not VERSION.fullmatch(fields["to"])
         or fields["branch"] != f"{PREFIX}update-to-v{fields['to'].replace('.', '-')}"
         or not all(ADR_NUMBER.fullmatch(number) for number in fields["added"])
     ):
