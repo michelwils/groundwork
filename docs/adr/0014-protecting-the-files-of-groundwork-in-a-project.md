@@ -21,7 +21,7 @@ We will let a project require the review of its code owners for the files of gro
   - `.github/workflows/`.
   - `.github/zizmor.yml` and `.github/dependabot.yml`, which hold the rules of the audit of the workflows and of the updates of the dependencies.
   - `.pre-commit-config.yaml` and `.github/CODEOWNERS`.
-  - Not protected: `CONTRIBUTING.md`, `AGENTS.md`, the README, and the lines of the project in a shared file that is not in this list.
+  - Not protected: `CONTRIBUTING.md`, `AGENTS.md`, `README.md`, and the lines of the project in a shared file that is not in this list.
   - The platform matches whole files, so the lines of the project in a protected file, such as its hooks, its jobs and its Dependabot entries, which go where [ADR 0008](0008-automated-checks.md) says, are protected with it.
 - **Owners.** groundwork provides `.groundwork/CODEOWNERS.template`. The project copies it to `.github/CODEOWNERS` and replaces `@OWNER` with its reviewers, who need write access. The copy is the project's own: the update does not touch it, and the project merges it into its default branch before it turns the requirement on. A community base that reserves numbers outside 0001-0999 adds its ranges.
 - **Requirement.** `apply_settings.py --code-owner-review` makes the ruleset require the approval of a code owner and dismiss an approval when a commit is pushed after it, so that a push after the review needs a new one. `--last-push-approval` goes with it and adds that the approval comes from someone other than the person who pushed last, for a project with several reviewers.
