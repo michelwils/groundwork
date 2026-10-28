@@ -80,8 +80,9 @@ def undo(branch, current, commit):
 def result(path):
     """Return the result that the update script wrote to the file, or None when it wrote none: the project is up to date.
     It holds the strings branch, from, to and source, the list added of numbers of four digits and the list conflicts of
-    paths, and no other field. The project moves to a release, never to a commit (ADR 1004): `to` is `X.Y.Z` and the branch is
-    the one of that version, while `from` may name the commit that the project is based on."""
+    paths, and no other field. `to` is always a release, `X.Y.Z`, with the branch of that version: this script never asks
+    the update for the head (ADR 1004), so a result that names a commit there is refused. `from` may name a commit, when a
+    person moved the project there by hand."""
     try:
         with open(path) as handle:
             fields = json.load(handle)
