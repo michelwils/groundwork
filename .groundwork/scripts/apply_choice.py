@@ -115,7 +115,7 @@ def blocks_of(text, syntax):
     lines = text.split("\n")
     found = {}
     for block in markers.parse(lines, syntax)[0]:
-        found.setdefault(block["adr"], []).append(lines[block["start"] : block["end"] - 1])
+        found.setdefault(block.adr, []).append(lines[block.start : block.end - 1])
     return found
 
 

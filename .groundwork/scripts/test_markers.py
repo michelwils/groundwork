@@ -65,12 +65,19 @@ class Parse(unittest.TestCase):
     def test_the_blocks_of_a_markdown_file_are_read_with_their_lines(self):
         found = self.blocks(MARKDOWN)
         self.assertEqual(
-            [(block["adr"], block["start"], block["end"]) for block in found], [(4, 5, 9), (3, 11, 15), (10, 20, 22)]
+            [(block.adr, block.start, block.end) for block in found], [(4, 5, 9), (3, 11, 15), (10, 20, 22)]
         )
 
     def test_the_blocks_of_a_yaml_file_are_read_with_their_indentation(self):
         found = self.blocks(YAML, "yaml")
-        self.assertEqual([(block["adr"], block["start"], block["end"]) for block in found], [(1, 4, 7), (2, 9, 12)])
+        self.assertEqual([(block.adr, block.start, block.end) for block in found], [(1, 4, 7), (2, 9, 12)])
+
+    def test_a_block_is_named_and_does_not_change(self):
+        block = self.blocks(MARKDOWN)[0]
+        self.assertEqual(block, markers.Block(adr=4, start=5, end=9))
+        self.assertEqual(tuple(block), (4, 5, 9))
+        with self.assertRaises(AttributeError):
+            block.end = 10
 
     def test_a_text_without_markers_has_no_block(self):
         self.assertEqual(self.blocks("# Title\n\nText.\n"), [])

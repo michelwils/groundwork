@@ -450,7 +450,7 @@ def paths_with_a_block_of(new, new_paths, entering, candidates):
                 blocks = markers.parse(text.decode("utf-8").split("\n"), markers.kind(path))[0]
             except UnicodeDecodeError:
                 continue
-            if any(block["adr"] in entering for block in blocks):
+            if any(block.adr in entering for block in blocks):
                 found.add(path)
     return found
 

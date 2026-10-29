@@ -202,17 +202,15 @@ def check_block_owners(path, blocks, owner, numbers, having, problems):
     line of a block belongs to."""
     belonging = {}
     for block in blocks:
-        having.setdefault(block["adr"], {}).setdefault(path, block["start"])
-        if block["adr"] not in numbers:
+        having.setdefault(block.adr, {}).setdefault(path, block.start)
+        if block.adr not in numbers:
+            problems.append((path, block.start, f"the block is for the ADR {block.adr:04d}, which does not exist"))
+        elif block.adr == owner.get(path):
             problems.append(
-                (path, block["start"], f"the block is for the ADR {block['adr']:04d}, which does not exist")
+                (path, block.start, f"the lines of the ADR {block.adr:04d}, which owns the file, are not marked")
             )
-        elif block["adr"] == owner.get(path):
-            problems.append(
-                (path, block["start"], f"the lines of the ADR {block['adr']:04d}, which owns the file, are not marked")
-            )
-        for line in range(block["start"], block["end"] + 1):
-            belonging[line] = block["adr"]
+        for line in range(block.start, block.end + 1):
+            belonging[line] = block.adr
     return belonging
 
 

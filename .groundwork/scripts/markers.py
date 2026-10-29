@@ -13,6 +13,7 @@ the ADRs that a project did not keep, with their markers, and leaves no blank li
 """
 
 import re
+from typing import NamedTuple
 
 PATTERNS = {
     "markdown": (
@@ -22,6 +23,14 @@ PATTERNS = {
     "yaml": (re.compile(r"^[ \t]*# groundwork:(\d{4})[ \t]*$"), re.compile(r"^[ \t]*# /groundwork[ \t]*$")),
 }
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
+
+
+class Block(NamedTuple):
+    """A block of the lines of an ADR: its number and the numbers, from 1, of its first and last lines."""
+
+    adr: int
+    start: int
+    end: int
 
 
 def kind(path):
@@ -36,7 +45,6 @@ def kind(path):
 def parse(lines, syntax):
     """Return the blocks and the problems of the lines.
 
-    A block is a dict with its ADR number and the numbers, from 1, of its first and last lines.
     A problem is a (line, message)."""
     opening, closing = PATTERNS[syntax]
     blocks, problems = [], []
@@ -57,20 +65,19 @@ def parse(lines, syntax):
                 problems.append(
                     (
                         number,
-                        f"a block is opened inside the block of the ADR {current['adr']:04d} opened at line {current['start']}",
+                        f"a block is opened inside the block of the ADR {current[0]:04d} opened at line {current[1]}",
                     )
                 )
                 continue
-            current = {"adr": int(start.group(1)), "start": number, "end": None}
+            current = (int(start.group(1)), number)
         elif closing.match(line):
             if not current:
                 problems.append((number, "a closing marker has no block to close"))
                 continue
-            current["end"] = number
-            blocks.append(current)
+            blocks.append(Block(*current, number))
             current = None
     if current:
-        problems.append((current["start"], f"the block of the ADR {current['adr']:04d} is not closed"))
+        problems.append((current[1], f"the block of the ADR {current[0]:04d} is not closed"))
     return blocks, problems
 
 
@@ -87,7 +94,7 @@ def remove(text, syntax, kept):
     blocks, problems = parse(lines, syntax)
     if problems:
         raise ValueError("; ".join(f"line {line}: {message}" for line, message in problems))
-    dropped = {block["start"] - 1: block["end"] - 1 for block in blocks if block["adr"] not in kept}
+    dropped = {block.start - 1: block.end - 1 for block in blocks if block.adr not in kept}
     out, junction, index = [], False, 0
     while index < len(lines):
         if index in dropped:
