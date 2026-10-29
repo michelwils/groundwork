@@ -20,11 +20,16 @@ Every change goes through an issue, a branch and a pull request ([ADR 0003](docs
 3. Commit your work on the branch.
 4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. The pull request template has these sections. The milestone stays on the issue, not on the pull request ([ADR 0003](docs/adr/0003-change-workflow.md)).
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
-6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The platform deletes the branch, and you delete your local branch only when it is the head of the merged pull request ([ADR 0003](docs/adr/0003-change-workflow.md)), with the command below. For a breaking change, the maintainer who merges copies the `BREAKING CHANGE:` line from the description into the body of the squash commit, from which the release notes take it. A release stops at a breaking change whose commit has no such text, until the maintainers give the migration as the text that opens the notes.
+6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is deleted on the platform, and you delete your local branch only when its tip is the head of a merged pull request, and keep it otherwise ([ADR 0003](docs/adr/0003-change-workflow.md)), with the commands below. For a breaking change, the maintainer who merges copies the `BREAKING CHANGE:` line from the description into the body of the squash commit, from which the release notes take it. A release stops at a breaking change whose commit has no such text, until the maintainers give the migration as the text that opens the notes.
 
    ```sh
-   branch=<name>
-   [ "$(gh pr list --head "$branch" --state merged --json headRefOid --jq '.[0].headRefOid')" = "$(git rev-parse "$branch")" ] && git branch -D "$branch"
+   branch=name-of-the-branch  # run from another branch
+   sha=$(git rev-parse --verify --quiet "refs/heads/$branch")
+   if gh pr list --head "$branch" --state merged --json headRefOid --jq "any(.[]; .headRefOid == \"$sha\")" | grep -qx true; then
+     git branch -D "$branch"
+   else
+     echo "kept: $branch is not the head of a merged pull request"
+   fi
    ```
 
 The pull requests that Dependabot opens to update pinned versions, and the one that the `update-groundwork` workflow opens to move to a later version of groundwork, have no issue. The title of Dependabot's pull requests, which starts with a capital letter, is not checked. A maintainer reviews and merges each one ([ADR 0003](docs/adr/0003-change-workflow.md)).
