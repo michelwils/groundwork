@@ -278,7 +278,7 @@ pre-commit run --all-files --hook-stage manual
 .venv/bin/python -m unittest discover -s .groundwork/scripts -p 'test_*.py'
 ```
 
-The Python of the scripts is linted and formatted with [Ruff](https://docs.astral.sh/ruff/), in groundwork and in a source of ADRs only ([ADR 1005](docs/adr/1005-linting-and-formatting-the-python-of-groundwork.md)), which a project does not run. The rules and the length of the lines are in `.groundwork/scripts/ruff.toml`. Run these commands with `.venv/bin/python` in place of `python3`, and `ruff format` without `--check` to apply the format:
+The Python of the scripts is linted and formatted with [Ruff](https://docs.astral.sh/ruff/), in groundwork and in a source of ADRs only ([ADR 1005](docs/adr/1005-linting-and-formatting-the-python-of-groundwork.md)), which a project does not run. The rules and the length of the lines are in `.groundwork/scripts/ruff.toml`. Run these commands from the root of the repository, with `.venv/bin/python` in place of `python3`, and `ruff format` without `--check` to apply the format:
 
 ```sh
 python3 -m ruff check --config .groundwork/scripts/ruff.toml .groundwork/scripts

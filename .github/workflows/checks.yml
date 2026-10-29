@@ -94,14 +94,6 @@ jobs:
         run: |
           echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
 
-      # A source of ADRs lints and formats the Python of its scripts (ADR 1005). A project gets the scripts
-      # through the update and runs neither, whatever the scripts changed.
-      - name: Lint and format the scripts
-        if: ${{ steps.kind.outputs.source == 'true' }}
-        run: |
-          "$RUNNER_TEMP/scripts/bin/python" -m ruff check --config .groundwork/scripts/ruff.toml .groundwork/scripts
-          "$RUNNER_TEMP/scripts/bin/python" -m ruff format --check --config .groundwork/scripts/ruff.toml .groundwork/scripts
-
       # A source of ADRs, such as a community base, sets the variable GROUNDWORK_SOURCE to true in the
       # settings of its repository, to run the test of the trees that its projects get too. A source
       # also measures the coverage of its scripts by their tests and requires a minimal level (the
@@ -149,6 +141,15 @@ jobs:
             -k 'test_script_dependencies.' \
             -k 'test_shared_files.' \
             -k 'test_update_workflow.'
+
+      # A source of ADRs lints and formats the Python of its scripts (ADR 1005). A project gets the scripts
+      # through the update and runs neither, whatever the scripts changed. It runs after the tests, and even
+      # when they fail, so that one run reports a failure of the tests and one of the format together.
+      - name: Lint and format the scripts
+        if: ${{ !cancelled() && steps.kind.outputs.source == 'true' }}
+        run: |
+          "$RUNNER_TEMP/scripts/bin/python" -m ruff check --config .groundwork/scripts/ruff.toml .groundwork/scripts
+          "$RUNNER_TEMP/scripts/bin/python" -m ruff format --check --config .groundwork/scripts/ruff.toml .groundwork/scripts
 
       # Dependabot starts the title of its pull requests with a capital letter (ADR 0003). The
       # branch is not enough to be skipped, since anyone can name a branch dependabot/…

@@ -13,10 +13,10 @@ The files that a project receives are the scripts, `.pre-commit-config.yaml` and
 We will lint and format the Python of `.groundwork/scripts/` with Ruff, in the CI of a source of ADRs.
 
 - **The tool.** Ruff, under the MIT license, which the README lists among the licenses accepted for the dependencies of the scripts ([ADR 0013](0013-licenses-of-the-dependencies.md)). It lints (`ruff check`) and formats (`ruff format --check`) with one dependency. It is pinned at an exact version in `.groundwork/scripts/requirements.txt`, where Dependabot updates it and the audit of the dependencies reads it, as for coverage.py ([ADR 1002](1002-requiring-a-minimal-coverage-of-the-scripts.md)).
-- **What is checked.** All the Python files of `.groundwork/scripts/`, tests included, with the configuration of `.groundwork/scripts/ruff.toml`: lines of 120 columns at most, the default rules of Ruff (the errors of pycodestyle and Pyflakes) and the order of the imports. A stricter set of rules is left out: it asks for changes of code, which this decision does not.
-- **Where.** A step of the job `groundwork` of the workflow `checks.yml`, which runs in a source of ADRs (a repository without `.groundwork-version`, or one that sets the variable `GROUNDWORK_SOURCE` to `true`) and in no project. It runs at each run of the workflow, whatever changed, since it takes about a second. It is not a hook of `.pre-commit-config.yaml`.
-- **Locally.** The README gives the two commands, which the contributor runs before presenting a change, with the other checks.
-- **Updating the tool.** A new version of Ruff may change the layout. The pull request that brings it also brings the reformatting that the check then asks for.
+- **What is checked.** All the Python files of `.groundwork/scripts/`, tests included, with the configuration of `.groundwork/scripts/ruff.toml`: the format wraps the code at 120 columns, the rules are the default rules of Ruff (the errors of pycodestyle and Pyflakes) and the order of the imports. The format does not wrap a long string or comment, and the rule against long lines is not selected: that is left to the author. A stricter set of rules is left out: it asks for changes of code, which this decision does not.
+- **Where.** A step of the job `groundwork` of the workflow `checks.yml`, which runs in a source of ADRs (a repository without `.groundwork-version`, or one that sets the variable `GROUNDWORK_SOURCE` to `true`) and in no project. It runs at each run of the workflow, whatever changed, since it takes about a second, after the tests and even when they fail, so that one run reports a failure of the tests and one of the format together. It is not a hook of `.pre-commit-config.yaml`.
+- **Locally.** The README gives the two commands, which the contributor runs from the root of the repository before presenting a change, with the other checks.
+- **Updating the tool.** A new version of Ruff may change the layout. Dependabot proposes Ruff in a pull request of its own, apart from the other dependencies of the scripts, and a maintainer adds to it the reformatting that the check then asks for.
 
 ## Consequences
 
@@ -25,7 +25,7 @@ We will lint and format the Python of `.groundwork/scripts/` with Ruff, in the C
 - A project receives Ruff with the other dependencies of the scripts, in the environment of the CI and in the one that `run_with_requirements.py` makes for the hook that checks the links, and does not run it. It receives `ruff.toml` too, which only applies to the folder of the scripts, so a project that uses Ruff for its own code is not affected.
 - A community base is a source of ADRs, and gets the same check.
 - The first application reformats most of the files of the scripts, and fixes the few errors that the rules report.
-- The commands run from the root of the repository: `ruff.toml` names the folder of the scripts as the source root, so that the scripts, which import each other, are not taken for dependencies.
+- The commands run from the root of the repository: `ruff.toml` names the folder of the scripts as the source root, relative to the directory where Ruff runs, so that the scripts, which import each other, are not taken for dependencies. Run from another directory, Ruff orders the imports differently.
 
 ## Options considered
 
