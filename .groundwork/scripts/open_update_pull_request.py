@@ -81,17 +81,23 @@ def undo(branch, current, commit):
     run("git", "branch", "-q", "-D", branch)
 
 
-def created_branch(current):
-    """Return the branch `groundwork/…` that the update checked out in place of `current`, or None when it made none."""
+def update_branches():
+    """Return the local branches `groundwork/…`."""
+    return set(run("git", "for-each-ref", "--format=%(refname:short)", f"refs/heads/{PREFIX}").split())
+
+
+def created_branch(current, before):
+    """Return the branch `groundwork/…` that the update made and checked out, or None: a branch that existed before the
+    update is not one that it made, and is never deleted."""
     now = run("git", "branch", "--show-current").strip()
-    return now if now.startswith(PREFIX) and now != current else None
+    return now if now.startswith(PREFIX) and now != current and now not in before else None
 
 
-def put_back(current, commit):
+def put_back(current, commit, before):
     """Undo what the update left when this script stops: only a branch that the update made, after it checked that the
     working tree was clean. A failure to undo is told, and does not hide the error that stopped the script."""
     try:
-        branch = created_branch(current)
+        branch = created_branch(current, before)
         if branch:
             undo(branch, current, commit)
     except Failure as failure:
@@ -169,14 +175,15 @@ def main():
 
     current = run("git", "branch", "--show-current").strip()
     commit = run("git", "rev-parse", "HEAD").strip()
+    before = update_branches()
+    done = False
     try:
         status = propose(args, current, commit)
-    except Failure:
-        put_back(current, commit)
-        raise
-    if status != 0:
-        put_back(current, commit)
-    return status
+        done = status == 0
+        return status
+    finally:
+        if not done:  # an error of any kind, or a status other than 0
+            put_back(current, commit, before)
 
 
 def propose(args, current, commit):

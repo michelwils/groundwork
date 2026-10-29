@@ -28,6 +28,9 @@ if args[:2] == ["pr", "list"]:
     state = args[args.index("--state") + 1]
     print(os.environ.get("FAKE_PULL_REQUESTS" if state == "open" else "FAKE_CLOSED_PULL_REQUESTS", "[]"))
 elif args[:2] == ["pr", "create"]:
+    if os.environ.get("FAKE_CREATE_FAILS"):
+        print("gh: HTTP 403: Resource not accessible", file=sys.stderr)
+        sys.exit(1)
     print("https://github.com/owner/project/pull/1")
 """
 
@@ -84,7 +87,7 @@ class OpenUpdatePullRequest(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_script(self, pull_requests="[]", closed="[]", recorded=None):
+    def run_script(self, pull_requests="[]", closed="[]", recorded=None, create_fails=False):
         """Run the script; with `recorded`, the project has recorded this address as its source and git reaches it at the source."""
         env = {
             **os.environ,
@@ -92,6 +95,7 @@ class OpenUpdatePullRequest(unittest.TestCase):
             "FAKE_LOG": self.log,
             "FAKE_PULL_REQUESTS": pull_requests,
             "FAKE_CLOSED_PULL_REQUESTS": closed,
+            "FAKE_CREATE_FAILS": "1" if create_fails else "",
         }
         if recorded:
             env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": f"url.{self.source}.insteadOf", "GIT_CONFIG_VALUE_0": recorded})
@@ -294,11 +298,11 @@ path = sys.argv[sys.argv.index("--result") + 1]
             cwd=self.project, capture_output=True, text=True, env=env,
         )
 
-    def assert_put_back(self, result, head, branch="main"):
+    def assert_put_back(self, result, head, detached=False):
         """The opener failed and left the project as it found it, so that a later run goes through."""
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertEqual(git(self.project, "for-each-ref", "--format=%(refname:short)", "refs/heads").split(), ["main"])
-        self.assertEqual(git(self.project, "branch", "--show-current").strip(), branch if branch == "main" else "")
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), "" if detached else "main")
         self.assertEqual(git(self.project, "status", "--porcelain").strip(), "")
         self.assertEqual(git(self.project, "rev-parse", "HEAD").strip(), head)
         self.assertFalse(os.path.exists(os.path.join(self.project, "update.md")))
@@ -334,13 +338,48 @@ path = sys.argv[sys.argv.index("--result") + 1]
     def test_puts_a_detached_project_back_on_its_commit(self):
         head = git(self.project, "rev-parse", "HEAD").strip()
         git(self.project, "switch", "-q", "--detach")
-        self.assert_put_back(self.run_with_update("sys.exit(1)\n"), head, branch="")
+        self.assert_put_back(self.run_with_update("sys.exit(1)\n"), head, detached=True)
 
     def test_puts_the_project_back_when_the_push_fails(self):
         head = git(self.project, "rev-parse", "HEAD").strip()
         git(self.project, "remote", "set-url", "origin", os.path.join(self.directory.name, "no-such-remote.git"))
         result = self.run_script()
         git(self.project, "remote", "set-url", "origin", self.remote)
+        self.assert_put_back(result, head)
+
+    def test_puts_the_project_back_when_the_pull_request_cannot_be_created_and_the_next_run_replaces_the_pushed_branch(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        result = self.run_script(create_fails=True)
+        self.assertIn("groundwork/update-to-v0-2-0", self.remote_branches())  # pushed before the pull request failed
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(git(self.project, "for-each-ref", "--format=%(refname:short)", "refs/heads").split(), ["main"])
+        self.assertEqual(git(self.project, "status", "--porcelain").strip(), "")
+        self.assertEqual(git(self.project, "rev-parse", "HEAD").strip(), head)
+        later = self.run_script()
+        self.assertEqual(later.returncode, 0, later.stderr)
+        self.assertEqual(len(self.created()), 2)  # the call that failed, and the one that went through
+
+    def test_does_not_delete_a_branch_of_the_update_that_it_did_not_make(self):
+        git(self.project, "branch", "groundwork/update-to-v0-2-0")
+        copy = os.path.join(self.directory.name, "copy")
+        os.makedirs(copy, exist_ok=True)
+        shutil.copy(SCRIPT, copy)
+        with open(os.path.join(copy, "update_groundwork.py"), "w") as handle:
+            handle.write('import subprocess, sys\nsubprocess.run(["git", "switch", "-q", "groundwork/update-to-v0-2-0"], check=True)\nsys.exit(1)\n')
+        env = {**os.environ, "PATH": self.bin + os.pathsep + os.environ["PATH"], "FAKE_LOG": self.log}
+        result = subprocess.run(
+            [sys.executable, os.path.join(copy, "open_update_pull_request.py"), "--source", self.source],
+            cwd=self.project, capture_output=True, text=True, env=env,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("groundwork/update-to-v0-2-0", git(self.project, "for-each-ref", "--format=%(refname:short)", "refs/heads").split())
+
+    def test_puts_the_project_back_whatever_the_error_that_stops_it(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        result = self.run_with_update("open(path, 'w').close()\nimport os\nos.chmod(path, 0)\n")
+        if os.geteuid() == 0:
+            self.skipTest("root reads a file whatever its mode")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assert_put_back(result, head)
 
     def test_leaves_the_changes_of_the_person_when_the_update_refuses_a_tree_that_is_not_clean(self):

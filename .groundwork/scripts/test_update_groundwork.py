@@ -81,6 +81,29 @@ def tag_with_hook(repo, base, version, directory):
     git(repo, "tag", "-a", f"v{version}", "-m", f"v{version}", run("commit-tree", root, "-p", f"{base}^{{commit}}", "-m", f"feat: release {version}"))
 
 
+class CheckOfTheResultPath(unittest.TestCase):
+    def test_a_path_that_can_be_written_is_left_as_it_was(self):
+        with tempfile.TemporaryDirectory() as directory:
+            new, old = os.path.join(directory, "new.json"), os.path.join(directory, "old.json")
+            with open(old, "w") as handle:
+                handle.write("kept")
+            update_groundwork.check_result_path(new)
+            update_groundwork.check_result_path(old)
+            self.assertFalse(os.path.exists(new))
+            with open(old) as handle:
+                self.assertEqual(handle.read(), "kept")
+            self.assertEqual(sorted(os.listdir(directory)), ["old.json"])
+
+    def test_a_path_that_cannot_be_written_is_refused_with_its_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for path in (os.path.join(directory, "missing", "result.json"), directory):
+                with self.subTest(path=path):
+                    with self.assertRaises(update_groundwork.Failure) as caught:
+                        update_groundwork.check_result_path(path)
+                    self.assertIn(path, str(caught.exception))
+                    self.assertIn("No branch is created", str(caught.exception))
+
+
 class Inside(unittest.TestCase):
     def test_a_path_through_a_link_to_git_is_not_inside(self):
         with tempfile.TemporaryDirectory() as directory:

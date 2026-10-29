@@ -317,6 +317,17 @@ def merge(ours, base, theirs):
     return result.stdout, result.returncode > 0
 
 
+def check_result_path(path):
+    """Stop, before any branch, when the result cannot be written. It creates and truncates nothing, so a run that fails
+    later leaves no file behind, as ADR 1003 says."""
+    if os.path.isdir(path):
+        raise Failure(f"{path} is a folder, not a file for the result. No branch is created.")
+    try:
+        tempfile.TemporaryFile(dir=os.path.dirname(path) or ".").close()
+    except OSError as error:
+        raise Failure(f"{path} cannot be written ({error.strerror}). No branch is created.")
+
+
 def decide(base, theirs, ours):
     """Tell what applying the change from the base to theirs does to a file that holds ours.
 
@@ -512,11 +523,8 @@ def run(args):
     for path, _, _ in steps:
         if not inside(root, path):
             raise Failure(f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed.")
-    if args.result:  # a path that cannot be written stops the update here, before the branch
-        try:
-            open(args.result, "w").close()
-        except OSError as error:
-            raise Failure(f"{args.result} cannot be written ({error.strerror}). No branch is created.")
+    if args.result:
+        check_result_path(args.result)
     git("switch", "--quiet", "-c", branch)
 
     conflicts = [path for path, base, theirs in steps if apply_path(path, base, theirs, read(path), mode(new, path))]
@@ -539,7 +547,10 @@ def run(args):
             with open(args.result, "w") as handle:
                 json.dump(result, handle)
         except OSError as error:
-            raise Failure(f"The branch {branch} is prepared, but the result could not be written to {args.result} ({error.strerror}).")
+            raise Failure(
+                f"The branch {branch} is prepared, but the result could not be written to {args.result} ({error.strerror}). "
+                f"To undo the update, run `git reset --hard`, `git clean -fd`, `git switch -` and `git branch -D {branch}`."
+            )
     return CONFLICTS if conflicts else 0
 
 
