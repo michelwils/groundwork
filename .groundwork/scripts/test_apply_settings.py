@@ -327,6 +327,10 @@ class ApplySettings(unittest.TestCase):
         self.owners("/docs/adr/0*  @maintainer\n")
         result = self.run_script("owner/repo", "--code-owner-review")
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("skipped the check that you are not the only code owner", result.stdout)
+        self.assertIn("HTTP 401", result.stdout)
+        other = self.run_script("owner/repo", "--code-owner-review", user="maintainer")
+        self.assertNotIn("skipped the check", other.stdout)
 
     def test_the_dry_run_refuses_what_the_run_would_refuse(self):
         result = self.run_script("owner/repo", "--dry-run", "--code-owner-review")

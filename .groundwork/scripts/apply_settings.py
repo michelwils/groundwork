@@ -84,10 +84,11 @@ def check_owners():
 def check_not_alone(owners):
     """Stop when the only code owner is the person who runs the script: with an approval required, nobody else could
     approve their pull requests. A team, an address or any other owner leaves the choice to the project, and a login
-    that cannot be read stops nothing."""
+    that cannot be read stops nothing, and the script says that it skipped the check."""
     try:
         login = gh("api", "user", "--jq", ".login").strip()
-    except Failure:
+    except Failure as failure:
+        print(f"skipped the check that you are not the only code owner: could not read your login: {failure}")
         return
     if login and {owner.lower() for owner in owners} == {"@" + login.lower()}:
         raise Failure(
