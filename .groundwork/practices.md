@@ -187,6 +187,7 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 
 - `.gitattributes`
 - `.gitignore`
+- `.groundwork/scripts/README.md`
 - `.groundwork/scripts/apply_choice.py`
 - `.groundwork/scripts/choice.py`
 - `.groundwork/scripts/coveragerc`
