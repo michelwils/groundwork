@@ -74,7 +74,9 @@ class ApplySettings(unittest.TestCase):
             "FAKE_VISIBILITY": visibility,
             "FAKE_HINT": "1" if hint else "",
         }
-        return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env, cwd=self.project)
+        return subprocess.run(
+            [sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env, cwd=self.project
+        )
 
     def calls(self):
         if not os.path.exists(self.log):
@@ -284,7 +286,9 @@ class ApplySettings(unittest.TestCase):
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("default-owner/default-repo", result.stdout)
-        self.assertTrue(any("repos/default-owner/default-repo/immutable-releases" in " ".join(c) for c in self.writes()))
+        self.assertTrue(
+            any("repos/default-owner/default-repo/immutable-releases" in " ".join(c) for c in self.writes())
+        )
 
     def test_does_not_look_up_the_repository_when_it_is_given(self):
         self.run_script("owner/repo")
@@ -330,7 +334,9 @@ class ApplySettings(unittest.TestCase):
     def test_the_code_owner_review_keeps_the_approvals_that_the_ruleset_already_requires(self):
         self.owners()
         result = self.run_script(
-            "owner/repo", "--code-owner-review", rulesets=self.EXISTING,
+            "owner/repo",
+            "--code-owner-review",
+            rulesets=self.EXISTING,
             ruleset=self.pull_request(required_approving_review_count=2),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -357,8 +363,10 @@ class ApplySettings(unittest.TestCase):
         with open(self.RULESET) as handle:
             expected = json.load(handle)
         self.parameters(expected).update(
-            required_approving_review_count=1, require_code_owner_review=True,
-            dismiss_stale_reviews_on_push=True, require_last_push_approval=True,
+            required_approving_review_count=1,
+            require_code_owner_review=True,
+            dismiss_stale_reviews_on_push=True,
+            require_last_push_approval=True,
         )
         self.assertEqual(self.sent(), expected)
 
@@ -475,9 +483,13 @@ class ApplySettings(unittest.TestCase):
 
     def test_nothing_is_refused_when_the_options_keep_the_reviews_or_the_ruleset_has_none(self):
         self.owners()
-        kept = self.run_script("owner/repo", "--code-owner-review", "--last-push-approval", rulesets=self.EXISTING, ruleset=self.BOTH)
+        kept = self.run_script(
+            "owner/repo", "--code-owner-review", "--last-push-approval", rulesets=self.EXISTING, ruleset=self.BOTH
+        )
         self.assertEqual(kept.returncode, 0, kept.stderr)
-        plain = self.run_script("owner/repo", rulesets=self.EXISTING, ruleset='{"rules": [{"type": "pull_request", "parameters": {}}]}')
+        plain = self.run_script(
+            "owner/repo", rulesets=self.EXISTING, ruleset='{"rules": [{"type": "pull_request", "parameters": {}}]}'
+        )
         self.assertEqual(plain.returncode, 0, plain.stderr)
         created = self.run_script("owner/repo")
         self.assertEqual(created.returncode, 0, created.stderr)
@@ -493,7 +505,9 @@ class ApplySettings(unittest.TestCase):
         ):
             with self.subTest(parameter=parameter):
                 value = 1 if parameter == "required_approving_review_count" else True
-                result = self.run_script("owner/repo", rulesets=self.EXISTING, ruleset=self.pull_request(**{parameter: value}))
+                result = self.run_script(
+                    "owner/repo", rulesets=self.EXISTING, ruleset=self.pull_request(**{parameter: value})
+                )
                 self.assertEqual(result.returncode, 1)
                 self.assertIn(words, result.stderr)
                 self.assertEqual(self.writes(), [])
@@ -501,7 +515,9 @@ class ApplySettings(unittest.TestCase):
     def test_a_setting_that_the_options_set_is_not_lowered(self):
         self.owners()
         result = self.run_script(
-            "owner/repo", "--code-owner-review", rulesets=self.EXISTING,
+            "owner/repo",
+            "--code-owner-review",
+            rulesets=self.EXISTING,
             ruleset=self.pull_request(require_code_owner_review=True, dismiss_stale_reviews_on_push=True),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -509,7 +525,10 @@ class ApplySettings(unittest.TestCase):
     def test_a_setting_that_the_options_do_not_set_is_lowered_even_when_they_are_given(self):
         self.owners()
         result = self.run_script(
-            "owner/repo", "--code-owner-review", rulesets=self.EXISTING, ruleset=self.pull_request(required_review_thread_resolution=True)
+            "owner/repo",
+            "--code-owner-review",
+            rulesets=self.EXISTING,
+            ruleset=self.pull_request(required_review_thread_resolution=True),
         )
         self.assertEqual(result.returncode, 1)
         self.assertIn("thread resolution", result.stderr)
@@ -534,7 +553,11 @@ class ApplySettings(unittest.TestCase):
         import argparse
 
         arguments = argparse.Namespace(
-            repository="owner/repo", dry_run=True, code_owner_review=True, last_push_approval=False, turn_off_reviews=False
+            repository="owner/repo",
+            dry_run=True,
+            code_owner_review=True,
+            last_push_approval=False,
+            turn_off_reviews=False,
         )
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "main.json")
@@ -575,7 +598,12 @@ class ApplySettings(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.writes(), [])
         self.assertIsNone(self.sent())
-        for text in ("1 approval required", "code owner review required", "stale approvals dismissed", "last push approval required"):
+        for text in (
+            "1 approval required",
+            "code owner review required",
+            "stale approvals dismissed",
+            "last push approval required",
+        ):
             self.assertIn(text, result.stdout)
 
     def test_refuses_a_repository_that_is_not_owner_slash_name(self):

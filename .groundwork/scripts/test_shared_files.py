@@ -12,6 +12,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 import check_practices  # noqa: E402
 import markers  # noqa: E402
+import practices_map  # noqa: E402
 
 LINK = re.compile(r"\]\(([^)\s#]+)")
 
@@ -26,12 +27,16 @@ class SharedFiles(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        entries, shared, _ = check_practices.parse(read(".groundwork/practices.md").split("\n"))
+        entries, shared, _ = practices_map.parse(read(".groundwork/practices.md").split("\n"))
         cls.numbers = sorted(entry["number"] for entry in entries)
         cls.needs = {entry["number"]: set(check_practices.references(entry["needs"][0])[0]) for entry in entries}
         cls.files = {entry["number"]: [path for path, _ in entry["files"]] for entry in entries}
-        cls.candidates = sorted({path for path, _ in shared} | {path for entry in entries for path, _ in entry["shared"]})
-        cls.candidates = [path for path in cls.candidates if markers.kind(path) and os.path.isfile(os.path.join(ROOT, path))]
+        cls.candidates = sorted(
+            {path for path, _ in shared} | {path for entry in entries for path, _ in entry["shared"]}
+        )
+        cls.candidates = [
+            path for path in cls.candidates if markers.kind(path) and os.path.isfile(os.path.join(ROOT, path))
+        ]
 
     def dependents(self, number):
         found, grew = {number}, True
@@ -44,7 +49,11 @@ class SharedFiles(unittest.TestCase):
         return found
 
     def adr_files(self, numbers):
-        return {os.path.relpath(path, ROOT).replace(os.sep, "/") for number in numbers for path in glob.glob(os.path.join(ROOT, "docs", "adr", f"{number:04d}-*.md"))}
+        return {
+            os.path.relpath(path, ROOT).replace(os.sep, "/")
+            for number in numbers
+            for path in glob.glob(os.path.join(ROOT, "docs", "adr", f"{number:04d}-*.md"))
+        }
 
     def check_left_out(self, dropped):
         kept = set(self.numbers) - dropped
@@ -57,7 +66,9 @@ class SharedFiles(unittest.TestCase):
                 text = read(path)
                 reduced = markers.remove(text, syntax, kept)
                 lines = reduced.split("\n")
-                numbered = check_practices.outside_code(lines) if syntax == "markdown" else list(enumerate(lines, start=1))
+                numbered = (
+                    check_practices.outside_code(lines) if syntax == "markdown" else list(enumerate(lines, start=1))
+                )
                 for number, line in numbered:
                     self.assertEqual(check_practices.named_adrs(line) & dropped, set(), f"line {number}: {line}")
                 if syntax == "markdown":
@@ -74,7 +85,9 @@ class SharedFiles(unittest.TestCase):
                         target = os.path.join(directory, os.path.basename(path))
                         with open(target, "w", encoding="utf-8") as handle:
                             handle.write(reduced)
-                        result = subprocess.run(["pre-commit", "validate-config", target], capture_output=True, text=True)
+                        result = subprocess.run(
+                            ["pre-commit", "validate-config", target], capture_output=True, text=True
+                        )
                         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_the_files_have_markers_to_check(self):

@@ -38,9 +38,16 @@ VERSION_FILE = ".groundwork-version"
 PREFIX = "groundwork/"
 FIELDS = ("branch", "from", "to", "source", "added", "conflicts")
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
-RECORDED = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:\+(?:[0-9a-f]{40}|[0-9a-f]{64}))?")  # what `.groundwork-version` holds (ADR 1004)
+RECORDED = re.compile(
+    r"[0-9]+\.[0-9]+\.[0-9]+(?:\+(?:[0-9a-f]{40}|[0-9a-f]{64}))?"
+)  # what `.groundwork-version` holds (ADR 1004)
 ADR_NUMBER = re.compile(r"[0-9]{4}")
-IDENTITY = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"]
+IDENTITY = [
+    "-c",
+    "user.name=github-actions[bot]",
+    "-c",
+    "user.email=41898282+github-actions[bot]@users.noreply.github.com",
+]
 
 
 class Failure(Exception):
@@ -50,7 +57,12 @@ class Failure(Exception):
 def without_hooks(environ):
     """Return the environment in which git runs no hook, with the configuration already given in it."""
     count = int(environ.get("GIT_CONFIG_COUNT", "0"))
-    return {**environ, "GIT_CONFIG_COUNT": str(count + 1), f"GIT_CONFIG_KEY_{count}": "core.hooksPath", f"GIT_CONFIG_VALUE_{count}": os.devnull}
+    return {
+        **environ,
+        "GIT_CONFIG_COUNT": str(count + 1),
+        f"GIT_CONFIG_KEY_{count}": "core.hooksPath",
+        f"GIT_CONFIG_VALUE_{count}": os.devnull,
+    }
 
 
 def run(*command):
@@ -138,7 +150,9 @@ def result(path):
 def agree(status, fields):
     """Check that the status of the update says what its result says: CONFLICTS (3) when files are in conflict, 0 when none is."""
     if status != (CONFLICTS if fields["conflicts"] else 0):
-        raise Failure(f"The update script ended with status {status} and a result with {len(fields['conflicts'])} files in conflict.")
+        raise Failure(
+            f"The update script ended with status {status} and a result with {len(fields['conflicts'])} files in conflict."
+        )
 
 
 def code(text):
@@ -154,7 +168,12 @@ def body(old, new, conflicts, source, added=()):
     if source.startswith("https://"):
         lines.append(f"Release notes: {source.removesuffix('.git')}/releases/tag/v{new}")
     if added:
-        lines += ["", "These ADRs enter the choice of the project because an ADR it keeps needs them: " + ", ".join(f"ADR {number}" for number in added) + "."]
+        lines += [
+            "",
+            "These ADRs enter the choice of the project because an ADR it keeps needs them: "
+            + ", ".join(f"ADR {number}" for number in added)
+            + ".",
+        ]
     if conflicts:
         lines += ["", "These files are in conflict. Resolve the markers, then mark the pull request ready:", ""]
         lines += [f"- {code(path)}" for path in conflicts]
@@ -162,7 +181,9 @@ def body(old, new, conflicts, source, added=()):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Open the pull request that updates the project to a later groundwork.")
+    parser = argparse.ArgumentParser(
+        description="Open the pull request that updates the project to a later groundwork."
+    )
     parser.add_argument("--source", default=None, help="repository of groundwork, as for update_groundwork.py")
     args = parser.parse_args()
     os.environ.update(without_hooks(os.environ))
@@ -207,8 +228,15 @@ def open_the_pull_request(fields):
     run("git", *IDENTITY, "commit", "-q", "-m", title)
     run("git", "push", "--force", "-q", "origin", f"HEAD:refs/heads/{branch}")
     url = run(
-        "gh", "pr", "create", "--head", branch, "--title", title,
-        "--body", body(old, new, files, fields["source"], fields["added"]),
+        "gh",
+        "pr",
+        "create",
+        "--head",
+        branch,
+        "--title",
+        title,
+        "--body",
+        body(old, new, files, fields["source"], fields["added"]),
         *(["--draft"] if files else []),
     ).strip()
     print(url)

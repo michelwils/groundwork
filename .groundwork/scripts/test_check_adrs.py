@@ -64,7 +64,10 @@ class Fixture(unittest.TestCase):
             handle.write(content)
 
     def practices(self, **needs):
-        entries = "".join(f"### {number}. Decision {number}\n\n- Needs: {value}\n- Files:\n  - none\n- Shared lines:\n  - none\n\n" for number, value in needs.items())
+        entries = "".join(
+            f"### {number}. Decision {number}\n\n- Needs: {value}\n- Files:\n  - none\n- Shared lines:\n  - none\n\n"
+            for number, value in needs.items()
+        )
         os.makedirs(os.path.join(self.root, ".groundwork"), exist_ok=True)
         self.put_root(os.path.join(".groundwork", "practices.md"), "# Practices\n\n## Practices\n\n" + entries)
 

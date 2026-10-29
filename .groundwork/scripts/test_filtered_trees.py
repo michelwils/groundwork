@@ -73,7 +73,11 @@ def readme_section(heading):
 
 def adoption_order():
     """Return the numbers of the ADRs in the order of the path to adopt groundwork in an existing project."""
-    return [int(number) for line in readme_section(PATH_HEADING) for number in re.findall(r"^- \*\*ADR ([0-9]{4})\*\*", line)]
+    return [
+        int(number)
+        for line in readme_section(PATH_HEADING)
+        for number in re.findall(r"^- \*\*ADR ([0-9]{4})\*\*", line)
+    ]
 
 
 def is_source(root, environ):
@@ -117,13 +121,22 @@ class Source(unittest.TestCase):
                     self.assertFalse(is_source(root, {"GROUNDWORK_SOURCE": value}))
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of a source of ADRs, which a project may extend with scripts of its own")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ),
+    "it reads the files of a source of ADRs, which a project may extend with scripts of its own",
+)
 class NoSuggestedRange(unittest.TestCase):
     """The range 9000-9999 is a suggestion of the guide of the community bases, which is the only file that gives it, and no script or workflow assumes it."""
 
     def test_no_file_of_the_automation_that_is_not_a_test_writes_it(self):
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".github", ".groundwork"], capture_output=True, text=True, check=True).stdout
-        files = [path for path in listed.split("\0") if path and not os.path.basename(path).startswith("test_") and path != ".groundwork/community-base.md"]
+        listed = subprocess.run(
+            ["git", "-C", ROOT, "ls-files", "-z", ".github", ".groundwork"], capture_output=True, text=True, check=True
+        ).stdout
+        files = [
+            path
+            for path in listed.split("\0")
+            if path and not os.path.basename(path).startswith("test_") and path != ".groundwork/community-base.md"
+        ]
         self.assertTrue(files)
         for path in files:
             with self.subTest(path=path), open(os.path.join(ROOT, path), encoding="utf-8", errors="replace") as handle:
@@ -131,19 +144,46 @@ class NoSuggestedRange(unittest.TestCase):
 
 
 CONVENTIONAL = {
-    "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "README.md", "LICENSE", ".editorconfig", ".gitignore", ".gitattributes",
-    ".github/dependabot.yml", ".github/PULL_REQUEST_TEMPLATE.md", ".github/ISSUE_TEMPLATE/change.md", ".github/zizmor.yml",
-    ".github/workflows/checks.yml", ".github/workflows/project-checks.yml", ".github/workflows/release.yml", ".github/workflows/update-groundwork.yml",
-    ".markdownlint.yaml", ".markdownlintignore", ".pre-commit-config.yaml", "docs/adr/template.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE",
+    ".editorconfig",
+    ".gitignore",
+    ".gitattributes",
+    ".github/dependabot.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/ISSUE_TEMPLATE/change.md",
+    ".github/zizmor.yml",
+    ".github/workflows/checks.yml",
+    ".github/workflows/project-checks.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/update-groundwork.yml",
+    ".markdownlint.yaml",
+    ".markdownlintignore",
+    ".pre-commit-config.yaml",
+    "docs/adr/template.md",
 }
 FORMER_PATHS = (
-    ".github/scripts", ".github/rulesets", "docs/practices.md", "docs/groundwork-community-base.md",
-    '".github", "scripts"', '".github", "rulesets"', '"docs", "practices.md"',
+    ".github/scripts",
+    ".github/rulesets",
+    "docs/practices.md",
+    "docs/groundwork-community-base.md",
+    '".github", "scripts"',
+    '".github", "rulesets"',
+    '"docs", "practices.md"',
 )
-DESCRIBES_THE_FORMER_STATE = ("docs/adr/1001-naming-the-files-of-groundwork.md", ".github/scripts/test_filtered_trees.py", ".groundwork/scripts/test_filtered_trees.py")
+DESCRIBES_THE_FORMER_STATE = (
+    "docs/adr/1001-naming-the-files-of-groundwork.md",
+    ".github/scripts/test_filtered_trees.py",
+    ".groundwork/scripts/test_filtered_trees.py",
+)
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with files of its own")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with files of its own"
+)
 class PlacesOfTheFiles(unittest.TestCase):
     """The files of groundwork that have no conventional name are in `.groundwork/` (ADR 1001)."""
 
@@ -154,13 +194,17 @@ class PlacesOfTheFiles(unittest.TestCase):
     def test_every_file_of_the_map_is_in_the_directory_unless_its_name_and_place_are_fixed(self):
         for path in sorted(self.named() - CONVENTIONAL):
             with self.subTest(path=path):
-                self.assertTrue(path.startswith(".groundwork/"), f"{path} has no conventional name and is not in .groundwork/")
+                self.assertTrue(
+                    path.startswith(".groundwork/"), f"{path} has no conventional name and is not in .groundwork/"
+                )
 
     def test_the_list_of_the_conventional_names_names_only_files_of_the_map(self):
         self.assertEqual(sorted(CONVENTIONAL - self.named()), [])
 
     def test_no_file_names_a_former_path(self):
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, text=True, check=True).stdout
+        listed = subprocess.run(
+            ["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, text=True, check=True
+        ).stdout
         for path in sorted(path for path in listed.split("\0") if path and path not in DESCRIBES_THE_FORMER_STATE):
             full = os.path.join(ROOT, path)
             if not os.path.isfile(full):
@@ -172,7 +216,12 @@ class PlacesOfTheFiles(unittest.TestCase):
                     self.assertNotIn(former, text)
 
     def test_no_hook_and_no_ignore_file_leaves_the_directory_out(self):
-        samples = [".groundwork/practices.md", ".groundwork/community-base.md", ".groundwork/scripts/check_adrs.py", ".groundwork/rulesets/main.json"]
+        samples = [
+            ".groundwork/practices.md",
+            ".groundwork/community-base.md",
+            ".groundwork/scripts/check_adrs.py",
+            ".groundwork/rulesets/main.json",
+        ]
         with open(os.path.join(ROOT, ".pre-commit-config.yaml"), encoding="utf-8") as handle:
             config = re.sub(r"^\s*#.*\n", "", handle.read(), flags=re.MULTILINE)
         for pattern in re.findall(r"^\s*exclude: ['\"]?(.+?)['\"]?\s*$", config, flags=re.MULTILINE):
@@ -186,21 +235,34 @@ class PlacesOfTheFiles(unittest.TestCase):
                 self.assertFalse(line.lstrip("/").startswith(".groundwork") or line.startswith("*"))
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with files of its own")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with files of its own"
+)
 class ImportsOfTheFiles(unittest.TestCase):
     """A script of groundwork imports only files that are kept whenever it is kept."""
 
     def test_a_script_imports_only_its_own_adr_the_adrs_it_needs_adr_0001_and_the_files_of_no_adr(self):
         entries = practices_map.read_map(ROOT)[0]
         owners, needs = practices_map.owners(entries), practices_map.needs_of(entries)
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z", ".groundwork/scripts"], capture_output=True, text=True, check=True).stdout
+        listed = subprocess.run(
+            ["git", "-C", ROOT, "ls-files", "-z", ".groundwork/scripts"], capture_output=True, text=True, check=True
+        ).stdout
         scripts = {path: os.path.basename(path)[:-3] for path in listed.split("\0") if path.endswith(".py")}
         modules = {name: path for path, name in scripts.items()}
         for path in sorted(scripts):
             with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
                 tree = ast.parse(handle.read())
-            imported = {alias.name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
-            imported |= {node.module.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module and node.level == 0}
+            imported = {
+                alias.name.split(".")[0]
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            imported |= {
+                node.module.split(".")[0]
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module and node.level == 0
+            }
             mine = owners.get(path)
             allowed = {1} | ({mine} | practices_map.closure([mine], needs) if mine else set())
             for name in sorted(imported & set(modules) - {scripts[path]}):
@@ -216,7 +278,9 @@ class ReadmeOfGroundwork(unittest.TestCase):
 
     def test_no_sentence_tells_to_delete_a_file_of_the_map(self):
         entries, shared, apart = practices_map.read_map(ROOT)
-        named = {path for entry in entries for path, _ in entry["files"] + entry["shared"]} | {path for path, _ in shared + apart}
+        named = {path for entry in entries for path, _ in entry["files"] + entry["shared"]} | {
+            path for path, _ in shared + apart
+        }
         self.assertTrue(named)
         with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as handle:
             lines = handle.read().split("\n")
@@ -224,7 +288,9 @@ class ReadmeOfGroundwork(unittest.TestCase):
             pattern = re.compile(r"\b(?:delete|remove)\b(?:(?!\. )[^\n])*?" + re.escape(path), re.IGNORECASE)
             for number, line in enumerate(lines, start=1):
                 with self.subTest(path=path, line=number):
-                    self.assertIsNone(pattern.search(line), f"README.md:{number} tells to delete {path}, which the map names")
+                    self.assertIsNone(
+                        pattern.search(line), f"README.md:{number} tells to delete {path}, which the map names"
+                    )
 
 
 @unittest.skipUnless(is_source(ROOT, os.environ), "it reads the README of groundwork, which a project replaces")
@@ -237,7 +303,9 @@ class AdoptionPath(unittest.TestCase):
         self.assertEqual(sorted(order), sorted(needs), "each ADR of the map appears once in the path")
         for position, number in enumerate(order):
             with self.subTest(adr=number):
-                self.assertLessEqual(needs[number], set(order[:position]), f"ADR {number:04d} comes before an ADR it needs")
+                self.assertLessEqual(
+                    needs[number], set(order[:position]), f"ADR {number:04d} comes before an ADR it needs"
+                )
 
     def example(self):
         text = "\n".join(readme_section(GAPS_HEADING))
@@ -267,7 +335,10 @@ class AdoptionPath(unittest.TestCase):
                 self.assertIsNone(re.search(pattern, name + "x"))
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ),
+    "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base",
+)
 class FilteredTrees(unittest.TestCase):
     """What groundwork gives to a project that keeps some of its ADRs, checked on the real files."""
 
@@ -279,7 +350,9 @@ class FilteredTrees(unittest.TestCase):
         cls.owners = practices_map.owners(entries)
         cls.numbers = sorted(entry["number"] for entry in entries)
         listing = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, check=True)
-        cls.files = [path for path in listing.stdout.decode().split("\0") if path and os.path.isfile(os.path.join(ROOT, path))]
+        cls.files = [
+            path for path in listing.stdout.decode().split("\0") if path and os.path.isfile(os.path.join(ROOT, path))
+        ]
 
     def dependents(self, number):
         found, grew = {number}, True

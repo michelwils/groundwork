@@ -89,11 +89,15 @@ def check_owners():
                 rules = [line.split("#")[0].split() for line in handle]
             rules = [fields for fields in rules if fields]
             if not rules:
-                raise Failure(f"{path} names no owner: add the rules of the template, with the reviewers of the project.")
+                raise Failure(
+                    f"{path} names no owner: add the rules of the template, with the reviewers of the project."
+                )
             if not any(len(fields) > 1 for fields in rules):
                 raise Failure(f"{path} names no owner: a line gives a pattern and the reviewers of the project.")
             if any("@OWNER" in fields for fields in rules):
-                raise Failure(f"{path} still names @OWNER, the owner of the template: replace it with the reviewers of the project.")
+                raise Failure(
+                    f"{path} still names @OWNER, the owner of the template: replace it with the reviewers of the project."
+                )
             return {owner for fields in rules for owner in fields[1:]}
     raise Failure(
         "this directory has no file of code owners (.github/CODEOWNERS, CODEOWNERS or docs/CODEOWNERS): run the script from the clone of the project, "
@@ -130,8 +134,14 @@ def protected(code_owner_review, last_push_approval, approvals=0):
     words = []
     if code_owner_review:
         count = max(1, approvals)
-        parameters.update(required_approving_review_count=count, require_code_owner_review=True, dismiss_stale_reviews_on_push=True)
-        words += [f"{count} approval{'s' if count > 1 else ''} required", "code owner review required", "stale approvals dismissed"]
+        parameters.update(
+            required_approving_review_count=count, require_code_owner_review=True, dismiss_stale_reviews_on_push=True
+        )
+        words += [
+            f"{count} approval{'s' if count > 1 else ''} required",
+            "code owner review required",
+            "stale approvals dismissed",
+        ]
     if last_push_approval:
         parameters["require_last_push_approval"] = True
         words.append("last push approval required")
@@ -147,7 +157,9 @@ APPROVALS = (
 
 
 def pull_request_parameters(ruleset):
-    return next((rule.get("parameters") or {} for rule in ruleset.get("rules") or [] if rule.get("type") == "pull_request"), {})
+    return next(
+        (rule.get("parameters") or {} for rule in ruleset.get("rules") or [] if rule.get("type") == "pull_request"), {}
+    )
 
 
 def lowered(detail, wanted):
@@ -175,7 +187,10 @@ def reporting_step(api, visibility):
     or internal repository."""
     if visibility not in ("private", "internal"):
         return ("private vulnerability reporting: enabled", ("-X", "PUT", f"{api}/private-vulnerability-reporting"))
-    return (f"private vulnerability reporting: GitHub offers it on public repositories only, and this one is {visibility}", None)
+    return (
+        f"private vulnerability reporting: GitHub offers it on public repositories only, and this one is {visibility}",
+        None,
+    )
 
 
 def ruleset_step(api, ruleset_id, wanted, words, asks_reviews):
@@ -186,7 +201,11 @@ def ruleset_step(api, ruleset_id, wanted, words, asks_reviews):
         file, text, stdin = "-", f" ({', '.join(words)})", json.dumps(wanted)
     else:
         file, text, stdin = os.path.abspath(RULESET), "", None
-    return (f"ruleset '{ruleset_name()}': {'updated' if ruleset_id else 'created'}{text}", (*target, "--input", file), stdin)
+    return (
+        f"ruleset '{ruleset_name()}': {'updated' if ruleset_id else 'created'}{text}",
+        (*target, "--input", file),
+        stdin,
+    )
 
 
 def settings(repository, code_owner_review=False, last_push_approval=False, visibility="public"):
@@ -201,10 +220,23 @@ def settings(repository, code_owner_review=False, last_push_approval=False, visi
     steps = [
         (
             "merge: squash only, pull request title as commit title, empty message, branches deleted after a merge",
-            ("-X", "PATCH", api,
-             "-F", "allow_squash_merge=true", "-F", "allow_merge_commit=false", "-F", "allow_rebase_merge=false",
-             "-F", "delete_branch_on_merge=true",
-             "-f", "squash_merge_commit_title=PR_TITLE", "-f", "squash_merge_commit_message=BLANK"),
+            (
+                "-X",
+                "PATCH",
+                api,
+                "-F",
+                "allow_squash_merge=true",
+                "-F",
+                "allow_merge_commit=false",
+                "-F",
+                "allow_rebase_merge=false",
+                "-F",
+                "delete_branch_on_merge=true",
+                "-f",
+                "squash_merge_commit_title=PR_TITLE",
+                "-f",
+                "squash_merge_commit_message=BLANK",
+            ),
         ),
         reporting_step(api, visibility),
         ("immutable releases: enabled", ("-X", "PUT", f"{api}/immutable-releases")),
@@ -218,7 +250,9 @@ def settings(repository, code_owner_review=False, last_push_approval=False, visi
 def check_options(args):
     """Stop, before any call that writes, on options that go wrong together or that the files of the project refuse."""
     if args.last_push_approval and not args.code_owner_review:
-        raise Failure("--last-push-approval goes with --code-owner-review: with no approval required, it enforces nothing.")
+        raise Failure(
+            "--last-push-approval goes with --code-owner-review: with no approval required, it enforces nothing."
+        )
     protected(args.code_owner_review, args.last_push_approval)  # stops here when the file has no pull_request rule
     if args.code_owner_review:
         check_not_alone(check_owners())
@@ -266,15 +300,18 @@ def main():
     parser.add_argument("repository", nargs="?", help="OWNER/REPO (default: the repository of the current directory)")
     parser.add_argument("--dry-run", action="store_true", help="show what would be applied, change nothing")
     parser.add_argument(
-        "--code-owner-review", action="store_true",
+        "--code-owner-review",
+        action="store_true",
         help="require at least one approval, the approval of a code owner for the files that have one, and dismiss an approval when a commit is pushed after it (ADR 0014)",
     )
     parser.add_argument(
-        "--turn-off-reviews", action="store_true",
+        "--turn-off-reviews",
+        action="store_true",
         help="apply the ruleset even if it lowers an approval setting of the ruleset of the repository",
     )
     parser.add_argument(
-        "--last-push-approval", action="store_true",
+        "--last-push-approval",
+        action="store_true",
         help="with --code-owner-review, require that the approval comes from someone other than the person who pushed last (ADR 0014)",
     )
     try:

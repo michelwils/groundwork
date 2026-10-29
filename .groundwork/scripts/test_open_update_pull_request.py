@@ -98,9 +98,19 @@ class OpenUpdatePullRequest(unittest.TestCase):
             "FAKE_CREATE_FAILS": "1" if create_fails else "",
         }
         if recorded:
-            env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": f"url.{self.source}.insteadOf", "GIT_CONFIG_VALUE_0": recorded})
+            env.update(
+                {
+                    "GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": f"url.{self.source}.insteadOf",
+                    "GIT_CONFIG_VALUE_0": recorded,
+                }
+            )
         return subprocess.run(
-            [sys.executable, SCRIPT, *([] if recorded else ["--source", self.source])], cwd=self.project, capture_output=True, text=True, env=env
+            [sys.executable, SCRIPT, *([] if recorded else ["--source", self.source])],
+            cwd=self.project,
+            capture_output=True,
+            text=True,
+            env=env,
         )
 
     def gh_calls(self):
@@ -140,7 +150,15 @@ class OpenUpdatePullRequest(unittest.TestCase):
         hooks, ran = os.path.join(self.directory.name, "hooks"), os.path.join(self.directory.name, "ran")
         os.makedirs(hooks)
         os.makedirs(ran)
-        names = ("pre-commit", "prepare-commit-msg", "commit-msg", "post-commit", "post-checkout", "reference-transaction", "pre-push")
+        names = (
+            "pre-commit",
+            "prepare-commit-msg",
+            "commit-msg",
+            "post-commit",
+            "post-checkout",
+            "reference-transaction",
+            "pre-push",
+        )
         for name in names:
             path = os.path.join(hooks, name)
             with open(path, "w") as handle:
@@ -156,7 +174,12 @@ class OpenUpdatePullRequest(unittest.TestCase):
         environ = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "url.a.insteadOf", "GIT_CONFIG_VALUE_0": "b"}
         self.assertEqual(
             opener.without_hooks(environ),
-            {**environ, "GIT_CONFIG_COUNT": "2", "GIT_CONFIG_KEY_1": "core.hooksPath", "GIT_CONFIG_VALUE_1": os.devnull},
+            {
+                **environ,
+                "GIT_CONFIG_COUNT": "2",
+                "GIT_CONFIG_KEY_1": "core.hooksPath",
+                "GIT_CONFIG_VALUE_1": os.devnull,
+            },
         )
 
     def test_the_pull_request_is_ready_and_named_after_the_version(self):
@@ -267,7 +290,13 @@ class OpenUpdatePullRequest(unittest.TestCase):
         with open(os.path.join(copy, "update_groundwork.py"), "w") as handle:
             handle.write("import sys\nprint('error: the update stopped at a step', file=sys.stderr)\nsys.exit(4)\n")
         env = {**os.environ, "PATH": self.bin + os.pathsep + os.environ["PATH"], "FAKE_LOG": self.log}
-        result = subprocess.run([sys.executable, os.path.join(copy, "open_update_pull_request.py"), "--source", self.source], cwd=self.project, capture_output=True, text=True, env=env)
+        result = subprocess.run(
+            [sys.executable, os.path.join(copy, "open_update_pull_request.py"), "--source", self.source],
+            cwd=self.project,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
         self.assertEqual(result.returncode, 1)
         self.assertIn("error: the update stopped at a step", result.stderr)
         self.assertIn("status 4", result.stderr)
@@ -290,12 +319,18 @@ path = sys.argv[sys.argv.index("--result") + 1]
         with open(os.path.join(copy, "update_groundwork.py"), "w") as handle:
             handle.write(self.STAND_IN + ending)
         env = {
-            **os.environ, "PATH": self.bin + os.pathsep + os.environ["PATH"], "FAKE_LOG": self.log,
-            "FAKE_PULL_REQUESTS": "[]", "FAKE_CLOSED_PULL_REQUESTS": "[]",
+            **os.environ,
+            "PATH": self.bin + os.pathsep + os.environ["PATH"],
+            "FAKE_LOG": self.log,
+            "FAKE_PULL_REQUESTS": "[]",
+            "FAKE_CLOSED_PULL_REQUESTS": "[]",
         }
         return subprocess.run(
             [sys.executable, os.path.join(copy, "open_update_pull_request.py"), "--source", self.source],
-            cwd=self.project, capture_output=True, text=True, env=env,
+            cwd=self.project,
+            capture_output=True,
+            text=True,
+            env=env,
         )
 
     def assert_put_back(self, result, head, detached=False):
@@ -326,7 +361,14 @@ path = sys.argv[sys.argv.index("--result") + 1]
 
     def test_puts_the_project_back_when_the_status_and_the_result_disagree(self):
         head = git(self.project, "rev-parse", "HEAD").strip()
-        fields = {"branch": "groundwork/update-to-v0-2-0", "from": "0.1.0", "to": "0.2.0", "source": "x", "added": [], "conflicts": []}
+        fields = {
+            "branch": "groundwork/update-to-v0-2-0",
+            "from": "0.1.0",
+            "to": "0.2.0",
+            "source": "x",
+            "added": [],
+            "conflicts": [],
+        }
         result = self.run_with_update(f"open(path, 'w').write(json.dumps({fields!r}))\nsys.exit(3)\n")
         self.assertIn("status 3", result.stderr)
         self.assert_put_back(result, head)
@@ -347,7 +389,9 @@ path = sys.argv[sys.argv.index("--result") + 1]
         git(self.project, "remote", "set-url", "origin", self.remote)
         self.assert_put_back(result, head)
 
-    def test_puts_the_project_back_when_the_pull_request_cannot_be_created_and_the_next_run_replaces_the_pushed_branch(self):
+    def test_puts_the_project_back_when_the_pull_request_cannot_be_created_and_the_next_run_replaces_the_pushed_branch(
+        self,
+    ):
         head = git(self.project, "rev-parse", "HEAD").strip()
         result = self.run_script(create_fails=True)
         self.assertIn("groundwork/update-to-v0-2-0", self.remote_branches())  # pushed before the pull request failed
@@ -365,14 +409,22 @@ path = sys.argv[sys.argv.index("--result") + 1]
         os.makedirs(copy, exist_ok=True)
         shutil.copy(SCRIPT, copy)
         with open(os.path.join(copy, "update_groundwork.py"), "w") as handle:
-            handle.write('import subprocess, sys\nsubprocess.run(["git", "switch", "-q", "groundwork/update-to-v0-2-0"], check=True)\nsys.exit(1)\n')
+            handle.write(
+                'import subprocess, sys\nsubprocess.run(["git", "switch", "-q", "groundwork/update-to-v0-2-0"], check=True)\nsys.exit(1)\n'
+            )
         env = {**os.environ, "PATH": self.bin + os.pathsep + os.environ["PATH"], "FAKE_LOG": self.log}
         result = subprocess.run(
             [sys.executable, os.path.join(copy, "open_update_pull_request.py"), "--source", self.source],
-            cwd=self.project, capture_output=True, text=True, env=env,
+            cwd=self.project,
+            capture_output=True,
+            text=True,
+            env=env,
         )
         self.assertEqual(result.returncode, 1)
-        self.assertIn("groundwork/update-to-v0-2-0", git(self.project, "for-each-ref", "--format=%(refname:short)", "refs/heads").split())
+        self.assertIn(
+            "groundwork/update-to-v0-2-0",
+            git(self.project, "for-each-ref", "--format=%(refname:short)", "refs/heads").split(),
+        )
 
     def test_puts_the_project_back_whatever_the_error_that_stops_it(self):
         head = git(self.project, "rev-parse", "HEAD").strip()
@@ -418,7 +470,13 @@ class Body(unittest.TestCase):
         lines = opener.body("0.1.0", "0.2.0", paths, "https://github.com/o/g.git").splitlines()
         self.assertEqual(
             lines[-5:],
-            ["- ``a`@team`.md``", "- `` `x.md ``", "- `[x](https://example.org).md`", "- `` x.md` ``", "- `CONTRIBUTING.md`"],
+            [
+                "- ``a`@team`.md``",
+                "- `` `x.md ``",
+                "- `[x](https://example.org).md`",
+                "- `` x.md` ``",
+                "- `CONTRIBUTING.md`",
+            ],
         )
 
     def test_it_says_nothing_of_the_adrs_when_none_was_added(self):
@@ -480,7 +538,9 @@ class Body(unittest.TestCase):
         self.assertIsNone(opener.result(os.path.join(tempfile.gettempdir(), "no-such-groundwork-result.json")))
 
     def test_a_result_that_is_not_the_expected_one_is_refused(self):
-        without = lambda name: {key: value for key, value in self.RESULT.items() if key != name}
+        def without(name):
+            return {key: value for key, value in self.RESULT.items() if key != name}
+
         for fields in (
             "not json",
             "[]",

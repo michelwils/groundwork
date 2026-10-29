@@ -32,14 +32,18 @@ def check(branch, base, body, title):
         return []
     problems = branch_problems(branch, base, body)
     if BREAKING_TITLE.match(title) and not BREAKING_FOOTER.search(body or ""):
-        problems.append("The title has `!`: the description has no line `BREAKING CHANGE: <what breaks and how to migrate>`.")
+        problems.append(
+            "The title has `!`: the description has no line `BREAKING CHANGE: <what breaks and how to migrate>`."
+        )
     return problems
 
 
 def branch_problems(branch, base, body):
     match = BRANCH.match(branch)
     if not match:
-        return [f"The branch '{branch}' is not named <type>/<issue-number>-<slug>, with a type of ADR 0002 and a slug in kebab case."]
+        return [
+            f"The branch '{branch}' is not named <type>/<issue-number>-<slug>, with a type of ADR 0002 and a slug in kebab case."
+        ]
     issue = match.group("issue")
     closes = CLOSES.findall(body or "")
     refs = REFS.findall(body or "")

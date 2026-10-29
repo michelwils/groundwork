@@ -42,7 +42,19 @@ import sys
 
 import choice
 import markers
-from practices_map import ADR_DIRECTORY, ADR_FILE, BASE, MAP, RANGES_FILE, cycles, is_reserved, needs_of, parse, read_map, read_ranges, references
+from practices_map import (
+    ADR_DIRECTORY,
+    ADR_FILE,
+    BASE,
+    MAP,
+    RANGES_FILE,
+    cycles,
+    is_reserved,
+    needs_of,
+    read_map,
+    read_ranges,
+    references,
+)
 
 VERSION_FILE = ".groundwork-version"
 PROJECT_OWN = ("README.md", "LICENSE")
@@ -74,11 +86,19 @@ def check_numbers(entries, numbers, reserved, problems):
     for entry in entries:
         number = entry["number"]
         if number in seen:
-            problems.append((MAP, entry["line"], f"the ADR {number:04d} has an entry more than once, first at line {seen[number]}"))
+            problems.append(
+                (MAP, entry["line"], f"the ADR {number:04d} has an entry more than once, first at line {seen[number]}")
+            )
         else:
             seen[number] = entry["line"]
         if not is_reserved(number, reserved):
-            problems.append((MAP, entry["line"], f"the entry {number:04d} is for an ADR outside the ranges that the source reserves"))
+            problems.append(
+                (
+                    MAP,
+                    entry["line"],
+                    f"the entry {number:04d} is for an ADR outside the ranges that the source reserves",
+                )
+            )
         elif number not in numbers:
             problems.append((MAP, entry["line"], f"the entry {number:04d} has no ADR in {ADR_DIRECTORY}"))
     for number in sorted(numbers - set(seen)):
@@ -101,9 +121,17 @@ def check_needs(entries, numbers, problems):
             if other == number:
                 problems.append((MAP, line, f"the ADR {number:04d} refers to itself"))
             elif other not in numbers:
-                problems.append((MAP, line, f"the ADR {other:04d} that the entry {number:04d} refers to does not exist"))
+                problems.append(
+                    (MAP, line, f"the ADR {other:04d} that the entry {number:04d} refers to does not exist")
+                )
             elif BASE[0] <= number <= BASE[1] and not BASE[0] <= other <= BASE[1]:
-                problems.append((MAP, line, f"the ADR {number:04d} of groundwork needs the ADR {other:04d}, which is not of groundwork"))
+                problems.append(
+                    (
+                        MAP,
+                        line,
+                        f"the ADR {number:04d} of groundwork needs the ADR {other:04d}, which is not of groundwork",
+                    )
+                )
         needs[number] = [other for other in found if other in numbers and other != number]
     return needs
 
@@ -149,7 +177,13 @@ def check_texts(root, entries, numbers, problems):
             if STATUS.match(line):
                 continue
             for other in sorted(adrs_named_in(line) - allowed[number]):
-                problems.append((f"{ADR_DIRECTORY}/{name}", line_number, f"the ADR {number:04d} refers to the ADR {other:04d}, which its entry in the map does not list as needed"))
+                problems.append(
+                    (
+                        f"{ADR_DIRECTORY}/{name}",
+                        line_number,
+                        f"the ADR {number:04d} refers to the ADR {other:04d}, which its entry in the map does not list as needed",
+                    )
+                )
 
 
 def adrs_named_in(line):
@@ -170,9 +204,13 @@ def check_block_owners(path, blocks, owner, numbers, having, problems):
     for block in blocks:
         having.setdefault(block["adr"], {}).setdefault(path, block["start"])
         if block["adr"] not in numbers:
-            problems.append((path, block["start"], f"the block is for the ADR {block['adr']:04d}, which does not exist"))
+            problems.append(
+                (path, block["start"], f"the block is for the ADR {block['adr']:04d}, which does not exist")
+            )
         elif block["adr"] == owner.get(path):
-            problems.append((path, block["start"], f"the lines of the ADR {block['adr']:04d}, which owns the file, are not marked"))
+            problems.append(
+                (path, block["start"], f"the lines of the ADR {block['adr']:04d}, which owns the file, are not marked")
+            )
         for line in range(block["start"], block["end"] + 1):
             belonging[line] = block["adr"]
     return belonging
@@ -202,12 +240,30 @@ def check_shared_lines(entries, shared_files, owner, having, files, problems):
         listed = {path: line for path, line in entry["shared"]}
         for path, line in listed.items():
             if path not in shared_files and path not in owner:
-                problems.append((MAP, line, f"the file {path} of the shared lines of the entry {number:04d} is neither a shared file nor the file of an ADR"))
+                problems.append(
+                    (
+                        MAP,
+                        line,
+                        f"the file {path} of the shared lines of the entry {number:04d} is neither a shared file nor the file of an ADR",
+                    )
+                )
             elif path not in having.get(number, {}) and path in files:
-                problems.append((MAP, line, f"the entry {number:04d} lists {path} in 'Shared lines', and the file has no block of the ADR {number:04d}"))
+                problems.append(
+                    (
+                        MAP,
+                        line,
+                        f"the entry {number:04d} lists {path} in 'Shared lines', and the file has no block of the ADR {number:04d}",
+                    )
+                )
         for path, line in having.get(number, {}).items():
             if path not in listed:
-                problems.append((path, line, f"the file has a block of the ADR {number:04d} that its entry in the map does not list in 'Shared lines'"))
+                problems.append(
+                    (
+                        path,
+                        line,
+                        f"the file has a block of the ADR {number:04d} that its entry in the map does not list in 'Shared lines'",
+                    )
+                )
 
 
 def check_blocks(root, entries, owned, reserved, shared, files, numbers, problems):
@@ -231,7 +287,14 @@ def check_blocks(root, entries, owned, reserved, shared, files, numbers, problem
             continue
         belonging = check_block_owners(path, blocks, owner, numbers, having, problems)
         check_names(
-            path, lines, syntax, belonging=belonging, owner=owner, needs=needs, project=project, reserved=reserved,
+            path,
+            lines,
+            syntax,
+            belonging=belonging,
+            owner=owner,
+            needs=needs,
+            project=project,
+            reserved=reserved,
             problems=problems,
         )
     check_shared_lines(entries, shared_files, owner, having, files, problems)
@@ -251,7 +314,11 @@ def check_files(root, entries, shared, apart, files, problems):
         if path not in files and not (project and path in PROJECT_OWN):
             reason = "is not tracked by git" if os.path.exists(os.path.join(root, path)) else "does not exist"
             problems.append((MAP, line, f"the file {path} {reason}"))
-    implicit = {path for path in files if path.startswith(ADR_DIRECTORY + "/") and ADR_FILE.match(path[len(ADR_DIRECTORY) + 1:])}
+    implicit = {
+        path
+        for path in files
+        if path.startswith(ADR_DIRECTORY + "/") and ADR_FILE.match(path[len(ADR_DIRECTORY) + 1 :])
+    }
     implicit |= {RANGES_FILE} & files
     if project:
         return

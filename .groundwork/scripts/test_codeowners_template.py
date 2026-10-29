@@ -74,7 +74,13 @@ class CodeownersTemplate(unittest.TestCase):
                 self.assertTrue(any(matches(fields[0], path) for fields in rules()))
 
     def test_it_covers_the_files_that_decide_where_the_updates_come_from(self):
-        for path in (".groundwork-version", ".groundwork-source", ".groundwork-adrs", ".groundwork-ranges", ".groundwork/scripts/update_groundwork.py"):
+        for path in (
+            ".groundwork-version",
+            ".groundwork-source",
+            ".groundwork-adrs",
+            ".groundwork-ranges",
+            ".groundwork/scripts/update_groundwork.py",
+        ):
             with self.subTest(path=path):
                 self.assertTrue(any(matches(fields[0], path) for fields in rules()))
 
@@ -93,11 +99,28 @@ class InAProject(unittest.TestCase):
             subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
             subprocess.run(["git", "add", "-A"], cwd=directory, check=True)
             result = subprocess.run(
-                [sys.executable, "-I", "-m", "unittest", "discover", "-v", "-s", scripts, "-p", "test_codeowners_template.py"],
-                cwd=directory, capture_output=True, text=True,
+                [
+                    sys.executable,
+                    "-I",
+                    "-m",
+                    "unittest",
+                    "discover",
+                    "-v",
+                    "-s",
+                    scripts,
+                    "-p",
+                    "test_codeowners_template.py",
+                ],
+                cwd=directory,
+                capture_output=True,
+                text=True,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        line = next(line for line in result.stderr.splitlines() if "test_each_pattern_but_the_file_itself_matches_a_file_of_groundwork" in line)
+        line = next(
+            line
+            for line in result.stderr.splitlines()
+            if "test_each_pattern_but_the_file_itself_matches_a_file_of_groundwork" in line
+        )
         self.assertIn("skipped", line)
 
 

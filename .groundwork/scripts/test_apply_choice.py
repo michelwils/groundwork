@@ -75,7 +75,7 @@ class Fixture(unittest.TestCase):
         return git(self.project, "status", "--porcelain").strip()
 
     def lines(self, result, prefix):
-        return [line[len(prefix):] for line in result.stdout.splitlines() if line.startswith(prefix)]
+        return [line[len(prefix) :] for line in result.stdout.splitlines() if line.startswith(prefix)]
 
 
 class NewProject(Fixture):
@@ -91,7 +91,9 @@ class NewProject(Fixture):
             self.assertTrue(self.has(name), name)
         for name in ("four.txt", adr(4)):
             self.assertFalse(self.has(name), name)
-        self.assertEqual(read(self.project, "SHARED.md"), markers.remove(world("1")["SHARED.md"], "markdown", {1, 2, 3}))
+        self.assertEqual(
+            read(self.project, "SHARED.md"), markers.remove(world("1")["SHARED.md"], "markdown", {1, 2, 3})
+        )
 
     def test_it_writes_the_choice_and_the_version_in_their_formats(self):
         self.adopt(self.template())
@@ -187,7 +189,9 @@ class NewProject(Fixture):
             with self.subTest(path=hostile):
                 shutil.rmtree(self.project, ignore_errors=True)
                 files = self.template()
-                files[".groundwork/practices.md"] = files[".groundwork/practices.md"].replace("`four.txt`", f"`{hostile}`")
+                files[".groundwork/practices.md"] = files[".groundwork/practices.md"].replace(
+                    "`four.txt`", f"`{hostile}`"
+                )
                 self.adopt(files)
                 result = self.run_new("0001")
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -252,7 +256,10 @@ class Narrowed(Fixture):
     def test_it_lists_what_it_does(self):
         self.adopt(world("1"), version="0.1.0", choice="0001\n0002\n")
         result = self.run_script()
-        self.assertEqual(sorted(self.lines(result, "delete: ")), ["docs/adr/0003-third.md", "docs/adr/0004-fourth.md", "four.txt", "three.txt"])
+        self.assertEqual(
+            sorted(self.lines(result, "delete: ")),
+            ["docs/adr/0003-third.md", "docs/adr/0004-fourth.md", "four.txt", "three.txt"],
+        )
         self.assertEqual(self.lines(result, "edit: "), ["SHARED.md"])
 
     def test_a_file_that_the_project_changed_is_kept_and_said(self):
@@ -275,7 +282,11 @@ class Narrowed(Fixture):
 
     def test_the_adrs_and_the_blocks_of_the_project_are_not_touched(self):
         shared = world("1")["SHARED.md"] + "\n<!-- groundwork:1001 -->\nmine\n<!-- /groundwork -->\n"
-        self.adopt({**world("1"), "SHARED.md": shared, "docs/adr/1001-mine.md": "# mine\n"}, version="0.1.0", choice="0001\n0002\n")
+        self.adopt(
+            {**world("1"), "SHARED.md": shared, "docs/adr/1001-mine.md": "# mine\n"},
+            version="0.1.0",
+            choice="0001\n0002\n",
+        )
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue(self.has("docs/adr/1001-mine.md"))
@@ -493,7 +504,14 @@ class Safety(Fixture):
         self.adopt(trimmed(world("1"), {1, 2, 3}), version="0.1.0", choice="0001\n0004\n")
         dry = self.run_script("--dry-run")
         real = self.run_script()
-        keep = lambda result: [line for line in result.stdout.splitlines() if line.split(":")[0] in ("add", "merge", "delete", "edit", "keep")]  # noqa: E731
+
+        def keep(result):
+            return [
+                line
+                for line in result.stdout.splitlines()
+                if line.split(":")[0] in ("add", "merge", "delete", "edit", "keep")
+            ]
+
         self.assertEqual(keep(dry), keep(real))
 
     def test_a_second_run_changes_nothing(self):
@@ -520,7 +538,10 @@ class FilesOfNoPractice(Fixture):
 
     def setUp(self):
         super().setUp()
-        self.release({**world("1"), "README.md": "# groundwork\n", "LICENSE": "MIT\n", ".groundwork-ranges": "9000-9999\n"}, version="0.2.0")
+        self.release(
+            {**world("1"), "README.md": "# groundwork\n", "LICENSE": "MIT\n", ".groundwork-ranges": "9000-9999\n"},
+            version="0.2.0",
+        )
 
     def existing(self, choice, own=None):
         self.adopt({**trimmed(world("1"), {1}), **(own or {}), "app.py": "print(1)\n"}, version="0.2.0", choice=choice)

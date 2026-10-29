@@ -111,7 +111,8 @@ class Launcher(unittest.TestCase):
         env = {**os.environ, "GROUNDWORK_CACHE": self.cache}
         command = [sys.executable, LAUNCHER, "--requirements", self.requirements, self.script]
         processes = [
-            subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)
+            subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            for _ in range(2)
         ]
         for process in processes:
             _, error = process.communicate()

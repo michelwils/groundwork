@@ -61,7 +61,9 @@ import markers  # noqa: E402
 import practices_map  # noqa: E402
 
 SOURCE = "https://github.com/michelwils/groundwork.git"
-CONFLICTS = 3  # the status of a run that finished and leaves files to resolve; 2 is a wrong use of the script (argparse)
+CONFLICTS = (
+    3  # the status of a run that finished and leaves files to resolve; 2 is a wrong use of the script (argparse)
+)
 VERSION_FILE = ".groundwork-version"
 SOURCE_FILE = ".groundwork-source"
 EXCLUDED = ("README.md", "LICENSE", VERSION_FILE, choice.CHOICE_FILE, SOURCE_FILE)
@@ -118,7 +120,9 @@ def recorded_version():
         raise Failure(f"{VERSION_FILE} is missing: create it with the version of groundwork the project is based on.")
     version = content.strip()
     if content != version + "\n" or not VERSION.match(version):
-        raise Failure(f"{VERSION_FILE} must hold one line of the form X.Y.Z, without 'v', or X.Y.Z+ and the 40 or 64 lowercase hexadecimal characters of a commit.")
+        raise Failure(
+            f"{VERSION_FILE} must hold one line of the form X.Y.Z, without 'v', or X.Y.Z+ and the 40 or 64 lowercase hexadecimal characters of a commit."
+        )
     return version
 
 
@@ -171,7 +175,7 @@ def fetch_releases(source):
 def released_versions(merged=None):
     """Return the releases that the tags hold, the oldest first, or those in the history of the commit `merged`."""
     tags = git("tag", *(["--merged", merged] if merged else []), "--list", f"{PREFIX}v[0-9]*").stdout.split()
-    return sorted((tag[len(PREFIX) + 1:] for tag in tags if RELEASE.match(tag[len(PREFIX) + 1:])), key=as_tuple)
+    return sorted((tag[len(PREFIX) + 1 :] for tag in tags if RELEASE.match(tag[len(PREFIX) + 1 :])), key=as_tuple)
 
 
 def fetch_head(source):
@@ -260,9 +264,13 @@ def paths_of(raw):
     paths = [path for path in raw.split("\0") if path]
     for path in paths:
         if any(unicodedata.category(character) in ("Cc", "Zl", "Zp") for character in path):
-            raise Failure(f"The source holds {path!r}, whose name holds a control character or a line break: nothing is changed.")
+            raise Failure(
+                f"The source holds {path!r}, whose name holds a control character or a line break: nothing is changed."
+            )
         if any(character in BIDIRECTIONAL_CONTROLS for character in path):
-            raise Failure(f"The source holds {path!r}, whose name holds a bidirectional control, which changes how it is shown: nothing is changed.")
+            raise Failure(
+                f"The source holds {path!r}, whose name holds a bidirectional control, which changes how it is shown: nothing is changed."
+            )
         if in_git_directory(path):
             raise Failure(f"The source holds {path}, which would land in a directory .git: nothing is changed.")
     return [path for path in paths if path not in EXCLUDED]
@@ -419,11 +427,15 @@ def adrs_entering(new_paths, after, kept_before, kept_after, adopted):
     """Return the ADRs that enter the choice at the version: kept now and not before, or kept by a choice that has no
     file for them, among the ADRs of the ranges that the source reserves."""
     directory = practices_map.ADR_DIRECTORY
-    in_project = {adr_number(f"{directory}/{name}") for name in os.listdir(directory)} if os.path.isdir(directory) else set()
+    in_project = (
+        {adr_number(f"{directory}/{name}") for name in os.listdir(directory)} if os.path.isdir(directory) else set()
+    )
     in_tree = {adr_number(path) for path in new_paths} - {None}
     return {
-        number for number in in_tree
-        if practices_map.is_reserved(number, after.reserved) and number in kept_after
+        number
+        for number in in_tree
+        if practices_map.is_reserved(number, after.reserved)
+        and number in kept_after
         and (number not in kept_before or (adopted is not None and number not in in_project))
     }
 
@@ -448,12 +460,16 @@ def plan(old, new):
     choice only). It reads the project and the versions and writes nothing."""
     after, before = Side(new), Side(old)
     if after.problems:
-        raise Failure("\n".join(f"{practices_map.RANGES_FILE}:{number}: {message}" for number, message in after.problems))
+        raise Failure(
+            "\n".join(f"{practices_map.RANGES_FILE}:{number}: {message}" for number, message in after.problems)
+        )
     adopted, problems = choice.read(".", after.reserved)
     if problems:
         raise Failure("\n".join(f"{choice.CHOICE_FILE}:{number}: {message}" for number, message in problems))
     if adopted is not None and not after.has_map:
-        raise Failure(f"groundwork {new} has no {practices_map.MAP}: it cannot apply the choice of {choice.CHOICE_FILE}.")
+        raise Failure(
+            f"groundwork {new} has no {practices_map.MAP}: it cannot apply the choice of {choice.CHOICE_FILE}."
+        )
     kept_after = choice.Kept(adopted, after.needs)
     kept_before = choice.Kept(adopted, before.needs) if before.has_map else kept_after
 
@@ -482,7 +498,9 @@ def plan(old, new):
     for path in sorted(candidates):
         if taken(path):
             base = None if path in new_set and from_nothing(path) else blob(old, path)
-            steps.append((path, text_of(path, base, Without(kept_after, entering)), text_of(path, blob(new, path), kept_after)))
+            steps.append(
+                (path, text_of(path, base, Without(kept_after, entering)), text_of(path, blob(new, path), kept_after))
+            )
     return Plan(said, steps, after, kept_after)
 
 
@@ -548,7 +566,9 @@ def refuse_steps_outside(steps):
     root = os.path.realpath(".")
     for path, _, _ in steps:
         if not inside(root, path):
-            raise Failure(f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed.")
+            raise Failure(
+                f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed."
+            )
 
 
 def report(result):
@@ -599,10 +619,19 @@ def run(args):
         check_result_path(args.result)
     git("switch", "--quiet", "-c", branch)
 
-    conflicts = [path for path, base, theirs in planned.steps if apply_path(path, base, theirs, read(path), mode(new, path))]
+    conflicts = [
+        path for path, base, theirs in planned.steps if apply_path(path, base, theirs, read(path), mode(new, path))
+    ]
     with open(VERSION_FILE, "w") as handle:
         handle.write(new + "\n")
-    result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in planned.said], "conflicts": conflicts}
+    result = {
+        "branch": branch,
+        "from": old,
+        "to": new,
+        "source": source,
+        "added": [f"{number:04d}" for number in planned.said],
+        "conflicts": conflicts,
+    }
     report(result)
     if args.result:
         write_result(args.result, result)
@@ -612,9 +641,16 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description="Prepare the update of a project to a later version of groundwork.")
     parser.add_argument("issue", nargs="?", help="number of the issue of the update, used in the name of the branch")
-    parser.add_argument("--to", help=f"version to update to, without the leading v, or {HEAD} for the head of the source (default: the latest release)")
-    parser.add_argument("--result", help="file in which to write the result as JSON, for open_update_pull_request.py (ADR 1003)")
-    parser.add_argument("--source", help=f"repository of groundwork (default: the address in {SOURCE_FILE}, else {SOURCE})")
+    parser.add_argument(
+        "--to",
+        help=f"version to update to, without the leading v, or {HEAD} for the head of the source (default: the latest release)",
+    )
+    parser.add_argument(
+        "--result", help="file in which to write the result as JSON, for open_update_pull_request.py (ADR 1003)"
+    )
+    parser.add_argument(
+        "--source", help=f"repository of groundwork (default: the address in {SOURCE_FILE}, else {SOURCE})"
+    )
     try:
         sys.exit(run(parser.parse_args()))
     except Failure as failure:

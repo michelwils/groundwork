@@ -23,6 +23,10 @@ updates:
     groups:
       scripts:
         patterns: ["*"]
+        exclude-patterns: ["ruff"]
+      # A new version of Ruff can change the layout, and its pull request then needs a reformatting by hand (ADR 1005).
+      lint:
+        patterns: ["ruff"]
 
   - package-ecosystem: github-actions
     directory: /

@@ -1,0 +1,9 @@
+# Lint and format of the Python of groundwork, in the CI of a source of ADRs (ADR 1005).
+# The commands run from the root of the repository, so the scripts, which import each other from their own folder,
+# are first-party there.
+line-length = 120
+src = [".groundwork/scripts"]
+
+[lint]
+# The defaults of Ruff (pycodestyle errors, Pyflakes) and the order of the imports.
+select = ["E4", "E7", "E9", "F", "I"]

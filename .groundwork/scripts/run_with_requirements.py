@@ -47,7 +47,9 @@ def cache_folder():
 
 
 def python_of(environment):
-    return os.path.join(environment, "Scripts" if os.name == "nt" else "bin", "python" + (".exe" if os.name == "nt" else ""))
+    return os.path.join(
+        environment, "Scripts" if os.name == "nt" else "bin", "python" + (".exe" if os.name == "nt" else "")
+    )
 
 
 def key_of(requirements):
@@ -62,10 +64,22 @@ def build(folder, key, requirements):
     final = os.path.join(folder, f"venv-{key}")
     temporary = os.path.join(folder, f"building-{key}-{os.getpid()}")
     try:
-        subprocess.run([sys.executable, "-m", "venv", "--without-pip", temporary], check=True, capture_output=True, text=True)
+        subprocess.run(
+            [sys.executable, "-m", "venv", "--without-pip", temporary], check=True, capture_output=True, text=True
+        )
         installed = subprocess.run(
-            [sys.executable, "-m", "pip", "--python", python_of(temporary), "install", "--quiet",
-             "--disable-pip-version-check", "-r", requirements],
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "--python",
+                python_of(temporary),
+                "install",
+                "--quiet",
+                "--disable-pip-version-check",
+                "-r",
+                requirements,
+            ],
             capture_output=True,
             text=True,
         )

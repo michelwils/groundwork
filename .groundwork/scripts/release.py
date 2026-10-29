@@ -18,9 +18,7 @@ import subprocess
 import sys
 
 TYPES = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
-TITLE = re.compile(
-    r"^(?P<type>" + "|".join(TYPES) + r")(\((?P<scope>[a-z]+)\))?(?P<bang>!)?: (?P<description>.+)$"
-)
+TITLE = re.compile(r"^(?P<type>" + "|".join(TYPES) + r")(\((?P<scope>[a-z]+)\))?(?P<bang>!)?: (?P<description>.+)$")
 PULL_REQUEST = re.compile(r" \(#\d+\)$")
 BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
 BREAKING_TEXT = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*(.*)\Z", re.MULTILINE | re.DOTALL)
@@ -190,17 +188,27 @@ def stop_on_what_needs_the_maintainers(commits, ambiguous, extra, version):
     """Stop on a revert that matches several changes, unless the version is given, and on a breaking change with no
     text, unless the extra notes give the migration."""
     if ambiguous and not version:
-        sys.exit("\n".join(
-            [f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches" + "".join(f"\n  {title}" for title in titles)
-             for revert, titles in ambiguous]
-            + ["Give the version with --version."]
-        ))
+        sys.exit(
+            "\n".join(
+                [
+                    f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches"
+                    + "".join(f"\n  {title}" for title in titles)
+                    for revert, titles in ambiguous
+                ]
+                + ["Give the version with --version."]
+            )
+        )
     bare = without_text(commits)
     if bare and not extra.strip():
-        sys.exit("\n".join(
-            [f"error: the breaking change '{commit['title']}' ({commit['sha'][:7]}) has no BREAKING CHANGE: text in its commit." for commit in bare]
-            + ['Give the migration with --notes-extra (the field "notes" of the release workflow).']
-        ))
+        sys.exit(
+            "\n".join(
+                [
+                    f"error: the breaking change '{commit['title']}' ({commit['sha'][:7]}) has no BREAKING CHANGE: text in its commit."
+                    for commit in bare
+                ]
+                + ['Give the migration with --notes-extra (the field "notes" of the release workflow).']
+            )
+        )
 
 
 def version_to_release(given, previous, level):
