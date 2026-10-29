@@ -12,6 +12,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 import check_practices  # noqa: E402
 import markers  # noqa: E402
+import practices_map  # noqa: E402
 
 LINK = re.compile(r"\]\(([^)\s#]+)")
 
@@ -26,7 +27,7 @@ class SharedFiles(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        entries, shared, _ = check_practices.parse(read(".groundwork/practices.md").split("\n"))
+        entries, shared, _ = practices_map.parse(read(".groundwork/practices.md").split("\n"))
         cls.numbers = sorted(entry["number"] for entry in entries)
         cls.needs = {entry["number"]: set(check_practices.references(entry["needs"][0])[0]) for entry in entries}
         cls.files = {entry["number"]: [path for path, _ in entry["files"]] for entry in entries}
