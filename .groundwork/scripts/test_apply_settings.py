@@ -28,6 +28,11 @@ if os.environ.get("FAKE_FAIL") and os.environ["FAKE_FAIL"] in " ".join(args):
     sys.exit(1)
 if args[:2] == ["repo", "view"]:
     print("default-owner/default-repo")
+elif args[:2] == ["api", "user"]:
+    if not os.environ.get("FAKE_USER"):
+        print("gh: HTTP 401: Requires authentication", file=sys.stderr)
+        sys.exit(1)
+    print(os.environ["FAKE_USER"])
 elif args[0] == "api" and args[1].endswith("/rulesets") and "-X" not in args:
     print(os.environ.get("FAKE_RULESETS", "[]"))
 elif args[0] == "api" and "/rulesets/" in args[1] and "-X" not in args:
@@ -49,7 +54,7 @@ class ApplySettings(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_script(self, *args, rulesets="[]", fail="", ruleset="{}"):
+    def run_script(self, *args, rulesets="[]", fail="", ruleset="{}", user=""):
         """Run the script from the directory of a project, which holds the CODEOWNERS that `self.owners` writes."""
         env = {
             **os.environ,
@@ -58,6 +63,7 @@ class ApplySettings(unittest.TestCase):
             "FAKE_RULESETS": rulesets,
             "FAKE_RULESET": ruleset,
             "FAKE_FAIL": fail,
+            "FAKE_USER": user,
         }
         return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env, cwd=self.project)
 
@@ -220,8 +226,9 @@ class ApplySettings(unittest.TestCase):
         return next(rule["parameters"] for rule in ruleset["rules"] if rule["type"] == "pull_request")
 
     def test_without_an_option_the_ruleset_is_the_file_of_the_repository(self):
-        self.run_script("owner/repo")
+        self.run_script("owner/repo", user="maintainer")
         self.assertIsNone(self.sent())
+        self.assertFalse(any(call[:2] == ["api", "user"] for call in self.calls()))
 
     def test_the_code_owner_review_requires_the_review_and_dismisses_the_stale_approvals(self):
         self.owners()
@@ -231,6 +238,20 @@ class ApplySettings(unittest.TestCase):
         self.assertTrue(parameters["require_code_owner_review"])
         self.assertTrue(parameters["dismiss_stale_reviews_on_push"])
         self.assertFalse(parameters["require_last_push_approval"])
+
+    def test_the_code_owner_review_requires_at_least_one_approval(self):
+        self.owners()
+        self.run_script("owner/repo", "--code-owner-review")
+        self.assertEqual(self.parameters(self.sent())["required_approving_review_count"], 1)
+
+    def test_the_code_owner_review_keeps_the_approvals_that_the_ruleset_already_requires(self):
+        self.owners()
+        result = self.run_script(
+            "owner/repo", "--code-owner-review", rulesets=self.EXISTING,
+            ruleset=self.pull_request(required_approving_review_count=2),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.parameters(self.sent())["required_approving_review_count"], 2)
 
     def test_the_last_push_approval_is_added_to_the_code_owner_review(self):
         self.owners()
@@ -253,7 +274,8 @@ class ApplySettings(unittest.TestCase):
         with open(self.RULESET) as handle:
             expected = json.load(handle)
         self.parameters(expected).update(
-            require_code_owner_review=True, dismiss_stale_reviews_on_push=True, require_last_push_approval=True
+            required_approving_review_count=1, require_code_owner_review=True,
+            dismiss_stale_reviews_on_push=True, require_last_push_approval=True,
         )
         self.assertEqual(self.sent(), expected)
 
@@ -277,6 +299,34 @@ class ApplySettings(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("@OWNER", result.stderr)
         self.assertEqual(self.writes(), [])
+
+    def test_the_code_owner_review_is_refused_when_the_only_owner_is_the_person_who_runs_the_script(self):
+        for text in ("/docs/adr/0*  @Maintainer\n", "/docs/adr/0*  @maintainer\n/.github/  @maintainer\n"):
+            self.owners(text)
+            for arguments in ((), ("--dry-run",)):
+                with self.subTest(text=text, arguments=arguments):
+                    result = self.run_script("owner/repo", "--code-owner-review", *arguments, user="maintainer")
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn("only code owner", result.stderr)
+                    self.assertIn("ADR 0014", result.stderr)
+                    self.assertEqual(self.writes(), [])
+
+    def test_the_code_owner_review_is_not_refused_when_someone_else_owns_a_file_too(self):
+        for text in (
+            "/docs/adr/0*  @maintainer @reviewer\n",
+            "/docs/adr/0*  @maintainer\n/.github/  @reviewer\n",
+            "/docs/adr/0*  @org/team\n",
+            "/docs/adr/0*  reviewer@example.org\n",
+        ):
+            with self.subTest(text=text):
+                self.owners(text)
+                result = self.run_script("owner/repo", "--code-owner-review", user="maintainer")
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_the_code_owner_review_is_not_refused_when_the_login_cannot_be_read(self):
+        self.owners("/docs/adr/0*  @maintainer\n")
+        result = self.run_script("owner/repo", "--code-owner-review")
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_the_dry_run_refuses_what_the_run_would_refuse(self):
         result = self.run_script("owner/repo", "--dry-run", "--code-owner-review")
@@ -438,7 +488,7 @@ class ApplySettings(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.writes(), [])
         self.assertIsNone(self.sent())
-        for text in ("code owner review required", "stale approvals dismissed", "last push approval required"):
+        for text in ("1 approval required", "code owner review required", "stale approvals dismissed", "last push approval required"):
             self.assertIn(text, result.stdout)
 
     def test_refuses_a_repository_that_is_not_owner_slash_name(self):
