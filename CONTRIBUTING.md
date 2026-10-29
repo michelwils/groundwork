@@ -103,6 +103,7 @@ Write the test of a change of behaviour before the code that makes it pass, and 
 A reviewer, and whoever checks their own work, check:
 
 - each acceptance criterion of the issue against the diff, not against the pull request description
+- the whole text of the pull request and of its issue, read again, so that it says what was decided and keeps nothing that was dropped or changed since
 - contradictions with, and repetitions of, the ADRs, the README and this file
 - the commands that the change documents, by running them
 <!-- groundwork:0008 -->
