@@ -167,30 +167,30 @@ def removable_blocks(path, current, original, kept, reserved, changes):
         raise Failure(f"{path}: {error}")
 
 
-def new_project(args, root):
-    side = update.Side(root=root)
-    if side.problems:
-        raise Failure("\n".join(f"{practices_map.RANGES_FILE}:{n}: {m}" for n, m in side.problems))
-    if not side.has_map:
-        raise Failure(f"{practices_map.MAP} is missing: this is not a repository created from groundwork.")
-    if args.adrs:
-        if os.path.exists(os.path.join(root, choice.CHOICE_FILE)):
-            raise Failure(f"{choice.CHOICE_FILE} exists: list the ADRs in it, or remove it.")
-        for token in args.adrs:
-            if not TOKEN.match(token):
-                raise Failure(f"'{token}' is not a number such as 0003 or a range such as 0001-0999.")
-        text = "".join(f"{token}\n" for token in args.adrs)
-        with tempfile.TemporaryDirectory() as directory:
-            with open(os.path.join(directory, choice.CHOICE_FILE), "w", encoding="utf-8") as handle:
-                handle.write(text)
-            adopted, problems = choice.read(directory, side.reserved)
-        if problems:
-            raise Failure("\n".join(f"{choice.CHOICE_FILE}:{n}: {m}" for n, m in problems))
-    else:
-        text = None
+def choice_of_the_command(args, root, side):
+    """Return the text of the choice that the command writes, or None, and the ADRs that the choice adopts."""
+    if not args.adrs:
         adopted, problems = choice.read(root, side.reserved)
         if problems:
             raise Failure("\n".join(f"{choice.CHOICE_FILE}:{n}: {m}" for n, m in problems))
+        return None, adopted
+    if os.path.exists(os.path.join(root, choice.CHOICE_FILE)):
+        raise Failure(f"{choice.CHOICE_FILE} exists: list the ADRs in it, or remove it.")
+    for token in args.adrs:
+        if not TOKEN.match(token):
+            raise Failure(f"'{token}' is not a number such as 0003 or a range such as 0001-0999.")
+    text = "".join(f"{token}\n" for token in args.adrs)
+    with tempfile.TemporaryDirectory() as directory:
+        with open(os.path.join(directory, choice.CHOICE_FILE), "w", encoding="utf-8") as handle:
+            handle.write(text)
+        adopted, problems = choice.read(directory, side.reserved)
+    if problems:
+        raise Failure("\n".join(f"{choice.CHOICE_FILE}:{n}: {m}" for n, m in problems))
+    return text, adopted
+
+
+def release_to_record(args):
+    """Return the source and the release that a new project records: the one of --version, else the latest."""
     if args.source is not None and not update.is_address(args.source):
         raise Failure(
             f"{update.SOURCE_FILE} must hold one line with the address of the source, of the form https://host/path, "
@@ -200,26 +200,24 @@ def new_project(args, root):
     versions = update.fetch_releases(source)
     if not versions:
         raise Failure(f"The source {source} has no release.")
-    if args.version:
-        if not update.RELEASE.match(args.version) or args.version not in versions:
-            raise Failure(f"{args.version} is not a release of groundwork at {source}.")
-        version = args.version
-    else:
-        version = versions[-1]
+    if not args.version:
+        return versions[-1]
+    if not update.RELEASE.match(args.version) or args.version not in versions:
+        raise Failure(f"{args.version} is not a release of groundwork at {source}.")
+    return args.version
 
-    kept = choice.Kept(adopted, side.needs)
-    refuse_paths_outside(root, side, kept)
-    changes = Changes()
-    files = tracked()
-    for path in sorted(files):
+
+def leave_out_of_a_new_project(root, side, kept, changes):
+    """Delete the files of the ADRs left out and of the ADRs that no range reserves, and the blocks of the ADRs left out."""
+    for path in sorted(tracked()):
         if path in update.EXCLUDED:
             continue
         number = update.adr_number(path)
         owner = number if number is not None else side.owners.get(path)
-        gone = (number is not None and (not practices_map.is_reserved(number, side.reserved) or number not in kept)) or (
+        leaves = (number is not None and (not practices_map.is_reserved(number, side.reserved) or number not in kept)) or (
             number is None and owner is not None and owner not in kept
         )
-        if gone:
+        if leaves:
             if not update.inside(root, path):
                 raise Failure(f"{path} leaves the repository or is in a directory .git: it is not deleted.")
             changes.delete(path)
@@ -231,6 +229,21 @@ def new_project(args, root):
             new = removable_blocks(path, current, None, kept, side.reserved, changes)
             if new != current:
                 changes.write("edit", path, new, os.stat(path).st_mode)
+
+
+def new_project(args, root):
+    side = update.Side(root=root)
+    if side.problems:
+        raise Failure("\n".join(f"{practices_map.RANGES_FILE}:{n}: {m}" for n, m in side.problems))
+    if not side.has_map:
+        raise Failure(f"{practices_map.MAP} is missing: this is not a repository created from groundwork.")
+    text, adopted = choice_of_the_command(args, root, side)
+    version = release_to_record(args)
+
+    kept = choice.Kept(adopted, side.needs)
+    refuse_paths_outside(root, side, kept)
+    changes = Changes()
+    leave_out_of_a_new_project(root, side, kept, changes)
     if text is not None:
         changes.write("write", choice.CHOICE_FILE, text.encode("utf-8"))
     changes.write("write", update.VERSION_FILE, f"{version}\n".encode("utf-8"), label=f"{update.VERSION_FILE} {version}")
@@ -249,29 +262,11 @@ def inherited(unknown):
     return f" If the project was created from the template of a base, these files are the base's: delete {listed}, then run the command again."
 
 
-def existing_project(args, root):
-    if args.version:
-        raise Failure("--version is for a new project: the version is the one that .groundwork-version records.")
-    old = update.recorded_version()
-    source = update.source_of(args.source)
-    _, known = update.fetch_base(source, old)
-    unknown = not known
-    if args.adrs:
-        raise Failure(
-            f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.{inherited(unknown)}"
-        )
-    if unknown:
-        raise Failure(update.unknown_message(old, source) + inherited(unknown))
-    made = update.plan(old, old)
-    changes = Changes()
-    if made.kept.adopted is None:
-        return changes, [f"There is no {choice.CHOICE_FILE}: the project keeps everything that its source reserves, nothing to apply."], []
-    side, kept = made.side, made.kept
-    refuse_paths_outside(root, side, kept)
-    by_path = {path: (base, theirs) for path, base, theirs in made.steps}
+def files_left_out(root, old, side, kept, changes):
+    """Return the files of the ADRs left out that the project did not change, which are deleted, and the paths with
+    blocks, which are read again. A file of an ADR left out that the project changed is kept and said."""
     files = tracked()
-    paths = set(by_path)
-    deleted = set()
+    deleted, with_blocks = set(), set()
     for path in update.tree_paths(old):
         if path not in files:
             continue
@@ -285,44 +280,78 @@ def existing_project(args, root):
             else:
                 changes.say("keep", path, "changed by the project")
         elif markers.kind(path):
-            paths.add(path)
-    for path in sorted(paths):
-        if path in deleted:
-            continue
-        ours = update.read(path)
-        text = ours
-        if path in by_path:
-            base, theirs = by_path[path]
-            if ours is None:
-                base = None  # the project lacks the file: it starts from nothing
-            action = update.decide(base, theirs, ours)
-            if action[0] == "conflict":
-                changes.say("conflict", path)
-                continue
-            if action[0] == "none":
-                text = ours
-            else:
-                text = action[1] if action[0] in ("write", "merged") else None
-            if action[0] == "merged" and action[2]:
-                changes.writes.append((path, text, update.mode(old, path)))
-                changes.say("conflict", path)
-                continue
-        step_kind = None
-        if path in by_path and text != ours:
-            step_kind = "add" if ours is None else "merge"
-        if text is not None and markers.kind(path):
-            text = removable_blocks(path, text, update.blob(old, path), kept, side.reserved, changes)
-        if step_kind and text != ours:
-            changes.write(step_kind, path, text, update.mode(old, path))
-        elif text != ours and text is not None:
-            changes.write("edit", path, text, os.stat(path).st_mode)
+            with_blocks.add(path)
+    return deleted, with_blocks
+
+
+def bring_into_line(path, step, old, side, kept, changes):
+    """Make one path agree with the choice: apply the step of the plan if it has one, then take out the blocks of the
+    ADRs left out. `step` is (base, theirs), or None."""
+    ours = update.read(path)
+    text = ours
+    if step is not None:
+        base, theirs = step
+        if ours is None:
+            base = None  # the project lacks the file: it starts from nothing
+        action = update.decide(base, theirs, ours)
+        if action[0] == "conflict":
+            changes.say("conflict", path)
+            return
+        if action[0] == "none":
+            text = ours
+        else:
+            text = action[1] if action[0] in ("write", "merged") else None
+        if action[0] == "merged" and action[2]:
+            changes.writes.append((path, text, update.mode(old, path)))
+            changes.say("conflict", path)
+            return
+    step_kind = None
+    if step is not None and text != ours:
+        step_kind = "add" if ours is None else "merge"
+    if text is not None and markers.kind(path):
+        text = removable_blocks(path, text, update.blob(old, path), kept, side.reserved, changes)
+    if step_kind and text != ours:
+        changes.write(step_kind, path, text, update.mode(old, path))
+    elif text != ours and text is not None:
+        changes.write("edit", path, text, os.stat(path).st_mode)
+
+
+def add_the_files_of_no_practice(old, by_path, side, kept, changes):
+    """Add the files of the version that belong to no practice and that the project lacks."""
     for path in sorted(update.tree_paths(old)):
         if path in by_path or os.path.lexists(path) or update.adr_number(path) is not None or side.owners.get(path) is not None:
             continue
         changes.write("add", path, update.text_of(path, update.blob(old, path), kept), update.mode(old, path))
+
+
+def existing_project(args, root):
+    if args.version:
+        raise Failure("--version is for a new project: the version is the one that .groundwork-version records.")
+    old = update.recorded_version()
+    source = update.source_of(args.source)
+    _, known = update.fetch_base(source, old)
+    unknown = not known
+    if args.adrs:
+        raise Failure(
+            f"The ADRs are listed in {choice.CHOICE_FILE}: edit that file, then run the command without a list.{inherited(unknown)}"
+        )
+    if unknown:
+        raise Failure(update.unknown_message(old, source) + inherited(unknown))
+    planned = update.plan(old, old)
+    changes = Changes()
+    if planned.kept.adopted is None:
+        return changes, [f"There is no {choice.CHOICE_FILE}: the project keeps everything that its source reserves, nothing to apply."], []
+    side, kept = planned.side, planned.kept
+    refuse_paths_outside(root, side, kept)
+    by_path = {path: (base, theirs) for path, base, theirs in planned.steps}
+    deleted, with_blocks = files_left_out(root, old, side, kept, changes)
+    for path in sorted(set(by_path) | with_blocks):
+        if path not in deleted:
+            bring_into_line(path, by_path.get(path), old, side, kept, changes)
+    add_the_files_of_no_practice(old, by_path, side, kept, changes)
     for path in sorted(deleted):
         changes.delete(path)
-    return changes, [], made.said
+    return changes, [], planned.said
 
 
 def apply(changes):
