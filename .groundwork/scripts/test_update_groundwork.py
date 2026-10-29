@@ -119,6 +119,19 @@ class CheckOfTheResultPath(unittest.TestCase):
                     self.assertIn("No branch is created", str(caught.exception))
 
 
+class Types(unittest.TestCase):
+    def test_a_step_names_its_path_and_its_two_contents_and_unpacks_in_three(self):
+        step = update_groundwork.Step("a.txt", None, b"new")
+        path, base, theirs = step
+        self.assertEqual((step.path, step.base, step.theirs), (path, base, theirs))
+        self.assertEqual(step, ("a.txt", None, b"new"))
+
+    def test_a_plan_names_what_the_choice_asks_for(self):
+        step = update_groundwork.Step("a.txt", b"old", b"new")
+        planned = update_groundwork.Plan(said=[3], steps=[step], side="side", kept="kept")
+        self.assertEqual((planned.said, planned.steps, planned.side, planned.kept), ([3], [step], "side", "kept"))
+
+
 class Inside(unittest.TestCase):
     def test_a_path_through_a_link_to_git_is_not_inside(self):
         with tempfile.TemporaryDirectory() as directory:

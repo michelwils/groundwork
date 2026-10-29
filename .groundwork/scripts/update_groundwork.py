@@ -45,6 +45,8 @@ the project is up to date while no release has it.
 Usage: update_groundwork.py [ISSUE] [--to X.Y.Z|head] [--source URL] [--result PATH]
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -53,6 +55,8 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
+from dataclasses import dataclass
+from typing import NamedTuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -414,13 +418,25 @@ def text_of(path, content, kept):
         raise Failure(f"{path}: {error}")
 
 
+class Step(NamedTuple):
+    """What the update does to one path: the content at the base and the one at the new version, already filtered by
+    the choice. The base is None for a path that starts from nothing, and a content is None for a file that is absent."""
+
+    path: str
+    base: bytes | None
+    theirs: bytes | None
+
+
+@dataclass
 class Plan:
     """What the choice of the project asks for at a version: `said` are the ADRs that enter the choice and that the
-    project does not list, `steps` are (path, base, theirs) with the contents already filtered and the base None for
-    a path that starts from nothing, `side` is what the version says of the ADRs and `kept` the ADRs the project keeps."""
+    project does not list, `steps` what to do to each path, `side` what the version says of the ADRs and `kept` the
+    ADRs the project keeps."""
 
-    def __init__(self, said, steps, side, kept):
-        self.said, self.steps, self.side, self.kept = said, steps, side, kept
+    said: list[int]
+    steps: list[Step]
+    side: Side
+    kept: choice.Kept
 
 
 def adrs_entering(new_paths, after, kept_before, kept_after, adopted):
@@ -499,7 +515,9 @@ def plan(old, new):
         if taken(path):
             base = None if path in new_set and from_nothing(path) else blob(old, path)
             steps.append(
-                (path, text_of(path, base, Without(kept_after, entering)), text_of(path, blob(new, path), kept_after))
+                Step(
+                    path, text_of(path, base, Without(kept_after, entering)), text_of(path, blob(new, path), kept_after)
+                )
             )
     return Plan(said, steps, after, kept_after)
 

@@ -7,6 +7,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import apply_choice  # noqa: E402
 import markers  # noqa: E402
 import update_groundwork  # noqa: E402
 from test_update_groundwork import ADDRESS, adr, git, init, read, rewritten_env, tag_with_hook, trimmed, world  # noqa: E402
@@ -76,6 +77,18 @@ class Fixture(unittest.TestCase):
 
     def lines(self, result, prefix):
         return [line[len(prefix) :] for line in result.stdout.splitlines() if line.startswith(prefix)]
+
+
+class Writes(unittest.TestCase):
+    """What the command does is a list of writes with a path, a content (None to delete) and a mode."""
+
+    def test_a_write_and_a_deletion_are_named_triples(self):
+        changes = apply_choice.Changes()
+        changes.write("add", "a.txt", b"text", 0o755)
+        changes.delete("b.txt")
+        self.assertEqual(changes.writes, [("a.txt", b"text", 0o755), ("b.txt", None, 0)])
+        self.assertTrue(all(isinstance(write, apply_choice.Write) for write in changes.writes))
+        self.assertEqual([(write.path, write.content, write.mode) for write in changes.writes], list(changes.writes))
 
 
 class NewProject(Fixture):
