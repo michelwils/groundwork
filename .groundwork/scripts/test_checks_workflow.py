@@ -498,5 +498,55 @@ class CoverageGate(unittest.TestCase):
                 self.assertIn(name, readme)
 
 
+LINT_STEP = "Lint and format the scripts"
+RUFF_CONFIG = ".groundwork/scripts/ruff.toml"
+LINT_COMMANDS = [
+    "-m ruff check --config .groundwork/scripts/ruff.toml .groundwork/scripts",
+    "-m ruff format --check --config .groundwork/scripts/ruff.toml .groundwork/scripts",
+]
+
+
+@unittest.skipUnless(is_source(ROOT, os.environ), "the lint is required of the scripts of a source of ADRs, not of a project")
+class LintGate(unittest.TestCase):
+    """The Python of groundwork is linted and formatted in the CI of a source, with Ruff (ADR 1005)."""
+
+    def test_the_step_runs_in_a_source_only(self):
+        condition = re.search(r"^        if: (.+)$", steps()[LINT_STEP], flags=re.MULTILINE).group(1)
+        self.assertEqual(condition, "${{ steps.kind.outputs.source == 'true' }}")
+
+    def test_the_step_checks_and_formats_with_the_tool_of_the_scripts(self):
+        step = steps()[LINT_STEP]
+        for lint in LINT_COMMANDS:
+            with self.subTest(command=lint):
+                self.assertIn('"$RUNNER_TEMP/scripts/bin/python" ' + lint, step)
+        self.assertLess(step.index(LINT_COMMANDS[0]), step.index(LINT_COMMANDS[1]))
+
+    def test_the_step_runs_after_the_dependencies_and_the_kind_of_the_repository(self):
+        names = list(steps())
+        self.assertLess(names.index("Install the dependencies of the scripts"), names.index(LINT_STEP))
+        self.assertLess(names.index(KIND_STEP), names.index(LINT_STEP))
+
+    def test_the_step_does_not_wait_for_the_tests_or_the_measure(self):
+        names = list(steps())
+        self.assertLess(names.index(LINT_STEP), names.index(COVERAGE_STEP))
+
+    def test_the_tool_is_required_at_an_exact_version(self):
+        self.assertRegex(read(".groundwork/scripts/requirements.txt"), re.compile(r"^ruff==[0-9][0-9.]*$", flags=re.MULTILINE))
+
+    def test_the_configuration_sets_the_length_of_the_lines_and_the_rules(self):
+        config = read(RUFF_CONFIG)
+        self.assertRegex(config, re.compile(r"^line-length = 120$", flags=re.MULTILINE))
+        self.assertRegex(config, re.compile(r'^select = \["E4", "E7", "E9", "F", "I"\]$', flags=re.MULTILINE))
+
+    def test_the_tool_is_not_a_hook_of_the_pre_commit_configuration(self):
+        self.assertNotIn("ruff", read(".pre-commit-config.yaml"))
+
+    def test_readme_gives_the_same_commands_as_the_workflow(self):
+        readme = read("README.md")
+        for lint in LINT_COMMANDS:
+            with self.subTest(command=lint):
+                self.assertIn("python3 " + lint, readme)
+
+
 if __name__ == "__main__":
     unittest.main()
