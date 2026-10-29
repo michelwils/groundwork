@@ -6,7 +6,11 @@
 
 A project that synchronises groundwork holds two projects in one: its own, and the part of groundwork it takes. The files of groundwork sit among its own, and only the map of the practices says which are which.
 
-The map names 55 files besides the ADRs. 19 have a conventional name and a place that a platform, a tool or a convention fixes, such as `CONTRIBUTING.md`, `AGENTS.md`, `.editorconfig`, the workflows and the templates, so groundwork's version and the project's own are the same file by design. The other 36 have no such name or no such place: the scripts and their tests, which share `.github/scripts/` with whatever a project keeps there, the file of their dependencies, `requirements.txt`, the ruleset that the settings script applies, which GitHub does not read from the repository, the map `docs/practices.md` and the guide of the bases. Nothing in their name or place says that they are groundwork's, and a project may have a file of the same name. The update and the command that applies the choice report such a collision, as a conflict or a file kept, but they do not prevent it, and a reader of the tree cannot tell.
+The map names 55 files besides the ADRs. 19 have a conventional name and a place that a platform, a tool or a convention fixes, such as `CONTRIBUTING.md`, `AGENTS.md`, `.editorconfig`, the workflows and the templates, so groundwork's version and the project's own are the same file by design.
+
+The other 36 have no such name or no such place: the scripts and their tests, which share `.github/scripts/` with whatever a project keeps there, the file of their dependencies, `requirements.txt`, the ruleset that the settings script applies, which GitHub does not read from the repository, the map `docs/practices.md` and the guide of the bases.
+
+Nothing in their name or place says that they are groundwork's, and a project may have a file of the same name. The update and the command that applies the choice report such a collision, as a conflict or a file kept, but they do not prevent it, and a reader of the tree cannot tell.
 
 The mechanism files of a project, `.groundwork-version`, `.groundwork-adrs`, `.groundwork-source` and `.groundwork-ranges`, already carry the name of groundwork.
 
