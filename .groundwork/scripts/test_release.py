@@ -53,6 +53,38 @@ class Repository:
         return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True)
 
 
+class Commits(unittest.TestCase):
+    def test_a_commit_with_a_conventional_title_has_its_parts_by_name(self):
+        with Repository() as repo:
+            repo.commit("feat(api)!: add x", "BREAKING CHANGE: use y")
+            commit = release.commits_since(None)[0]
+            self.assertIsInstance(commit, release.Commit)
+            self.assertEqual(
+                (commit.title, commit.type, commit.scope, commit.description, commit.breaking, commit.footer),
+                ("feat(api)!: add x", "feat", "api", "add x", True, "use y"),
+            )
+            self.assertEqual(len(commit.sha), 40)
+            self.assertIn("BREAKING CHANGE: use y", commit.message)
+
+    def test_a_commit_with_another_title_has_no_type_and_is_not_breaking(self):
+        with Repository() as repo:
+            repo.commit("Initial commit")
+            commit = release.commits_since(None)[0]
+            self.assertEqual(
+                (commit.type, commit.scope, commit.description, commit.breaking, commit.footer),
+                (None, None, "Initial commit", False, ""),
+            )
+
+    def test_a_commit_is_not_undone_until_its_revert_undoes_it(self):
+        with Repository() as repo:
+            repo.commit("feat: add x")
+            repo.commit("revert: add x")
+            commits = release.commits_since(None)
+            self.assertEqual([commit.undone for commit in commits], [False, False])
+            release.cancel_reverts(commits)
+            self.assertEqual([commit.undone for commit in commits], [True, True])
+
+
 class NextVersion(unittest.TestCase):
     def test_first_release_with_a_feature_is_0_1_0(self):
         with Repository() as repo:
@@ -243,7 +275,7 @@ class AmbiguousReverts(unittest.TestCase):
             repo.commit("revert: add x")
             commits = release.commits_since("0.1.0")
             self.assertEqual(release.cancel_reverts(commits, release.released_keys("0.1.0")), [])
-            self.assertFalse(commits[0]["undone"])
+            self.assertFalse(commits[0].undone)
 
     def test_the_changes_released_are_found_by_their_description_without_the_reverts(self):
         with Repository() as repo:
