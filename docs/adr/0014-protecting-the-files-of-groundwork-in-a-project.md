@@ -14,12 +14,20 @@ The platform cannot tell a maintainer from an agent that holds the maintainer's 
 
 We will let a project require the review of its code owners for the files of groundwork, with an option that is off by default.
 
-- **Protected files.** The reserved ADRs and `docs/adr/template.md`, `.groundwork/`, the files `.groundwork-version`, `.groundwork-adrs`, `.groundwork-source` and `.groundwork-ranges` (the last decides where the next update comes from), `.github/workflows/`, `.github/zizmor.yml` and `.github/dependabot.yml` (the rules of the audit of the workflows and the updates of the dependencies), `.pre-commit-config.yaml` and `.github/CODEOWNERS`. `CONTRIBUTING.md`, `AGENTS.md`, the README and the lines of the project in shared files are not.
+- **Protected files.** "Protected" does not mean locked: when the project requires the review of its code owners, a change to one of these files needs the approval of an owner. The project makes its changes in its own pull requests.
+  - The reserved ADRs and `docs/adr/template.md`.
+  - `.groundwork/`.
+  - `.groundwork-version`, `.groundwork-adrs`, `.groundwork-source` and `.groundwork-ranges`, the last of which decides where the next update comes from.
+  - `.github/workflows/`.
+  - `.github/zizmor.yml` and `.github/dependabot.yml`, which hold the rules of the audit of the workflows and of the updates of the dependencies.
+  - `.pre-commit-config.yaml` and `.github/CODEOWNERS`.
+  - Not protected: `CONTRIBUTING.md`, `AGENTS.md`, `README.md`, and the lines of the project in a shared file that is not in this list.
+  - The platform matches whole files, so the lines of the project in a protected file, such as its hooks, its jobs and its Dependabot entries, which go where [ADR 0008](0008-automated-checks.md) says, are protected with it.
 - **Owners.** groundwork provides `.groundwork/CODEOWNERS.template`. The project copies it to `.github/CODEOWNERS` and replaces `@OWNER` with its reviewers, who need write access. The copy is the project's own: the update does not touch it, and the project merges it into its default branch before it turns the requirement on. A community base that reserves numbers outside 0001-0999 adds its ranges.
 - **Requirement.** `apply_settings.py --code-owner-review` makes the ruleset require the approval of a code owner and dismiss an approval when a commit is pushed after it, so that a push after the review needs a new one. `--last-push-approval` goes with it and adds that the approval comes from someone other than the person who pushed last, for a project with several reviewers.
 - **Update pull request.** It changes protected files, so it needs the approval of an owner other than its author, which is the owner of the token that opens it.
 - **Single maintainer.** A project with one maintainer does not turn the requirement on, since nobody else can approve. It relies on the rule that `AGENTS.md` gives to an agent, on the restrictions of its agent tool and on the approval of every merge ([ADR 0007](0007-ai-assisted-changes.md)). A project that wants the review adds a second account as owner.
-- **Agent.** `AGENTS.md` tells an agent to change a file of groundwork only through the update. A project may also restrict its agent tool. For Claude Code, a `permissions.deny` rule `Edit(path)` in the settings of the project stops its edit tools and the file commands it recognises, not a script that writes the file: the sandbox of the tool is the recourse. This is the project's choice, and groundwork configures no tool.
+- **Agent.** `AGENTS.md` tells an agent to change a file of groundwork only through the update, except the lines that belong to the project. A project may also restrict its agent tool. For Claude Code, a `permissions.deny` rule `Edit(path)` in the settings of the project stops its edit tools and the file commands it recognises, not a script that writes the file: the sandbox of the tool is the recourse. This is the project's choice, and groundwork configures no tool.
 
 ## Consequences
 
@@ -30,3 +38,4 @@ We will let a project require the review of its code owners for the files of gro
 - The options are not remembered. A project that runs `apply_settings.py` again, for example after it changed a setting of the repository, gives the same options, or the ruleset of the file replaces the one that has them. The script stops when a run would lower an approval setting that the ruleset has, such as the number of approvals or the resolution of threads, unless the project gives `--turn-off-reviews`.
 - A rule that blocks the push of changes to given paths was rejected: it is meant for private or internal repositories and it blocks the push of the update branch too. A check that compares the files with the recorded version was rejected too: it runs the code of the branch, so the same pull request can weaken it.
 - The copy of the template is the project's. A path that groundwork protects later reaches a project that copied the template only if the project adds the line.
+- The line `/.github/workflows/` of the template also covers `.github/workflows/project-checks.yml`, where the project writes its own jobs. With the requirement on, a change to those jobs needs the approval of an owner, as a change to the jobs of groundwork does, since a job that is weakened passes its own check. A project that does not want that review edits its copy of the template.

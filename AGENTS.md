@@ -34,7 +34,8 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 - The licenses accepted for the dependencies are those that the project states, as [ADR 0013](docs/adr/0013-licenses-of-the-dependencies.md) asks.
 <!-- /groundwork -->
 <!-- groundwork:0014 -->
-- In a project with a `.groundwork-version`, change a file of groundwork only through the update, except the lines that belong to the project ([ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md)).
+- In a project with a `.groundwork-version`, change a file of groundwork only through the update, except the lines that belong to the project ([ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md)). Its hooks, its jobs and its Dependabot entries go where [ADR 0008](docs/adr/0008-automated-checks.md) says.
+- A protected file is not locked: when the project requires the review of its code owners, a change to it needs the approval of an owner.
 <!-- /groundwork -->
 - Never merge a pull request without a maintainer's explicit approval for that pull request.
 - Report the errors you corrected and the deviations from a rule. Do not report that you followed the rules.
