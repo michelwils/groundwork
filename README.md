@@ -96,7 +96,7 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 - GitHub Actions workflows have no security mistake such as an expression injection, an unpinned action or excessive permissions, audited offline by [zizmor](https://docs.zizmor.sh) and configured in [`.github/zizmor.yml`](.github/zizmor.yml)
 - the scripts' dependencies have no known vulnerability, audited by [pip-audit](https://github.com/pypa/pip-audit) when [`.groundwork/scripts/requirements.txt`](.groundwork/scripts/requirements.txt) changes and in the CI, since it needs the network ([ADR 0008](docs/adr/0008-automated-checks.md))
 
-Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`.
+Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`. Run the tests of the scripts too, with the command of [Working on groundwork](#working-on-groundwork).
 
 The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`. It checks that the pull request title follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title, except for Dependabot's pull requests. It checks that the branch is named `<type>/<issue-number>-<slug>` and that the description closes that issue ([ADR 0003](docs/adr/0003-change-workflow.md)). It also runs the tests of its scripts. It keeps the environments of the hooks of pre-commit in the [cache of GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching), which a change of `.pre-commit-config.yaml`, of the version of pre-commit or of the Python that it runs with renews. The first run that installs them saves them, even if a check fails: pre-commit installs again an environment that did not finish. Only a push to `main` writes the cache that the pull requests restore: the cache of a pull request stays in its own scope. When the CI gets slow, look at the cache of `main` in the Actions tab.
 
@@ -176,7 +176,7 @@ The second phase, the workflow:
 
 The third phase, the checks:
 
-- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks below the comment of `.pre-commit-config.yaml`, its jobs in `.github/workflows/project-checks.yml` and its Dependabot entries below the comment of `.github/dependabot.yml`, and add groundwork's. Check with `pre-commit run --all-files --hook-stage manual`.
+- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks below the comment of `.pre-commit-config.yaml`, its jobs in `.github/workflows/project-checks.yml` and its Dependabot entries below the comment of `.github/dependabot.yml`, and add groundwork's. Check with `pre-commit run --all-files --hook-stage manual` and the tests, as [`CONTRIBUTING.md`](CONTRIBUTING.md#checks) says.
 
 The fourth phase, the rules that no tool checks:
 
@@ -250,11 +250,19 @@ The [`update-groundwork` workflow](.github/workflows/update-groundwork.yml) does
 
 ## Working on groundwork
 
-This repository contains documentation, configuration and the scripts, with their tests. Run every check with `pre-commit run --all-files --hook-stage manual` and the tests with `python3 -m unittest discover -s .groundwork/scripts -p 'test_*.py'` before committing. The scripts have dependencies, pinned in `.groundwork/scripts/requirements.txt`: install them once in a virtual environment, with `python3 -m venv .venv && .venv/bin/pip install -r .groundwork/scripts/requirements.txt`, and run the tests with `.venv/bin/python`. The same checks and tests run in CI on every pull request.
+This repository contains documentation, configuration and the scripts, with their tests. Before committing, install the dependencies of the scripts once, which are pinned in `.groundwork/scripts/requirements.txt`, then run every check and the tests:
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install -r .groundwork/scripts/requirements.txt
+pre-commit run --all-files --hook-stage manual
+.venv/bin/python -m unittest discover -s .groundwork/scripts -p 'test_*.py'
+```
+
+The same checks and tests run in CI on every pull request, which also measures the coverage of the scripts when they change: the commands are below.
 
 The scripts follow one convention for their output. The result of a script and its progress go to the standard output. An error goes to the standard error as a line `error: …`, with lines of detail after it. When the arguments are wrong, a script prints its usage and an `error:` line, as `argparse` does for the scripts that use it, and `check_pull_request.py` does alike. A message never shows a secret. The exit status is 0 when the script did what it was asked or had nothing to do, 1 for a failure, 2 for a wrong use of the script and 3 for a run that finished and leaves something to resolve by hand, as `apply_choice.py` and `update_groundwork.py` do. A script that only runs another, such as `run_with_requirements.py`, passes its status on, and a check prints nothing when it passes.
 
-The scripts must be covered by their tests, in the statements and the branches, at least at 95 % of the total. CI requires it of a source of ADRs, which is groundwork or a community base, on a push to `main` and on a pull request that changes `.groundwork/scripts/` or the workflow `checks.yml`. A project runs the plain tests: all of them on a push to `main` and on a pull request that changes the scripts or the workflow (the update pull request does), and otherwise only those that read the files of the repository, since the scripts come from the update and the source has already tested them. Measure it with these commands, run with `.venv/bin/python` in place of `python3`. The report fails below the threshold, which is written in `.groundwork/scripts/coveragerc`:
+The scripts must be covered by their tests ([ADR 1002](docs/adr/1002-requiring-a-minimal-coverage-of-the-scripts.md)), in the statements and the branches, at least at 95 % of the total. CI requires it of a source of ADRs, which is groundwork or a community base, on a push to `main` and on a pull request that changes `.groundwork/scripts/` or the workflow `checks.yml`. A project runs the plain tests: all of them on a push to `main` and on a pull request that changes the scripts or the workflow (the update pull request does), and otherwise only those that read the files of the repository, since the scripts come from the update and the source has already tested them. Measure it with these commands, run with `.venv/bin/python` in place of `python3`. The report fails below the threshold, which is written in `.groundwork/scripts/coveragerc`:
 
 ```sh
 python3 -m coverage run --rcfile=.groundwork/scripts/coveragerc -m unittest discover -s .groundwork/scripts -p 'test_*.py'

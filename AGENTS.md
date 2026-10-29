@@ -40,6 +40,9 @@ These rules come from [ADR 0007](docs/adr/0007-ai-assisted-changes.md).
 - Never merge a pull request without a maintainer's explicit approval for that pull request.
 - Report the errors you corrected and the deviations from a rule. Do not report that you followed the rules.
 - Check your work before presenting it, committing it or marking a pull request ready, against the [review checklist](CONTRIBUTING.md#review-checklist).
+<!-- groundwork:0008 -->
+- Run the checks as the CI runs them, with the commands of [Checks](CONTRIBUTING.md#checks) and the test commands of the Project section below, before you present your work, commit it or mark a pull request ready.
+<!-- /groundwork -->
 - Never bypass a check: do not skip hooks, disable a rule, or remove or weaken a test to make it pass. When a check fails, fix the cause or report it.
 - You may commit, push your own branch, open a draft pull request, and update that pull request and its issue. Ask for explicit approval before any other action that is hard to reverse or reaches beyond them, such as changing repository settings or milestones, deleting a branch or rewriting history.
 - Before stating a fact about an external tool or service, check its current documentation, or say that you did not.
