@@ -193,6 +193,7 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 - `.groundwork/scripts/markers.py`
 - `.groundwork/scripts/open_update_pull_request.py`
 - `.groundwork/scripts/practices_map.py`
+- `.groundwork/scripts/ruff.toml`
 - `.groundwork/scripts/test_apply_choice.py`
 - `.groundwork/scripts/test_choice.py`
 - `.groundwork/scripts/test_markers.py`
