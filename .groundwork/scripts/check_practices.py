@@ -163,10 +163,12 @@ def named_adrs(line, reserved=(BASE,)):
     return {number for number in adrs_named_in(line) if is_reserved(number, reserved)}
 
 
-def check_markers(path, blocks, owner, numbers, problems):
-    """Check the blocks of a file, and return the ADR that each line of a block belongs to."""
+def check_block_owners(path, blocks, owner, numbers, having, problems):
+    """Check the ADR of each block of a file, record the file in `having` for that ADR, and return the ADR that each
+    line of a block belongs to."""
     belonging = {}
     for block in blocks:
+        having.setdefault(block["adr"], {}).setdefault(path, block["start"])
         if block["adr"] not in numbers:
             problems.append((path, block["start"], f"the block is for the ADR {block['adr']:04d}, which does not exist"))
         elif block["adr"] == owner.get(path):
@@ -227,10 +229,11 @@ def check_blocks(root, entries, owned, reserved, shared, files, numbers, problem
         problems.extend((path, line, message) for line, message in found)
         if path in owner and not blocks and path not in listed_anywhere:
             continue
-        for block in blocks:
-            having.setdefault(block["adr"], {}).setdefault(path, block["start"])
-        belonging = check_markers(path, blocks, owner, numbers, problems)
-        check_names(path, lines, syntax, belonging, owner, needs, project, reserved, problems)
+        belonging = check_block_owners(path, blocks, owner, numbers, having, problems)
+        check_names(
+            path, lines, syntax, belonging=belonging, owner=owner, needs=needs, project=project, reserved=reserved,
+            problems=problems,
+        )
     check_shared_lines(entries, shared_files, owner, having, files, problems)
 
 

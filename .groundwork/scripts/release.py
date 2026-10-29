@@ -186,10 +186,9 @@ def read_extra(path):
         sys.exit(f"error: cannot read the extra notes: {error}")
 
 
-def stop_on_what_needs_the_maintainers(commits, released, extra, version):
+def stop_on_what_needs_the_maintainers(commits, ambiguous, extra, version):
     """Stop on a revert that matches several changes, unless the version is given, and on a breaking change with no
     text, unless the extra notes give the migration."""
-    ambiguous = cancel_reverts(commits, released)
     if ambiguous and not version:
         sys.exit("\n".join(
             [f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches" + "".join(f"\n  {title}" for title in titles)
@@ -243,7 +242,8 @@ def main():
     previous = previous_version()
     commits = commits_since(previous)
     released = released_keys(previous) if any(commit["type"] == "revert" for commit in commits) else {}
-    stop_on_what_needs_the_maintainers(commits, released, extra, args.version)
+    ambiguous = cancel_reverts(commits, released)
+    stop_on_what_needs_the_maintainers(commits, ambiguous, extra, args.version)
     major = int((previous or "0.0.0").split(".")[0])
     level = max((increment(c, major) for c in commits), key=LEVELS.get, default="none")
 

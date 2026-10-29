@@ -190,7 +190,7 @@ def choice_of_the_command(args, root, side):
 
 
 def release_to_record(args):
-    """Return the source and the release that a new project records: the one of --version, else the latest."""
+    """Return the release that a new project records: the one of --version, else the latest."""
     if args.source is not None and not update.is_address(args.source):
         raise Failure(
             f"{update.SOURCE_FILE} must hold one line with the address of the source, of the form https://host/path, "

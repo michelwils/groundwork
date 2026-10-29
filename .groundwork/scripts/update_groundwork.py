@@ -506,7 +506,6 @@ def target_head(old, source):
         raise Failure(f"The head of {source} does not contain {old}: it was perhaps rewritten.")
     new = version_of_head(commit)
     if commit == (commit_of(old) or git("rev-parse", f"{revision(old)}^{{commit}}").stdout.strip()):
-        up_to_date(old)
         return None
     return new
 
@@ -528,13 +527,12 @@ def target_latest(old, versions):
     """Return the latest release, or None when the project is up to date with it or when it lacks the recorded commit."""
     new = versions[-1]
     if as_tuple(new) <= as_tuple(old) or (commit_of(old) and not is_ancestor(commit_of(old), revision(new))):
-        up_to_date(old, " No release has its commit yet." if commit_of(old) else "")
         return None
     return new
 
 
 def target(args, old, versions, source):
-    """Return the version to move to, or None when the project is up to date, which this function says."""
+    """Return the version to move to, or None when the project is up to date."""
     if args.to == HEAD:
         return target_head(old, source)
     if args.to:
@@ -546,28 +544,26 @@ def branch_name(issue, new):
     return f"chore/{issue}-update-groundwork-to-{label(new)}" if issue else f"groundwork/update-to-{label(new)}"
 
 
-def refuse_paths_outside(steps):
+def refuse_steps_outside(steps):
     root = os.path.realpath(".")
     for path, _, _ in steps:
         if not inside(root, path):
             raise Failure(f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed.")
 
 
-def report(branch, old, new, source, said, conflicts):
-    print(f"branch: {branch}")
-    print(f"from: {old}")
-    print(f"to: {new}")
-    print(f"source: {source}")
-    if said:
-        print("added: " + ", ".join(f"{number:04d}" for number in said))
-    if conflicts:
+def report(result):
+    for field in ("branch", "from", "to", "source"):
+        print(f"{field}: {result[field]}")
+    if result["added"]:
+        print("added: " + ", ".join(result["added"]))
+    if result["conflicts"]:
         print("Resolve the conflicts in these files:")
-        for path in conflicts:
+        for path in result["conflicts"]:
             print(f"- {path}")
 
 
-def write_result(path, branch, old, new, source, said, conflicts):
-    result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in said], "conflicts": conflicts}
+def write_result(path, result):
+    branch = result["branch"]
     try:
         with open(path, "w") as handle:
             json.dump(result, handle)
@@ -591,13 +587,14 @@ def run(args):
         raise Failure(unknown_message(old, source))
     new = target(args, old, versions, source)
     if new is None:
+        up_to_date(old, " No release has its commit yet." if args.to != HEAD and commit_of(old) else "")
         return 0
 
     branch = branch_name(args.issue, new)
     if git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
         raise Failure(f"The branch {branch} already exists.")
     planned = plan(old, new)
-    refuse_paths_outside(planned.steps)
+    refuse_steps_outside(planned.steps)
     if args.result:
         check_result_path(args.result)
     git("switch", "--quiet", "-c", branch)
@@ -605,9 +602,10 @@ def run(args):
     conflicts = [path for path, base, theirs in planned.steps if apply_path(path, base, theirs, read(path), mode(new, path))]
     with open(VERSION_FILE, "w") as handle:
         handle.write(new + "\n")
-    report(branch, old, new, source, planned.said, conflicts)
+    result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in planned.said], "conflicts": conflicts}
+    report(result)
     if args.result:
-        write_result(args.result, branch, old, new, source, planned.said, conflicts)
+        write_result(args.result, result)
     return CONFLICTS if conflicts else 0
 
 

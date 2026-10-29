@@ -171,18 +171,18 @@ def ruleset_on_the_platform(api):
 
 
 def reporting_step(api, visibility):
-    """Return the step of private vulnerability reporting, which has no arguments, and is skipped, on a repository
-    that is not public."""
+    """Return the step that enables private vulnerability reporting, or a skipped step, with no arguments, on a private
+    or internal repository."""
     if visibility not in ("private", "internal"):
         return ("private vulnerability reporting: enabled", ("-X", "PUT", f"{api}/private-vulnerability-reporting"))
     return (f"private vulnerability reporting: GitHub offers it on public repositories only, and this one is {visibility}", None)
 
 
-def ruleset_step(api, ruleset_id, wanted, words, options):
-    """Return the step that creates or updates the ruleset: the file itself without an option, else the ruleset that the
-    options ask for, on the standard input."""
+def ruleset_step(api, ruleset_id, wanted, words, asks_reviews):
+    """Return the step that creates or updates the ruleset: the file itself when no review option is given, else the
+    ruleset that the options ask for, on the standard input."""
     target = ("-X", "PUT", f"{api}/rulesets/{ruleset_id}") if ruleset_id else ("-X", "POST", f"{api}/rulesets")
-    if options:
+    if asks_reviews:
         file, text, stdin = "-", f" ({', '.join(words)})", json.dumps(wanted)
     else:
         file, text, stdin = os.path.abspath(RULESET), "", None
