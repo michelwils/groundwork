@@ -18,7 +18,7 @@ Every change goes through an issue, a branch and a pull request ([ADR 0003](docs
 1. Open an issue that names the outcome and gives the context, deliverables, acceptance criteria (as a plain list) and what is out of scope. Assign it to a milestone. The issue template has these sections.
 2. Create a branch from `main` named `<type>/<issue-number>-<issue-title-in-kebab-case>`, for example `docs/1-bootstrap-the-repository`.
 3. Commit your work on the branch.
-4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. The pull request template has these sections.
+4. Open a draft pull request titled like a commit message, with `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist in its description. The pull request template has these sections. The milestone stays on the issue, not on the pull request ([ADR 0003](docs/adr/0003-change-workflow.md)).
 5. Check each criterion as it is met, and mark the pull request ready for review once all are checked.
 6. The pull request is merged by squash, and its title, followed by the pull request number, becomes the commit title on `main`. The branch is then deleted. For a breaking change, the maintainer who merges copies the `BREAKING CHANGE:` line from the description into the body of the squash commit, from which the release notes take it. A release stops at a breaking change whose commit has no such text, until the maintainers give the migration as the text that opens the notes.
 

@@ -15,6 +15,7 @@ We will make every change to the repository through an issue, a branch and a pul
 - **Pull requests:** one pull request per issue, from that branch to `main`.
   - The title follows [ADR 0002](0002-conventional-commits.md).
   - The description contains `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist.
+  - The milestone is on the issue, not on the pull request. A milestone counts the issues and the pull requests that are associated with it, so a pull request with a milestone counts the change twice, and its milestone differs from that of its issue when the issue moves.
   - It stays a draft until every item of the checklist is checked.
   - It is merged by squash, so that `main` stays linear with one commit per issue. The pull request title, followed by the pull request number, becomes the commit title. The commit body is empty, except for a breaking change. The description of a pull request whose title has `!` holds a line `BREAKING CHANGE:` that tells what breaks and how to migrate ([ADR 0002](0002-conventional-commits.md)), and the check of the pull request requires it. The maintainer who merges writes that line in the commit body, since the release notes take it from there.
   - The branch is deleted after the merge.
@@ -22,6 +23,7 @@ We will make every change to the repository through an issue, a branch and a pul
 
 ## Consequences
 
+- Nothing checks the milestone of a pull request, so a contributor can still set one.
 - Every change has a stated purpose and a point where it is considered done.
 - Acceptance criteria are stated once, in the issue, and checked in the pull request.
 - `main` only contains finished issues and dependency updates, and its history is the list of them in the order they were completed.
