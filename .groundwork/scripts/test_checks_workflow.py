@@ -595,7 +595,7 @@ class LintGate(unittest.TestCase):
 
     def test_the_step_runs_in_a_source_only(self):
         condition = re.search(r"^        if: (.+)$", steps()[LINT_STEP], flags=re.MULTILINE).group(1)
-        self.assertEqual(condition, "${{ steps.kind.outputs.source == 'true' }}")
+        self.assertEqual(condition, "${{ !cancelled() && steps.kind.outputs.source == 'true' }}")
 
     def test_the_step_checks_and_formats_with_the_tool_of_the_scripts(self):
         step = steps()[LINT_STEP]
@@ -609,9 +609,13 @@ class LintGate(unittest.TestCase):
         self.assertLess(names.index("Install the dependencies of the scripts"), names.index(LINT_STEP))
         self.assertLess(names.index(KIND_STEP), names.index(LINT_STEP))
 
-    def test_the_step_does_not_wait_for_the_tests_or_the_measure(self):
+    def test_the_step_runs_after_the_tests_and_even_when_they_fail(self):
+        """A run then reports a failure of the tests and one of the format together."""
         names = list(steps())
-        self.assertLess(names.index(LINT_STEP), names.index(COVERAGE_STEP))
+        for name in (COVERAGE_STEP, "Test the scripts", CONFIGURATION_STEP):
+            with self.subTest(step=name):
+                self.assertLess(names.index(name), names.index(LINT_STEP))
+        self.assertIn("!cancelled()", steps()[LINT_STEP])
 
     def test_the_tool_is_required_at_an_exact_version(self):
         self.assertRegex(
@@ -623,8 +627,23 @@ class LintGate(unittest.TestCase):
         self.assertRegex(config, re.compile(r"^line-length = 120$", flags=re.MULTILINE))
         self.assertRegex(config, re.compile(r'^select = \["E4", "E7", "E9", "F", "I"\]$', flags=re.MULTILINE))
 
-    def test_the_tool_is_not_a_hook_of_the_pre_commit_configuration(self):
-        self.assertNotIn("ruff", read(".pre-commit-config.yaml"))
+    def test_the_scripts_are_not_linted_by_a_hook_of_the_pre_commit_configuration(self):
+        """A hook would reach every project at the update. A source may add a hook of Ruff for its own files."""
+        for repository in read(".pre-commit-config.yaml").split("\n  - repo: ")[1:]:
+            if "ruff" in repository:
+                self.assertNotIn(".groundwork/scripts", repository)
+
+    def test_dependabot_proposes_the_tool_apart_from_the_other_dependencies(self):
+        """A new version of the tool can change the layout, and its pull request then needs a reformatting."""
+        entry = read(".github/dependabot.yml").split("package-ecosystem: pip", 1)[1].split("package-ecosystem:", 1)[0]
+        self.assertRegex(
+            entry,
+            re.compile(
+                r'^      scripts:\n        patterns: \["\*"\]\n        exclude-patterns: \["ruff"\]$',
+                flags=re.MULTILINE,
+            ),
+        )
+        self.assertRegex(entry, re.compile(r'^      lint:\n        patterns: \["ruff"\]$', flags=re.MULTILINE))
 
     def test_readme_gives_the_same_commands_as_the_workflow(self):
         readme = read("README.md")
