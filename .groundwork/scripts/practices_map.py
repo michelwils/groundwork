@@ -9,8 +9,12 @@ A source reserves the range `0001` to `0999`, and the ranges that it declares in
 one `NNNN-NNNN` per line (ADR 0001). `read_ranges` returns them, with what is wrong in the file.
 """
 
+from __future__ import annotations
+
 import os
 import re
+from dataclasses import dataclass, field
+from typing import NamedTuple
 
 MAP = ".groundwork/practices.md"
 BASE = (1, 999)
@@ -25,10 +29,34 @@ REFERENCE = re.compile(r"^ADR (\d{4})$")
 SECTIONS = {"## Practices": "practices", "## Shared files": "shared", "## Not part of a practice": "apart"}
 
 
-def parse(lines):
-    """Return the entries, the shared files and the files that are not part of a practice.
+class Listed(NamedTuple):
+    """A path that the map lists, and the line where it does."""
 
-    An entry is a dict with its number, its line and the (value, line) of what it holds."""
+    path: str
+    line: int
+
+
+class Needs(NamedTuple):
+    """The value of the line 'Needs' of an entry, as written, and the line where it is."""
+
+    value: str
+    line: int
+
+
+@dataclass
+class Entry:
+    """The entry of an ADR in the map: its number, the line of its heading, its line 'Needs' if it has one, the
+    files that it owns and the files whose lines it shares."""
+
+    number: int
+    line: int
+    needs: Needs | None = None
+    files: list[Listed] = field(default_factory=list)
+    shared: list[Listed] = field(default_factory=list)
+
+
+def parse(lines):
+    """Return the entries, the shared files and the files that are not part of a practice."""
     entries, shared, apart = [], [], []
     section = list_name = entry = None
     for number, line in enumerate(lines, start=1):
@@ -38,29 +66,23 @@ def parse(lines):
         elif line.startswith("## "):
             section, entry, list_name = None, None, None
         elif HEADING.match(line):
-            entry = {
-                "number": int(HEADING.match(line).group(1)),
-                "line": number,
-                "needs": None,
-                "files": [],
-                "shared": [],
-            }
+            entry = Entry(number=int(HEADING.match(line).group(1)), line=number)
             entries.append(entry)
             list_name = None
         elif entry is not None and line.startswith("- "):
             head, _, value = line[2:].partition(":")
             list_name = {"Files": "files", "Shared lines": "shared"}.get(head)
             if head == "Needs":
-                entry["needs"] = (value.strip(), number)
+                entry.needs = Needs(value.strip(), number)
         elif entry is not None and list_name and LIST_ITEM.match(line):
             item = LIST_ITEM.match(line).group(1)
             path = PATH.match(item)
             if path:
-                entry[list_name].append((path.group(1), number))
+                getattr(entry, list_name).append(Listed(path.group(1), number))
         elif section in ("shared", "apart") and line.startswith("- "):
             path = PATH.match(line[2:])
             if path:
-                (shared if section == "shared" else apart).append((path.group(1), number))
+                (shared if section == "shared" else apart).append(Listed(path.group(1), number))
     return entries, shared, apart
 
 
@@ -102,12 +124,12 @@ def read_map(root):
 
 def needs_of(entries):
     """Return the numbers of the ADRs that each ADR needs, for the entries that have a line 'Needs'."""
-    return {entry["number"]: set(references(entry["needs"][0])[0]) for entry in entries if entry["needs"] is not None}
+    return {entry.number: set(references(entry.needs.value)[0]) for entry in entries if entry.needs is not None}
 
 
 def owners(entries):
     """Return the number of the ADR whose entry lists each file."""
-    return {path: entry["number"] for entry in entries for path, _ in entry["files"]}
+    return {path: entry.number for entry in entries for path, _ in entry.files}
 
 
 def closure(numbers, needs):
