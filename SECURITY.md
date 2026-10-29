@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Report a vulnerability privately: open the Security tab of this repository, then Advisories, then "Report a vulnerability". Do not open a public issue or a pull request, since they would disclose the vulnerability before it is fixed. A private repository has no such form, since GitHub offers it on public repositories only: its policy gives an address where the maintainer can be reached privately in its place.
+Report a vulnerability privately: open the Security tab of this repository, then Advisories, then "Report a vulnerability". Do not open a public issue or a pull request, since they would disclose the vulnerability before it is fixed. If this repository is private, GitHub does not offer this form, since it exists on public repositories only: replace this paragraph with an address where the maintainer can be reached privately.
 
 ## Handling a report
 

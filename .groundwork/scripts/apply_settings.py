@@ -56,15 +56,18 @@ def gh(*args, input=None):
         raise Failure("the gh command is not installed")
     if result.returncode != 0:
         message = result.stderr.strip() or f"gh {' '.join(args)} failed"
-        status = re.search(r"\(HTTP ([0-9]{3})\)\s*$", message)
-        raise Refused(message, int(status.group(1)) if status else None)
+        statuses = re.findall(r"\(HTTP ([0-9]{3})\)", message)  # the last one: gh may add a hint after it
+        raise Refused(message, int(statuses[-1]) if statuses else None)
     return result.stdout
 
 
 def rights(failure):
-    """Return the sentence about admin rights when the platform refused for them (HTTP 403), else nothing: any other
-    answer is shown as it is, since it does not tell that the rights are missing."""
-    return ". This needs admin rights on the repository." if getattr(failure, "status", None) == 403 else ""
+    """Return the sentence about admin rights when the platform refused with HTTP 403, else nothing: any other answer is
+    shown as it is, since it does not tell that the rights are missing. A 403 is not a proof either, since the platform
+    also answers it for a token that lacks a scope, so the sentence names the token too."""
+    if isinstance(failure, Refused) and failure.status == 403:
+        return ". This needs admin rights on the repository, and a token that may use them."
+    return ""
 
 
 def current_repository():
@@ -214,7 +217,7 @@ def run(args):
     try:
         visibility = gh("api", f"repos/{repository}", "--jq", ".visibility").strip()
     except Failure as failure:
-        raise Failure(f"could not read {repository}: {failure}{rights(failure)}")
+        raise Failure(f"could not read {repository}: {failure}")
     try:
         steps, turned_off = settings(repository, args.code_owner_review, args.last_push_approval, visibility)
     except Failure as failure:

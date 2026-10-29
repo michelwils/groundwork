@@ -27,10 +27,12 @@ if os.environ.get("FAKE_FAIL") and os.environ["FAKE_FAIL"] in " ".join(args):
     status = os.environ.get("FAKE_FAIL_STATUS") or "403"
     message = {"403": "Must have admin rights to Repository.", "404": "Not Found", "422": "Validation Failed"}.get(status, "Server Error")
     print(f"gh: {message} (HTTP {status})", file=sys.stderr)
+    if os.environ.get("FAKE_HINT"):
+        print("This API operation needs the admin:repo_hook scope. To request it, run: gh auth refresh -s admin:repo_hook", file=sys.stderr)
     sys.exit(1)
 if args[:2] == ["repo", "view"]:
     print("default-owner/default-repo")
-elif args[0] == "api" and args[1].count("/") == 2 and "-X" not in args:
+elif args[0] == "api" and "--jq" in args and ".visibility" in args:
     print(os.environ.get("FAKE_VISIBILITY") or "public")
 elif args[:2] == ["api", "user"]:
     if not os.environ.get("FAKE_USER"):
@@ -58,7 +60,7 @@ class ApplySettings(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_script(self, *args, rulesets="[]", fail="", ruleset="{}", user="", status="", visibility=""):
+    def run_script(self, *args, rulesets="[]", fail="", ruleset="{}", user="", status="", visibility="", hint=False):
         """Run the script from the directory of a project, which holds the CODEOWNERS that `self.owners` writes."""
         env = {
             **os.environ,
@@ -70,6 +72,7 @@ class ApplySettings(unittest.TestCase):
             "FAKE_USER": user,
             "FAKE_FAIL_STATUS": status,
             "FAKE_VISIBILITY": visibility,
+            "FAKE_HINT": "1" if hint else "",
         }
         return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env, cwd=self.project)
 
@@ -166,6 +169,17 @@ class ApplySettings(unittest.TestCase):
                 self.assertIn(text, result.stderr)
                 self.assertNotIn("admin", result.stderr)
 
+    def test_names_the_admin_rights_when_the_platform_adds_a_hint_after_its_status(self):
+        result = self.run_script("owner/repo", fail="immutable-releases", status="403", hint=True)
+        self.assertIn("This needs admin rights on the repository", result.stderr)
+        self.assertIn("gh auth refresh", result.stderr)
+
+    def test_the_read_of_the_visibility_does_not_blame_the_admin_rights_for_a_403(self):
+        result = self.run_script("owner/repo", fail="visibility", status="403")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("could not read owner/repo", result.stderr)
+        self.assertNotIn("This needs admin rights", result.stderr)
+
     def test_the_rulesets_that_cannot_be_read_name_the_admin_rights_only_for_a_403(self):
         refused = self.run_script("owner/repo", fail="rulesets", status="403")
         self.assertIn("could not read the rulesets of owner/repo", refused.stderr)
@@ -178,6 +192,8 @@ class ApplySettings(unittest.TestCase):
     def test_a_repository_that_is_not_public_skips_private_vulnerability_reporting_and_applies_the_rest(self):
         for visibility in ("private", "internal"):
             with self.subTest(visibility=visibility):
+                if os.path.exists(self.log):
+                    os.remove(self.log)
                 result = self.run_script("owner/repo", visibility=visibility)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn("skipped private vulnerability reporting", result.stdout)
@@ -187,7 +203,6 @@ class ApplySettings(unittest.TestCase):
                 self.assertFalse(any("private-vulnerability-reporting" in call for call in text))
                 for step in ("immutable-releases", "vulnerability-alerts", "automated-security-fixes", "rulesets"):
                     self.assertTrue(any(step in call for call in text), step)
-                os.remove(self.log)
 
     def test_the_dry_run_says_that_it_would_skip_the_reporting_of_a_repository_that_is_not_public(self):
         result = self.run_script("owner/repo", "--dry-run", visibility="private")
