@@ -10,12 +10,14 @@ A template copies files, not settings. The script applies, to a repository on Gi
 - the vulnerability alerts, which also turn on the dependency graph, then the security updates of
   the dependencies, which open a pull request for a vulnerable dependency (ADR 0008)
 - the ruleset of .groundwork/rulesets/main.json, last, since it rejects direct pushes: it is updated if
-  a ruleset of that name exists and created otherwise. With --code-owner-review, it also requires the approval of
-  a code owner (CODEOWNERS) and dismisses an approval when a commit is pushed after it; with --last-push-approval,
-  the approval must come from someone other than the person who pushed last (ADR 0014). The options are not
-  remembered: a run without them applies the ruleset of the file, which requires neither approval, and stops
-  when that would lower an approval setting of the ruleset of the repository, unless --turn-off-reviews is given. --code-owner-review
-  needs a file of code owners, run from the directory of the project, and --last-push-approval needs --code-owner-review
+  a ruleset of that name exists and created otherwise. With --code-owner-review, it also requires at least one approval
+  (never fewer than the ruleset already has), the approval of a code owner (CODEOWNERS) for the files that have one, and
+  dismisses an approval when a commit is pushed after it; with --last-push-approval, the approval must come from someone
+  other than the person who pushed last (ADR 0014). The options are not remembered: a run without them applies the ruleset
+  of the file, which requires no approval, and stops when that would lower an approval setting of the ruleset of the
+  repository, unless --turn-off-reviews is given. --code-owner-review needs a file of code owners, run from the directory
+  of the project, and stops when the only owner is the person who runs the script, since nobody else could approve;
+  --last-push-approval needs --code-owner-review
 
 Run it again and the repository stays in the same state. It needs admin rights on the repository,
 and the `gh` command, logged in.
@@ -59,7 +61,8 @@ def ruleset_name():
 
 def check_owners():
     """Stop when the directory has no file of code owners, or one without an owner or with the owner of the template: the
-    requirement would do nothing, or no one could approve. GitHub reads the first of these files that exists."""
+    requirement would do nothing, or no one could approve. GitHub reads the first of these files that exists. Return the
+    owners that the file names."""
     for path in (os.path.join(".github", "CODEOWNERS"), "CODEOWNERS", os.path.join("docs", "CODEOWNERS")):
         if os.path.exists(path):
             with open(path, errors="replace") as handle:
@@ -71,15 +74,32 @@ def check_owners():
                 raise Failure(f"{path} names no owner: a line gives a pattern and the reviewers of the project.")
             if any("@OWNER" in fields for fields in rules):
                 raise Failure(f"{path} still names @OWNER, the owner of the template: replace it with the reviewers of the project.")
-            return
+            return {owner for fields in rules for owner in fields[1:]}
     raise Failure(
         "this directory has no file of code owners (.github/CODEOWNERS, CODEOWNERS or docs/CODEOWNERS): run the script from the clone of the project, "
         "after copying .groundwork/CODEOWNERS.template to .github/CODEOWNERS and replacing @OWNER."
     )
 
 
-def protected(code_owner_review, last_push_approval):
-    """Return the ruleset of the file with the approvals that the options ask for, and the words that tell them."""
+def check_not_alone(owners):
+    """Stop when the only code owner is the person who runs the script: with an approval required, nobody else could
+    approve their pull requests. A team, an address or any other owner leaves the choice to the project, and a login
+    that cannot be read stops nothing, and the script says that it skipped the check."""
+    try:
+        login = gh("api", "user", "--jq", ".login").strip()
+    except Failure as failure:
+        print(f"skipped the check that you are not the only code owner: could not read your login: {failure}")
+        return
+    if login and {owner.lower() for owner in owners} == {"@" + login.lower()}:
+        raise Failure(
+            f"the only code owner is @{login}, who runs this script: nobody else could approve a pull request, and with an approval "
+            "required none could be merged. Add a reviewer to the file of code owners, or do not turn the option on (ADR 0014, Single maintainer)."
+        )
+
+
+def protected(code_owner_review, last_push_approval, approvals=0):
+    """Return the ruleset of the file with the approvals that the options ask for, and the words that tell them.
+    `approvals` is the number of approvals that the ruleset of the repository requires: the options never lower it."""
     with open(RULESET) as handle:
         ruleset = json.load(handle)
     if not (code_owner_review or last_push_approval):
@@ -89,8 +109,9 @@ def protected(code_owner_review, last_push_approval):
         raise Failure(f"{os.path.relpath(RULESET)} has no rule of type pull_request: the approvals cannot be required.")
     words = []
     if code_owner_review:
-        parameters.update(require_code_owner_review=True, dismiss_stale_reviews_on_push=True)
-        words += ["code owner review required", "stale approvals dismissed"]
+        count = max(1, approvals)
+        parameters.update(required_approving_review_count=count, require_code_owner_review=True, dismiss_stale_reviews_on_push=True)
+        words += [f"{count} approval{'s' if count > 1 else ''} required", "code owner review required", "stale approvals dismissed"]
     if last_push_approval:
         parameters["require_last_push_approval"] = True
         words.append("last push approval required")
@@ -124,14 +145,15 @@ def settings(repository, code_owner_review=False, last_push_approval=False):
     api = f"repos/{repository}"
     ruleset_id = next((r["id"] for r in json.loads(gh("api", f"{api}/rulesets")) if r["name"] == ruleset_name()), None)
     ruleset = ("-X", "PUT", f"{api}/rulesets/{ruleset_id}") if ruleset_id else ("-X", "POST", f"{api}/rulesets")
-    wanted, words = protected(code_owner_review, last_push_approval)
-    turned_off = []
+    detail = {}
     if ruleset_id:
         try:
             detail = json.loads(gh("api", f"{api}/rulesets/{ruleset_id}") or "{}")
         except ValueError as error:
             raise Failure(f"the platform answered something that is not JSON: {error}")
-        turned_off = lowered(detail, wanted)
+    approvals = pull_request_parameters(detail).get("required_approving_review_count") or 0
+    wanted, words = protected(code_owner_review, last_push_approval, approvals)
+    turned_off = lowered(detail, wanted) if ruleset_id else []
     if code_owner_review or last_push_approval:
         file, text, stdin = "-", f" ({', '.join(words)})", json.dumps(wanted)
     else:
@@ -165,7 +187,7 @@ def run(args):
         raise Failure("--last-push-approval goes with --code-owner-review: with no approval required, it enforces nothing.")
     protected(args.code_owner_review, args.last_push_approval)  # stops here when the file has no pull_request rule
     if args.code_owner_review:
-        check_owners()
+        check_not_alone(check_owners())
     print(f"repository: {repository}")
     try:
         steps, turned_off = settings(repository, args.code_owner_review, args.last_push_approval)
@@ -196,7 +218,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="show what would be applied, change nothing")
     parser.add_argument(
         "--code-owner-review", action="store_true",
-        help="require the approval of a code owner and dismiss an approval when a commit is pushed after it (ADR 0014)",
+        help="require at least one approval, the approval of a code owner for the files that have one, and dismiss an approval when a commit is pushed after it (ADR 0014)",
     )
     parser.add_argument(
         "--turn-off-reviews", action="store_true",
