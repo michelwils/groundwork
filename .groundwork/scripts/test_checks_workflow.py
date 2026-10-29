@@ -83,6 +83,21 @@ class Concurrency(unittest.TestCase):
         edit, other = re.search(r"github\.event\.action == 'edited' && '([a-z]+)' \|\| '([a-z]+)'", group).groups()
         self.assertNotEqual(edit, other)
 
+    def test_the_group_that_each_event_gets_is_the_one_that_the_expression_gives(self):
+        """Follow the expression `condition && edit || other` as the platform does: a text that is empty makes `&&` give
+        the other branch, and `github.event.action` has no value on a push."""
+        group = re.search(r"^  group: (.+)$", self.workflow(), flags=re.MULTILINE).group(1)
+        edit, other = re.search(r"github\.event\.action == 'edited' && '([a-z]+)' \|\| '([a-z]+)'", group).groups()
+
+        def given(action):
+            return edit if action == "edited" and edit else other
+
+        self.assertEqual(given("edited"), edit)
+        for action in (None, "", "opened", "synchronize", "reopened"):  # None: a push to the main branch
+            with self.subTest(action=action):
+                self.assertEqual(given(action), other)
+        self.assertTrue(edit and other and edit != other)
+
     def test_the_group_of_the_pull_request_checks_does_not_depend_on_the_commit(self):
         group = re.search(r"^  group: (.+)$", self.workflow(), flags=re.MULTILINE).group(1)
         self.assertNotIn("github.sha", group)
