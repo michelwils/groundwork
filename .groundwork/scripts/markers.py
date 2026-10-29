@@ -12,7 +12,11 @@ ADR, and blocks are neither nested nor split. A Markdown marker in a code block 
 the ADRs that a project did not keep, with their markers, and leaves no blank line in excess.
 """
 
+from __future__ import annotations
+
 import re
+from collections.abc import Container
+from typing import NamedTuple
 
 PATTERNS = {
     "markdown": (
@@ -24,7 +28,15 @@ PATTERNS = {
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 
 
-def kind(path):
+class Block(NamedTuple):
+    """A block of the lines of an ADR: its number and the numbers, from 1, of its first and last lines."""
+
+    adr: int
+    start: int
+    end: int
+
+
+def kind(path: str) -> str | None:
     """Return the syntax of the markers of a file, from its extension, or None."""
     if path.endswith(".md"):
         return "markdown"
@@ -33,14 +45,15 @@ def kind(path):
     return None
 
 
-def parse(lines, syntax):
+def parse(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, str]]]:
     """Return the blocks and the problems of the lines.
 
-    A block is a dict with its ADR number and the numbers, from 1, of its first and last lines.
     A problem is a (line, message)."""
     opening, closing = PATTERNS[syntax]
     blocks, problems = [], []
-    current = fence = None
+    fence = None
+    opened_adr: int | None = None
+    opened_at = 0
     for number, line in enumerate(lines, start=1):
         line = line.rstrip("\r")
         if syntax == "markdown":
@@ -48,33 +61,32 @@ def parse(lines, syntax):
                 if line.strip() and set(line.strip()) == {fence[0]} and len(line.strip()) >= len(fence):
                     fence = None
                 continue
-            if FENCE.match(line):
-                fence = FENCE.match(line).group(1)
+            if opened := FENCE.match(line):
+                fence = opened.group(1)
                 continue
         start = opening.match(line)
         if start:
-            if current:
+            if opened_adr is not None:
                 problems.append(
                     (
                         number,
-                        f"a block is opened inside the block of the ADR {current['adr']:04d} opened at line {current['start']}",
+                        f"a block is opened inside the block of the ADR {opened_adr:04d} opened at line {opened_at}",
                     )
                 )
                 continue
-            current = {"adr": int(start.group(1)), "start": number, "end": None}
+            opened_adr, opened_at = int(start.group(1)), number
         elif closing.match(line):
-            if not current:
+            if opened_adr is None:
                 problems.append((number, "a closing marker has no block to close"))
                 continue
-            current["end"] = number
-            blocks.append(current)
-            current = None
-    if current:
-        problems.append((current["start"], f"the block of the ADR {current['adr']:04d} is not closed"))
+            blocks.append(Block(opened_adr, opened_at, number))
+            opened_adr = None
+    if opened_adr is not None:
+        problems.append((opened_at, f"the block of the ADR {opened_adr:04d} is not closed"))
     return blocks, problems
 
 
-def remove(text, syntax, kept):
+def remove(text: str, syntax: str, kept: Container[int]) -> str:
     """Return the text without the blocks of the ADRs that are not kept.
 
     A blank line that follows a removed block goes with it when a blank line precedes it, and the
@@ -87,8 +99,9 @@ def remove(text, syntax, kept):
     blocks, problems = parse(lines, syntax)
     if problems:
         raise ValueError("; ".join(f"line {line}: {message}" for line, message in problems))
-    dropped = {block["start"] - 1: block["end"] - 1 for block in blocks if block["adr"] not in kept}
-    out, junction, index = [], False, 0
+    dropped = {block.start - 1: block.end - 1 for block in blocks if block.adr not in kept}
+    out: list[str] = []
+    junction, index = False, 0
     while index < len(lines):
         if index in dropped:
             index = dropped[index] + 1

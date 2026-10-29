@@ -38,11 +38,14 @@ the ADRs that enter and that the project does not list. Exit status: 0 when done
 when the arguments are wrong, 3 when some files are kept or in conflict.
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import re
 import sys
 import tempfile
+from typing import NamedTuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -115,8 +118,16 @@ def blocks_of(text, syntax):
     lines = text.split("\n")
     found = {}
     for block in markers.parse(lines, syntax)[0]:
-        found.setdefault(block["adr"], []).append(lines[block["start"] : block["end"] - 1])
+        found.setdefault(block.adr, []).append(lines[block.start : block.end - 1])
     return found
+
+
+class Write(NamedTuple):
+    """A write of the command: the path, its new content (None to delete the file) and its mode."""
+
+    path: str
+    content: bytes | None
+    mode: int
 
 
 class Changes:
@@ -124,7 +135,7 @@ class Changes:
 
     def __init__(self):
         self.lines = []
-        self.writes = []  # (path, content or None to delete, mode)
+        self.writes = []
         self.attention = False
 
     def say(self, kind, path, reason=None):
@@ -134,11 +145,11 @@ class Changes:
 
     def delete(self, path):
         self.say("delete", path)
-        self.writes.append((path, None, 0))
+        self.writes.append(Write(path, None, 0))
 
     def write(self, kind, path, content, file_mode=0o644, label=None):
         self.lines.append(f"{kind}: {label or path}")
-        self.writes.append((path, content, file_mode))
+        self.writes.append(Write(path, content, file_mode))
 
 
 def left_out(number, kept, reserved):
@@ -308,7 +319,7 @@ def bring_into_line(path, step, old, side, kept, changes):
         else:
             text = action[1] if action[0] in ("write", "merged") else None
         if action[0] == "merged" and action[2]:
-            changes.writes.append((path, text, update.mode(old, path)))
+            changes.writes.append(Write(path, text, update.mode(old, path)))
             changes.say("conflict", path)
             return
     step_kind = None

@@ -9,8 +9,13 @@ A source reserves the range `0001` to `0999`, and the ranges that it declares in
 one `NNNN-NNNN` per line (ADR 0001). `read_ranges` returns them, with what is wrong in the file.
 """
 
+from __future__ import annotations
+
 import os
 import re
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
+from typing import NamedTuple
 
 MAP = ".groundwork/practices.md"
 BASE = (1, 999)
@@ -25,57 +30,80 @@ REFERENCE = re.compile(r"^ADR (\d{4})$")
 SECTIONS = {"## Practices": "practices", "## Shared files": "shared", "## Not part of a practice": "apart"}
 
 
-def parse(lines):
-    """Return the entries, the shared files and the files that are not part of a practice.
+class Listed(NamedTuple):
+    """A path that the map lists, and the line where it does."""
 
-    An entry is a dict with its number, its line and the (value, line) of what it holds."""
-    entries, shared, apart = [], [], []
-    section = list_name = entry = None
+    path: str
+    line: int
+
+
+class Needs(NamedTuple):
+    """The value of the line 'Needs' of an entry, as written, and the line where it is."""
+
+    value: str
+    line: int
+
+
+@dataclass
+class Entry:
+    """The entry of an ADR in the map: its number, the line of its heading, its line 'Needs' if it has one, the
+    files that it owns and the files whose lines it shares."""
+
+    number: int
+    line: int
+    needs: Needs | None = None
+    files: list[Listed] = field(default_factory=list)
+    shared: list[Listed] = field(default_factory=list)
+
+
+def parse(lines: list[str]) -> tuple[list[Entry], list[Listed], list[Listed]]:
+    """Return the entries, the shared files and the files that are not part of a practice."""
+    entries: list[Entry] = []
+    shared: list[Listed] = []
+    apart: list[Listed] = []
+    section = entry = listing = None
     for number, line in enumerate(lines, start=1):
         line = line.rstrip("\r")
         if line in SECTIONS:
-            section, entry, list_name = SECTIONS[line], None, None
+            section, entry, listing = SECTIONS[line], None, None
         elif line.startswith("## "):
-            section, entry, list_name = None, None, None
-        elif HEADING.match(line):
-            entry = {
-                "number": int(HEADING.match(line).group(1)),
-                "line": number,
-                "needs": None,
-                "files": [],
-                "shared": [],
-            }
+            section, entry, listing = None, None, None
+        elif heading := HEADING.match(line):
+            entry = Entry(number=int(heading.group(1)), line=number)
             entries.append(entry)
-            list_name = None
+            listing = None
         elif entry is not None and line.startswith("- "):
             head, _, value = line[2:].partition(":")
-            list_name = {"Files": "files", "Shared lines": "shared"}.get(head)
+            listing = {"Files": entry.files, "Shared lines": entry.shared}.get(head)
             if head == "Needs":
-                entry["needs"] = (value.strip(), number)
-        elif entry is not None and list_name and LIST_ITEM.match(line):
-            item = LIST_ITEM.match(line).group(1)
-            path = PATH.match(item)
+                entry.needs = Needs(value.strip(), number)
+        elif entry is not None and listing is not None and (listed := LIST_ITEM.match(line)):
+            path = PATH.match(listed.group(1))
             if path:
-                entry[list_name].append((path.group(1), number))
+                listing.append(Listed(path.group(1), number))
         elif section in ("shared", "apart") and line.startswith("- "):
             path = PATH.match(line[2:])
             if path:
-                (shared if section == "shared" else apart).append((path.group(1), number))
+                (shared if section == "shared" else apart).append(Listed(path.group(1), number))
     return entries, shared, apart
 
 
-def references(value):
+def references(value: str) -> tuple[list[int], list[str]]:
     """Return the numbers of the ADRs named by a value, and the parts that are not an ADR."""
     if value == "none":
         return [], []
-    found, wrong = [], []
+    found: list[int] = []
+    wrong: list[str] = []
     for part in (part.strip() for part in value.split(",")):
         match = REFERENCE.match(part)
-        (found if match else wrong).append(int(match.group(1)) if match else part)
+        if match:
+            found.append(int(match.group(1)))
+        else:
+            wrong.append(part)
     return found, wrong
 
 
-def cycles(needs):
+def cycles(needs: Mapping[int, Iterable[int]]) -> list[int]:
     """Return the numbers of the ADRs that are on a cycle of needs."""
     found = set()
     for start in needs:
@@ -91,7 +119,7 @@ def cycles(needs):
     return sorted(found)
 
 
-def read_map(root):
+def read_map(root: str) -> tuple[list[Entry], list[Listed], list[Listed]]:
     """Return what `parse` returns for the map under the root, or nothing for each if it does not exist."""
     path = os.path.join(root, MAP)
     if not os.path.isfile(path):
@@ -100,17 +128,17 @@ def read_map(root):
         return parse(handle.read().split("\n"))
 
 
-def needs_of(entries):
+def needs_of(entries: list[Entry]) -> dict[int, set[int]]:
     """Return the numbers of the ADRs that each ADR needs, for the entries that have a line 'Needs'."""
-    return {entry["number"]: set(references(entry["needs"][0])[0]) for entry in entries if entry["needs"] is not None}
+    return {entry.number: set(references(entry.needs.value)[0]) for entry in entries if entry.needs is not None}
 
 
-def owners(entries):
+def owners(entries: list[Entry]) -> dict[str, int]:
     """Return the number of the ADR whose entry lists each file."""
-    return {path: entry["number"] for entry in entries for path, _ in entry["files"]}
+    return {path: entry.number for entry in entries for path, _ in entry.files}
 
 
-def closure(numbers, needs):
+def closure(numbers: Iterable[int], needs: Mapping[int, Iterable[int]]) -> set[int]:
     """Return the numbers with the ADRs that they need, and those in turn."""
     found, stack = set(), list(numbers)
     while stack:
@@ -121,11 +149,11 @@ def closure(numbers, needs):
     return found
 
 
-def is_reserved(number, reserved):
+def is_reserved(number: int, reserved: Iterable[tuple[int, int]]) -> bool:
     return any(start <= number <= end for start, end in reserved)
 
 
-def read_ranges(root):
+def read_ranges(root: str) -> tuple[list[tuple[int, int]], list[tuple[int, str]]]:
     """Return the ranges that the source reserves, sorted, and the problems of the file as (line, message).
 
     The base comes first. A line of `.groundwork-ranges` that is refused adds no range."""

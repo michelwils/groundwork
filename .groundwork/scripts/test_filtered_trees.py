@@ -189,7 +189,7 @@ class PlacesOfTheFiles(unittest.TestCase):
 
     def named(self):
         entries, shared, apart = practices_map.read_map(ROOT)
-        return {path for entry in entries for path, _ in entry["files"]} | {path for path, _ in shared + apart}
+        return {path for entry in entries for path, _ in entry.files} | {path for path, _ in shared + apart}
 
     def test_every_file_of_the_map_is_in_the_directory_unless_its_name_and_place_are_fixed(self):
         for path in sorted(self.named() - CONVENTIONAL):
@@ -278,7 +278,7 @@ class ReadmeOfGroundwork(unittest.TestCase):
 
     def test_no_sentence_tells_to_delete_a_file_of_the_map(self):
         entries, shared, apart = practices_map.read_map(ROOT)
-        named = {path for entry in entries for path, _ in entry["files"] + entry["shared"]} | {
+        named = {path for entry in entries for path, _ in entry.files + entry.shared} | {
             path for path, _ in shared + apart
         }
         self.assertTrue(named)
@@ -348,7 +348,7 @@ class FilteredTrees(unittest.TestCase):
             entries, _, _ = practices_map.parse(handle.read().split("\n"))
         cls.needs = practices_map.needs_of(entries)
         cls.owners = practices_map.owners(entries)
-        cls.numbers = sorted(entry["number"] for entry in entries)
+        cls.numbers = sorted(entry.number for entry in entries)
         listing = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, check=True)
         cls.files = [
             path for path in listing.stdout.decode().split("\0") if path and os.path.isfile(os.path.join(ROOT, path))

@@ -12,8 +12,11 @@ an ADR that no range reserves, and the blocks of the ADRs that are left out are 
 that several ADRs share (markers.py).
 """
 
+from __future__ import annotations
+
 import os
 import re
+from collections.abc import Container
 
 import markers
 from practices_map import ADR_DIRECTORY, ADR_FILE, closure, is_reserved
@@ -24,7 +27,7 @@ NUMBER = re.compile(r"^[0-9]{4}$")
 RANGE = re.compile(r"^([0-9]{4})-([0-9]{4})$")
 
 
-def read(root, reserved):
+def read(root: str, reserved: list[tuple[int, int]]) -> tuple[list[tuple[int, int]] | None, list[tuple[int, str]]]:
     """Return the ranges that the file lists, or None without a file, and the problems as (line, message).
 
     A number is a range of one. A line that is refused adds nothing."""
@@ -83,7 +86,7 @@ class Kept:
         return sorted(number for number in self.needed if number != ALWAYS_KEPT and not self.listed(number))
 
 
-def included(path, owners, kept, reserved):
+def included(path: str, owners: dict[str, int], kept: Container[int], reserved: list[tuple[int, int]]) -> bool:
     """Tell whether a file of groundwork is taken for the project.
 
     The file of an ADR is taken when the ADR is in a range that the source reserves and is kept. A file
@@ -97,7 +100,7 @@ def included(path, owners, kept, reserved):
     return owner is None or owner in kept
 
 
-def content(path, text, kept):
+def content(path: str, text: str, kept: Container[int]) -> str:
     """Return the text of a file without the blocks of the ADRs that are not kept.
 
     A text whose markers are wrong is refused with a ValueError."""

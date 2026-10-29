@@ -10,6 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import markers  # noqa: E402
 import update_groundwork  # noqa: E402
+from choice import Kept  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "update_groundwork.py")
 
@@ -117,6 +118,26 @@ class CheckOfTheResultPath(unittest.TestCase):
                         update_groundwork.check_result_path(path)
                     self.assertIn(path, str(caught.exception))
                     self.assertIn("No branch is created", str(caught.exception))
+
+
+class Types(unittest.TestCase):
+    def test_a_step_names_its_path_and_its_two_contents_and_unpacks_in_three(self):
+        step = update_groundwork.Step("a.txt", None, b"new")
+        path, base, theirs = step
+        self.assertEqual((step.path, step.base, step.theirs), (path, base, theirs))
+        self.assertEqual(step, ("a.txt", None, b"new"))
+
+    def test_a_plan_names_what_the_choice_asks_for(self):
+        step = update_groundwork.Step("a.txt", b"old", b"new")
+        with tempfile.TemporaryDirectory() as root:
+            side = update_groundwork.Side(root=root)
+        kept = Kept(None, {})
+        planned = update_groundwork.Plan(said=[3], steps=[step], side=side, kept=kept)
+        self.assertEqual((planned.said, planned.steps), ([3], [step]))
+        self.assertIs(planned.side, side)
+        self.assertIs(planned.kept, kept)
+        self.assertIsInstance(planned.side, update_groundwork.Side)
+        self.assertIsInstance(planned.kept, Kept)
 
 
 class Inside(unittest.TestCase):

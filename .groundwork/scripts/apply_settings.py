@@ -26,6 +26,8 @@ and the `gh` command, logged in.
 Usage: apply_settings.py [OWNER/REPO] [--dry-run] [--code-owner-review] [--last-push-approval] [--turn-off-reviews]
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -121,7 +123,7 @@ def check_not_alone(owners):
         )
 
 
-def protected(code_owner_review, last_push_approval, approvals=0):
+def protected(code_owner_review: bool, last_push_approval: bool, approvals: int = 0) -> tuple[dict, list[str]]:
     """Return the ruleset of the file with the approvals that the options ask for, and the words that tell them.
     `approvals` is the number of approvals that the ruleset of the repository requires: the options never lower it."""
     with open(RULESET) as handle:
@@ -273,7 +275,7 @@ def apply_steps(steps, repository, dry_run):
         print(f"applied {description}")
 
 
-def run(args):
+def run(args: argparse.Namespace) -> None:
     repository = args.repository or current_repository()
     if not REPOSITORY.match(repository):
         raise Failure(f"'{repository}' is not of the form OWNER/REPO")

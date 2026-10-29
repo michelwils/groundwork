@@ -28,12 +28,10 @@ class SharedFiles(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         entries, shared, _ = practices_map.parse(read(".groundwork/practices.md").split("\n"))
-        cls.numbers = sorted(entry["number"] for entry in entries)
-        cls.needs = {entry["number"]: set(check_practices.references(entry["needs"][0])[0]) for entry in entries}
-        cls.files = {entry["number"]: [path for path, _ in entry["files"]] for entry in entries}
-        cls.candidates = sorted(
-            {path for path, _ in shared} | {path for entry in entries for path, _ in entry["shared"]}
-        )
+        cls.numbers = sorted(entry.number for entry in entries)
+        cls.needs = {entry.number: set(check_practices.references(entry.needs.value)[0]) for entry in entries}
+        cls.files = {entry.number: [path for path, _ in entry.files] for entry in entries}
+        cls.candidates = sorted({path for path, _ in shared} | {path for entry in entries for path, _ in entry.shared})
         cls.candidates = [
             path for path in cls.candidates if markers.kind(path) and os.path.isfile(os.path.join(ROOT, path))
         ]

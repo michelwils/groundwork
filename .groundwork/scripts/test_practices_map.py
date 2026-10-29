@@ -129,7 +129,29 @@ class Entries(unittest.TestCase):
         return practices_map.parse(MAP.split("\n"))[0]
 
     def test_the_map_is_read(self):
-        self.assertEqual([entry["number"] for entry in self.entries()], [1, 3])
+        self.assertEqual([entry.number for entry in self.entries()], [1, 3])
+
+    def test_an_entry_has_its_parts_by_name(self):
+        first, third = self.entries()
+        self.assertIsInstance(first, practices_map.Entry)
+        self.assertEqual(
+            (first.number, first.line, first.needs, first.files, first.shared),
+            (1, 5, practices_map.Needs("none", 7), [practices_map.Listed("a.txt", 9)], []),
+        )
+        self.assertEqual(third.needs.value, "ADR 0002")
+        self.assertEqual([(listed.path, listed.line) for listed in third.files], [("b.txt", 17), ("c.txt", 18)])
+
+    def test_an_entry_without_a_line_needs_has_none(self):
+        entries, _, _ = practices_map.parse("## Practices\n\n### 0004. Four\n".split("\n"))
+        self.assertIsNone(entries[0].needs)
+
+    def test_a_listed_file_is_a_pair_of_a_path_and_a_line(self):
+        _, shared, apart = practices_map.parse(MAP.split("\n"))
+        lines = MAP.split("\n")
+        self.assertEqual(shared, [("CONTRIBUTING.md", lines.index("- `CONTRIBUTING.md`") + 1)])
+        self.assertEqual(apart, [("README.md", lines.index("- `README.md`") + 1)])
+        self.assertIsInstance(shared[0], practices_map.Listed)
+        self.assertEqual(shared[0].path, "CONTRIBUTING.md")
 
     def test_the_needs_of_each_adr_are_a_set_of_numbers(self):
         self.assertEqual(practices_map.needs_of(self.entries()), {1: set(), 3: {2}})

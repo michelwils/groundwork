@@ -11,11 +11,14 @@ has no such text stops the command too, unless --notes-extra gives the migration
 Usage: release.py [--version X.Y.Z] [--notes FILE] [--notes-extra FILE]
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 
 TYPES = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
 TITLE = re.compile(r"^(?P<type>" + "|".join(TYPES) + r")(\((?P<scope>[a-z]+)\))?(?P<bang>!)?: (?P<description>.+)$")
@@ -33,11 +36,29 @@ LEVELS = {"none": 0, "patch": 1, "minor": 2, "major": 3}
 SECTIONS = ["feat", "fix", "perf", "docs", "style", "refactor", "test", "build", "ci", "chore", "revert"]
 
 
+@dataclass
+class Commit:
+    """A commit of the range: its hash, its title and its whole message, and what the title says when it follows
+    ADR 0002 (`type` is None otherwise). `breaking` tells whether the title has `!` or the message a footer
+    `BREAKING CHANGE:`, `footer` is the text of that footer, and `undone` is set when a revert and the change it
+    reverts cancel each other."""
+
+    sha: str
+    title: str
+    message: str
+    type: str | None
+    scope: str | None
+    description: str
+    breaking: bool
+    footer: str
+    undone: bool = False
+
+
 def git(*args):
     return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
 
-def previous_version():
+def previous_version() -> str | None:
     """Return the highest version among the tags reachable from HEAD, or None."""
     versions = []
     for tag in git("tag", "--merged", "HEAD", "--list", "v[0-9]*").split():
@@ -47,8 +68,8 @@ def previous_version():
     return max(versions, key=lambda version: tuple(map(int, version.split(".")))) if versions else None
 
 
-def commits_since(version):
-    """Return the commits since the version, oldest first, as dicts."""
+def commits_since(version: str | None) -> list[Commit]:
+    """Return the commits since the version, oldest first."""
     span = f"v{version}..HEAD" if version else "HEAD"
     raw = git("log", "--reverse", "--format=%H%x1f%B%x1e", span)
     commits = []
@@ -59,17 +80,19 @@ def commits_since(version):
         sha, _, message = entry.partition("\x1f")
         title = message.strip().split("\n", 1)[0]
         match = TITLE.match(title)
-        commit = {"sha": sha, "title": title, "message": message, "undone": False}
         if match:
-            commit.update(
+            commit = Commit(
+                sha=sha,
+                title=title,
+                message=message,
                 type=match.group("type"),
                 scope=match.group("scope"),
                 description=match.group("description"),
                 breaking=bool(match.group("bang")) or bool(BREAKING_FOOTER.search(message)),
+                footer=footer_text(message),
             )
-            commit["footer"] = footer_text(message)
         else:
-            commit.update(type=None, scope=None, description=title, breaking=False, footer="")
+            commit = Commit(sha, title, message, None, None, title, False, "")
         commits.append(commit)
     return commits
 
@@ -87,12 +110,12 @@ def key(description):
     return PULL_REQUEST.sub("", description).strip()
 
 
-def released_keys(version):
+def released_keys(version: str | None) -> dict[str, str]:
     """Return the descriptions of the changes released up to the version that no released revert undid, with the
     title of the latest one of each."""
     if not version:
         return {}
-    found = {}
+    found: dict[str, str] = {}
     for title in git("log", "--reverse", "--format=%s", f"v{version}").splitlines():
         match = TITLE.match(title)
         if not match:
@@ -105,7 +128,7 @@ def released_keys(version):
     return found
 
 
-def cancel_reverts(commits, released=None):
+def cancel_reverts(commits: list[Commit], released: dict[str, str] | None = None) -> list[tuple[Commit, list[str]]]:
     """Mark a reverted commit and its revert as undone, when both are in the range.
 
     A revert is paired only with the one change that has its description, in the range or released. One that
@@ -113,36 +136,36 @@ def cancel_reverts(commits, released=None):
     released = released or {}
     ambiguous = []
     for index, commit in enumerate(commits):
-        if commit["type"] != "revert":
+        if commit.type != "revert":
             continue
-        name = key(commit["description"])
+        name = key(commit.description)
         matches = [
             earlier
             for earlier in commits[:index]
-            if not earlier["undone"] and earlier["type"] not in (None, "revert") and key(earlier["description"]) == name
+            if not earlier.undone and earlier.type not in (None, "revert") and key(earlier.description) == name
         ]
-        titles = ([released[name]] if name in released else []) + [earlier["title"] for earlier in matches]
+        titles = ([released[name]] if name in released else []) + [earlier.title for earlier in matches]
         if len(titles) > 1:
             ambiguous.append((commit, titles))
         elif matches:
-            matches[0]["undone"] = commit["undone"] = True
+            matches[0].undone = commit.undone = True
     return ambiguous
 
 
 def without_text(commits):
     """Return the breaking changes that stay in the notes and whose commit has no text in its `BREAKING CHANGE:` footer."""
-    return [commit for commit in commits if commit["breaking"] and not commit["undone"] and not commit["footer"]]
+    return [commit for commit in commits if commit.breaking and not commit.undone and not commit.footer]
 
 
-def increment(commit, major):
-    if commit["undone"] or commit["type"] is None:
+def increment(commit: Commit, major: int) -> str:
+    if commit.undone or commit.type is None:
         return "none"
-    if commit["breaking"]:
+    if commit.breaking:
         return "major" if major >= 1 else "minor"
-    return {"feat": "minor", "fix": "patch", "perf": "patch"}.get(commit["type"], "none")
+    return {"feat": "minor", "fix": "patch", "perf": "patch"}.get(commit.type, "none")
 
 
-def bump(version, level):
+def bump(version: str | None, level: str) -> str:
     major, minor, patch = (int(part) for part in (version or "0.0.0").split("."))
     if level == "major":
         return f"{major + 1}.0.0"
@@ -151,12 +174,12 @@ def bump(version, level):
     return f"{major}.{minor}.{patch + 1}"
 
 
-def notes(commits, extra=""):
-    groups = {}
+def notes(commits: list[Commit], extra: str = "") -> str:
+    groups: dict[str, list[Commit]] = {}
     for commit in commits:
-        if commit["undone"]:
+        if commit.undone:
             continue
-        name = "Breaking changes" if commit["breaking"] else commit["type"] or "Other"
+        name = "Breaking changes" if commit.breaking else commit.type or "Other"
         groups.setdefault(name, []).append(commit)
     lines = []
     for name in ["Breaking changes", *SECTIONS, "Other"]:
@@ -164,10 +187,10 @@ def notes(commits, extra=""):
             continue
         lines += [f"## {name}", ""]
         for commit in groups[name]:
-            scope = f"**{commit['scope']}:** " if commit["scope"] else ""
-            lines.append(f"- {scope}{commit['description']}")
-            if name == "Breaking changes" and commit["footer"]:
-                lines += ["", *(f"  {line}" if line else "" for line in commit["footer"].splitlines())]
+            scope = f"**{commit.scope}:** " if commit.scope else ""
+            lines.append(f"- {scope}{commit.description}")
+            if name == "Breaking changes" and commit.footer:
+                lines += ["", *(f"  {line}" if line else "" for line in commit.footer.splitlines())]
         lines.append("")
     text = "\n".join(lines).rstrip() + "\n"
     return f"{extra.strip()}\n\n{text}".rstrip() + "\n" if extra.strip() else text
@@ -191,7 +214,7 @@ def stop_on_what_needs_the_maintainers(commits, ambiguous, extra, version):
         sys.exit(
             "\n".join(
                 [
-                    f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches"
+                    f"error: the revert '{revert.title}' ({revert.sha[:7]}) matches"
                     + "".join(f"\n  {title}" for title in titles)
                     for revert, titles in ambiguous
                 ]
@@ -203,7 +226,7 @@ def stop_on_what_needs_the_maintainers(commits, ambiguous, extra, version):
         sys.exit(
             "\n".join(
                 [
-                    f"error: the breaking change '{commit['title']}' ({commit['sha'][:7]}) has no BREAKING CHANGE: text in its commit."
+                    f"error: the breaking change '{commit.title}' ({commit.sha[:7]}) has no BREAKING CHANGE: text in its commit."
                     for commit in bare
                 ]
                 + ['Give the migration with --notes-extra (the field "notes" of the release workflow).']
@@ -249,7 +272,7 @@ def main():
     extra = read_extra(args.notes_extra)
     previous = previous_version()
     commits = commits_since(previous)
-    released = released_keys(previous) if any(commit["type"] == "revert" for commit in commits) else {}
+    released = released_keys(previous) if any(commit.type == "revert" for commit in commits) else {}
     ambiguous = cancel_reverts(commits, released)
     stop_on_what_needs_the_maintainers(commits, ambiguous, extra, args.version)
     major = int((previous or "0.0.0").split(".")[0])
