@@ -5,7 +5,8 @@ A template copies files, not settings. The script applies, to a repository on Gi
 
 - squash as the only merge method, with the pull request title as the commit title, an empty
   commit message, and the deletion of branches after a merge
-- private vulnerability reporting, which SECURITY.md relies on
+- private vulnerability reporting, which SECURITY.md relies on. GitHub offers it on public repositories only, so on a
+  private or internal repository the script skips it, says so, and applies the rest
 - immutable releases, which apply to the releases published afterwards
 - the vulnerability alerts, which also turn on the dependency graph, then the security updates of
   the dependencies, which open a pull request for a vulnerable dependency (ADR 0008)
@@ -40,14 +41,30 @@ class Failure(Exception):
     pass
 
 
+class Refused(Failure):
+    """An answer of the platform, with the HTTP status that gh prints at the end of its error, or None."""
+
+    def __init__(self, message, status=None):
+        super().__init__(message)
+        self.status = status
+
+
 def gh(*args, input=None):
     try:
         result = subprocess.run(["gh", *args], capture_output=True, text=True, input=input)
     except FileNotFoundError:
         raise Failure("the gh command is not installed")
     if result.returncode != 0:
-        raise Failure(result.stderr.strip() or f"gh {' '.join(args)} failed")
+        message = result.stderr.strip() or f"gh {' '.join(args)} failed"
+        status = re.search(r"\(HTTP ([0-9]{3})\)\s*$", message)
+        raise Refused(message, int(status.group(1)) if status else None)
     return result.stdout
+
+
+def rights(failure):
+    """Return the sentence about admin rights when the platform refused for them (HTTP 403), else nothing: any other
+    answer is shown as it is, since it does not tell that the rights are missing."""
+    return ". This needs admin rights on the repository." if getattr(failure, "status", None) == 403 else ""
 
 
 def current_repository():
@@ -139,9 +156,10 @@ def lowered(detail, wanted):
     return names
 
 
-def settings(repository, code_owner_review=False, last_push_approval=False):
+def settings(repository, code_owner_review=False, last_push_approval=False, visibility="public"):
     """Return the steps, in the order they are applied, as (description, arguments of gh api, standard input of gh),
-    and the approval settings of the ruleset on the platform that this run would lower."""
+    and the approval settings of the ruleset on the platform that this run would lower. A step without arguments is
+    skipped. Private vulnerability reporting is one for a repository that is not public."""
     api = f"repos/{repository}"
     ruleset_id = next((r["id"] for r in json.loads(gh("api", f"{api}/rulesets")) if r["name"] == ruleset_name()), None)
     ruleset = ("-X", "PUT", f"{api}/rulesets/{ruleset_id}") if ruleset_id else ("-X", "POST", f"{api}/rulesets")
@@ -166,7 +184,11 @@ def settings(repository, code_owner_review=False, last_push_approval=False):
              "-F", "delete_branch_on_merge=true",
              "-f", "squash_merge_commit_title=PR_TITLE", "-f", "squash_merge_commit_message=BLANK"),
         ),
-        ("private vulnerability reporting: enabled", ("-X", "PUT", f"{api}/private-vulnerability-reporting")),
+        (
+            ("private vulnerability reporting: enabled", ("-X", "PUT", f"{api}/private-vulnerability-reporting"))
+            if visibility not in ("private", "internal")
+            else (f"private vulnerability reporting: GitHub offers it on public repositories only, and this one is {visibility}", None)
+        ),
         ("immutable releases: enabled", ("-X", "PUT", f"{api}/immutable-releases")),
         ("vulnerability alerts: enabled", ("-X", "PUT", f"{api}/vulnerability-alerts")),
         ("security updates: enabled", ("-X", "PUT", f"{api}/automated-security-fixes")),
@@ -190,25 +212,29 @@ def run(args):
         check_not_alone(check_owners())
     print(f"repository: {repository}")
     try:
-        steps, turned_off = settings(repository, args.code_owner_review, args.last_push_approval)
+        visibility = gh("api", f"repos/{repository}", "--jq", ".visibility").strip()
     except Failure as failure:
-        raise Failure(f"could not read the rulesets of {repository}: {failure}. This needs admin rights on the repository.")
+        raise Failure(f"could not read {repository}: {failure}{rights(failure)}")
+    try:
+        steps, turned_off = settings(repository, args.code_owner_review, args.last_push_approval, visibility)
+    except Failure as failure:
+        raise Failure(f"could not read the rulesets of {repository}: {failure}{rights(failure)}")
     if turned_off and not args.turn_off_reviews:
         raise Failure(
             f"the ruleset '{ruleset_name()}' of {repository} has {' and '.join(turned_off)}, and this run would lower it. "
             "Give the same options to keep it, or --turn-off-reviews to lower it."
         )
     for description, arguments, *stdin in steps:
+        if arguments is None:
+            print(f"{'would skip' if args.dry_run else 'skipped'} {description}")
+            continue
         if args.dry_run:
             print(f"would apply {description}")
             continue
         try:
             gh("api", *arguments, input=stdin[0] if stdin else None)
         except Failure as failure:
-            raise Failure(
-                f"could not apply {description.split(':')[0]} to {repository}: {failure}. "
-                "This needs admin rights on the repository."
-            )
+            raise Failure(f"could not apply {description.split(':')[0]} to {repository}: {failure}{rights(failure)}")
         print(f"applied {description}")
 
 

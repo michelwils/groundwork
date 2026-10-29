@@ -24,10 +24,14 @@ if "--input" in args and args[args.index("--input") + 1] == "-":
     with open(os.environ["FAKE_LOG"] + ".body", "w") as body:
         body.write(sys.stdin.read())
 if os.environ.get("FAKE_FAIL") and os.environ["FAKE_FAIL"] in " ".join(args):
-    print("gh: HTTP 403: Must have admin rights to Repository.", file=sys.stderr)
+    status = os.environ.get("FAKE_FAIL_STATUS") or "403"
+    message = {"403": "Must have admin rights to Repository.", "404": "Not Found", "422": "Validation Failed"}.get(status, "Server Error")
+    print(f"gh: {message} (HTTP {status})", file=sys.stderr)
     sys.exit(1)
 if args[:2] == ["repo", "view"]:
     print("default-owner/default-repo")
+elif args[0] == "api" and args[1].count("/") == 2 and "-X" not in args:
+    print(os.environ.get("FAKE_VISIBILITY") or "public")
 elif args[:2] == ["api", "user"]:
     if not os.environ.get("FAKE_USER"):
         print("gh: HTTP 401: Requires authentication", file=sys.stderr)
@@ -54,7 +58,7 @@ class ApplySettings(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_script(self, *args, rulesets="[]", fail="", ruleset="{}", user=""):
+    def run_script(self, *args, rulesets="[]", fail="", ruleset="{}", user="", status="", visibility=""):
         """Run the script from the directory of a project, which holds the CODEOWNERS that `self.owners` writes."""
         env = {
             **os.environ,
@@ -64,6 +68,8 @@ class ApplySettings(unittest.TestCase):
             "FAKE_RULESET": ruleset,
             "FAKE_FAIL": fail,
             "FAKE_USER": user,
+            "FAKE_FAIL_STATUS": status,
+            "FAKE_VISIBILITY": visibility,
         }
         return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, env=env, cwd=self.project)
 
@@ -145,6 +151,68 @@ class ApplySettings(unittest.TestCase):
         self.assertIn("admin", result.stderr)
         self.assertFalse(any("immutable-releases" in " ".join(call) for call in self.calls()))
         self.assertFalse(any("rulesets" in " ".join(call) and "-X" in call for call in self.calls()))
+
+    def test_names_the_admin_rights_only_when_the_platform_refuses_for_them(self):
+        result = self.run_script("owner/repo", fail="immutable-releases", status="403")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("This needs admin rights on the repository", result.stderr)
+
+    def test_shows_the_answer_of_the_platform_and_not_the_admin_rights_for_any_other_error(self):
+        for status, text in (("404", "Not Found"), ("422", "Validation Failed"), ("500", "Server Error")):
+            with self.subTest(status=status):
+                result = self.run_script("owner/repo", fail="immutable-releases", status=status)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("immutable releases", result.stderr)
+                self.assertIn(text, result.stderr)
+                self.assertNotIn("admin", result.stderr)
+
+    def test_the_rulesets_that_cannot_be_read_name_the_admin_rights_only_for_a_403(self):
+        refused = self.run_script("owner/repo", fail="rulesets", status="403")
+        self.assertIn("could not read the rulesets of owner/repo", refused.stderr)
+        self.assertIn("This needs admin rights on the repository", refused.stderr)
+        other = self.run_script("owner/repo", fail="rulesets", status="404")
+        self.assertIn("could not read the rulesets of owner/repo", other.stderr)
+        self.assertIn("Not Found", other.stderr)
+        self.assertNotIn("admin", other.stderr)
+
+    def test_a_repository_that_is_not_public_skips_private_vulnerability_reporting_and_applies_the_rest(self):
+        for visibility in ("private", "internal"):
+            with self.subTest(visibility=visibility):
+                result = self.run_script("owner/repo", visibility=visibility)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("skipped private vulnerability reporting", result.stdout)
+                self.assertIn("public repositories", result.stdout)
+                self.assertIn(visibility, result.stdout)
+                text = [" ".join(call) for call in self.writes()]
+                self.assertFalse(any("private-vulnerability-reporting" in call for call in text))
+                for step in ("immutable-releases", "vulnerability-alerts", "automated-security-fixes", "rulesets"):
+                    self.assertTrue(any(step in call for call in text), step)
+                os.remove(self.log)
+
+    def test_the_dry_run_says_that_it_would_skip_the_reporting_of_a_repository_that_is_not_public(self):
+        result = self.run_script("owner/repo", "--dry-run", visibility="private")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would skip private vulnerability reporting", result.stdout)
+        self.assertEqual(self.writes(), [])
+
+    def test_a_public_repository_gets_private_vulnerability_reporting(self):
+        result = self.run_script("owner/repo", visibility="public")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("skipped", result.stdout)
+        self.assertTrue(any("private-vulnerability-reporting" in " ".join(call) for call in self.writes()))
+
+    def test_a_visibility_that_the_script_does_not_know_does_not_skip_the_reporting(self):
+        result = self.run_script("owner/repo", visibility="null")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(any("private-vulnerability-reporting" in " ".join(call) for call in self.writes()))
+
+    def test_a_visibility_that_cannot_be_read_stops_with_the_answer_of_the_platform(self):
+        result = self.run_script("owner/repo", fail="visibility", status="404")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("owner/repo", result.stderr)
+        self.assertIn("Not Found", result.stderr)
+        self.assertNotIn("admin", result.stderr)
+        self.assertEqual(self.writes(), [])
 
     def test_stops_when_the_alerts_cannot_be_turned_on_and_does_not_try_the_security_updates(self):
         result = self.run_script("owner/repo", fail="vulnerability-alerts")
