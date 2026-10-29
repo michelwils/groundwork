@@ -16,14 +16,15 @@ We will record each significant decision as an Architecture Decision Record (ADR
 - **The project:** every number that no range reserves is free. A project numbers its own ADRs from the first number that no range reserves, which is `1000` when its source reserves `0001` to `0999` only, and skips only the numbers in a reserved range. groundwork is itself a project: its own decisions that do not apply to the projects that adopt it are numbered from `1000`, outside what it reserves, and are not synchronised.
 - **Template:** `docs/adr/template.md`.
 - **Statuses:** `proposed`, `accepted`, `rejected`, and `superseded by NNNN`.
-- **Changing a decision:** an accepted ADR may be clarified in place when its meaning does not change (wording, missing detail, broken links). A decision that is reversed or contradicted is replaced by a new ADR, and the old one is updated only to set its status to `superseded by NNNN`.
+- **Changing a decision:** while the major version of the project that writes an ADR is `0`, an accepted ADR may be changed in place, including to add, change or remove a rule, and its status stays `accepted`. From `1.0.0`, an accepted ADR may be clarified in place only when its meaning does not change (wording, missing detail, broken links). A decision that is reversed or contradicted is then replaced by a new ADR, and the old one is updated only to set its status to `superseded by NNNN`.
 - **Writing:** ADRs are written in English, short, and describe one decision each.
 
 ## Consequences
 
 - The reasons for every significant decision stay in the repository, next to the code and the history.
 - Each decision costs a short document, which is overhead for small choices. Not every choice needs an ADR.
-- The history of a decision is read by following the chain of superseded ADRs.
+- From `1.0.0`, the history of a decision is read by following the chain of superseded ADRs. Before, it is in the history of the file of the ADR.
+- A project that follows a source whose major version is `0` receives ADRs changed in place. The type of the commit, as the table of the changes to the contract in the README gives it, tells what the change breaks.
 - An ADR added by groundwork or by a community base never takes the number of a project's ADR, so moving a project to a later version does not conflict on file names or references.
 - A community that reserves a range in which projects already have ADRs makes those projects renumber them. It reserves a range above the numbers its projects use.
 - A clarification and a replacement are told apart by one question: would someone relying on the old text be surprised by the new one?
