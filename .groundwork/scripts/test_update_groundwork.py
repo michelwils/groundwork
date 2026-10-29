@@ -8,9 +8,9 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import choice  # noqa: E402
 import markers  # noqa: E402
 import update_groundwork  # noqa: E402
+from choice import Kept  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "update_groundwork.py")
 
@@ -131,13 +131,13 @@ class Types(unittest.TestCase):
         step = update_groundwork.Step("a.txt", b"old", b"new")
         with tempfile.TemporaryDirectory() as root:
             side = update_groundwork.Side(root=root)
-        kept = choice.Kept(None, {})
+        kept = Kept(None, {})
         planned = update_groundwork.Plan(said=[3], steps=[step], side=side, kept=kept)
         self.assertEqual((planned.said, planned.steps), ([3], [step]))
         self.assertIs(planned.side, side)
         self.assertIs(planned.kept, kept)
         self.assertIsInstance(planned.side, update_groundwork.Side)
-        self.assertIsInstance(planned.kept, choice.Kept)
+        self.assertIsInstance(planned.kept, Kept)
 
 
 class Inside(unittest.TestCase):
