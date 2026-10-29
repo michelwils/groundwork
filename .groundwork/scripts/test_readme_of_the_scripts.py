@@ -17,8 +17,14 @@ def read(path):
 
 
 def scripts():
-    """Return the scripts of the folder, without the tests. A project that left a practice out has fewer of them."""
-    return sorted(name for name in os.listdir(HERE) if name.endswith(".py") and not name.startswith("test_"))
+    """Return the scripts of the folder that have a test module next to them, which those of groundwork all have. A
+    project that left a practice out has fewer of them, and one that adds a helper script of its own, without a test
+    module of that name, does not make the page false."""
+    return sorted(
+        name
+        for name in os.listdir(HERE)
+        if name.endswith(".py") and not name.startswith("test_") and os.path.isfile(os.path.join(HERE, f"test_{name}"))
+    )
 
 
 def section(heading):
@@ -44,6 +50,35 @@ def names_defined(script):
     return {
         node.name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
     }
+
+
+def names_of_the_code():
+    """Return the names that the scripts define or use: functions, classes, parameters, variables and attributes."""
+    found = set()
+    for script in scripts():
+        for node in ast.walk(ast.parse(read(os.path.join(HERE, script)))):
+            if isinstance(node, ast.Name):
+                found.add(node.id)
+            elif isinstance(node, ast.arg):
+                found.add(node.arg)
+            elif isinstance(node, ast.Attribute):
+                found.add(node.attr)
+            elif isinstance(node, ast.keyword) and node.arg:
+                found.add(node.arg)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                found.add(node.name)
+    return found
+
+
+def modules_imported(script):
+    """Return the scripts of the folder that a script imports."""
+    found = set()
+    for node in ast.walk(ast.parse(read(os.path.join(HERE, script)))):
+        if isinstance(node, ast.Import):
+            found |= {alias.name.split(".")[0] for alias in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            found.add(node.module.split(".")[0])
+    return found & {name[:-3] for name in scripts()}
 
 
 class ReadmeOfTheScripts(unittest.TestCase):
@@ -75,18 +110,40 @@ class ReadmeOfTheScripts(unittest.TestCase):
                         checked += 1
             self.assertGreater(checked, 0, f"{heading}: no name was checked")
 
-    def test_every_word_of_the_glossary_is_a_word_of_the_code(self):
-        code = "\n".join(read(os.path.join(HERE, script)) for script in scripts())
+    def test_the_imports_of_the_table_are_the_imports_of_the_scripts(self):
+        """The second cell of a row names the scripts that the script of the first cell imports. A script that a
+        project left out is not named by what the project has."""
+        checked = 0
+        for row in rows(section("How the modules fit together")):
+            script = CODE.findall(row[0])[0]
+            if script not in scripts():
+                continue
+            named = {name for name in CODE.findall(row[1]) if f"{name}.py" in scripts()}
+            with self.subTest(script=script):
+                self.assertEqual(named, modules_imported(script))
+            checked += 1
+        self.assertGreater(checked, 0)
+
+    def test_every_script_has_a_row_in_the_table_of_the_imports(self):
+        named = {code for row in rows(section("How the modules fit together")) for code in CODE.findall(row[0])}
+        for script in scripts():
+            with self.subTest(script=script):
+                self.assertIn(script, named)
+
+    def test_every_word_of_the_glossary_is_a_name_of_the_code(self):
+        """A word that appears only in a comment or a docstring is not a name that the code uses."""
+        names = names_of_the_code()
         words = [word for row in rows(section("Glossary")) for word in CODE.findall(row[0])]
         self.assertGreater(len(words), 0)
         for word in words:
             with self.subTest(word=word):
-                self.assertRegex(code, re.compile(rf"\b{re.escape(word)}\b"))
+                self.assertIn(word, names)
 
     def test_the_page_has_no_link(self):
         """It is copied into every project, whose files and ADRs are not those of groundwork, and the check of the
         links reports a link to a file that is absent."""
-        self.assertNotRegex(read(PAGE), re.compile(r"\]\(|\]\[|^\[[^\]]+\]:", flags=re.MULTILINE))
+        link = r"\]\(|\]\[|^\[[^\]]+\]:|<a[\s>]|href=|<[^<>\s]*\.md[^<>\s]*>|<https?:"
+        self.assertNotRegex(read(PAGE), re.compile(link, flags=re.MULTILINE))
 
 
 if __name__ == "__main__":

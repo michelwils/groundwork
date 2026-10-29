@@ -8,7 +8,7 @@ The page is copied into every project with the scripts, and a project does not h
 
 - One script per job, and `test_<script>.py` for its tests. The tests that read the files of the repository, such as `test_checks_workflow.py`, check the configuration of groundwork and of a project.
 - `requirements.txt` pins the dependencies of the scripts, and Dependabot updates it. `coveragerc` sets the coverage that the tests must reach (ADR 1002), and `ruff.toml` the lint and the format of the Python (ADR 1005).
-- The commands that run the checks, the tests and the coverage are in the README of groundwork, in the section Working on groundwork.
+- The commands that run the checks, the tests and the coverage are those of the steps of the workflow `checks.yml`. The README of groundwork gives them too, in its section Working on groundwork.
 
 ## Who runs what
 
@@ -28,17 +28,23 @@ The page is copied into every project with the scripts, and a project does not h
 
 ## How the modules fit together
 
-```text
-markers, practices_map      import nothing of groundwork
-choice                      imports markers and practices_map
-update_groundwork           imports choice, markers and practices_map
-apply_choice                imports update_groundwork (as update), choice, markers and practices_map
-check_adrs, check_links     import choice and practices_map
-check_practices             imports choice, markers and practices_map
-open_update_pull_request    runs update_groundwork.py as a process, and reads the JSON file that it writes
-run_with_requirements       runs another script as a process
-apply_settings, release, check_pull_request    import none of them
-```
+Each script finds the others in its own folder. The second column is what it imports, and a test compares it with the real imports.
+
+| Module | Imports | Note |
+| --- | --- | --- |
+| `markers.py` | none | |
+| `practices_map.py` | none | |
+| `choice.py` | `markers`, `practices_map` | |
+| `update_groundwork.py` | `choice`, `markers`, `practices_map` | |
+| `apply_choice.py` | `update_groundwork`, `choice`, `markers`, `practices_map` | It imports `update_groundwork` as `update` |
+| `check_adrs.py` | `choice`, `practices_map` | |
+| `check_links.py` | `choice`, `practices_map` | |
+| `check_practices.py` | `choice`, `markers`, `practices_map` | |
+| `open_update_pull_request.py` | none | It runs `update_groundwork.py` as a process, and reads the JSON file that it writes |
+| `run_with_requirements.py` | none | It runs another script as a process |
+| `apply_settings.py` | none | |
+| `release.py` | none | |
+| `check_pull_request.py` | none | |
 
 - `markers.py` reads the blocks of lines that an ADR owns in a file that several ADRs share (`parse`), and takes out the blocks of the ADRs that a project did not keep (`remove`).
 - `practices_map.py` reads the map `.groundwork/practices.md` (`parse`) and the ranges of numbers that a source reserves (`read_ranges`).
@@ -55,7 +61,7 @@ Each row is one step of `run` in `update_groundwork.py`, in order, then the step
 | The source is chosen: `--source`, else the file of the project, else groundwork | `source_of`, `recorded_source` | `update_groundwork.py` |
 | The tags, and the head when asked, are fetched, and the source must know the recorded version | `fetch_base`, `fetch_releases`, `fetch_head`, `unknown_message` | `update_groundwork.py` |
 | The version to move to is chosen, or the update stops because the project is up to date | `target`, `target_head`, `target_release`, `target_latest`, `up_to_date` | `update_groundwork.py` |
-| The branch is named | `branch_name` | `update_groundwork.py` |
+| The working tree must be clean, and the branch is named and must not exist yet: checks made in `run` itself | `run`, `branch_name` | `update_groundwork.py` |
 | What the choice of the project asks for between the two versions is read, and nothing is written | `plan`, `Side`, `adrs_entering`, `paths_with_a_block_of`, `text_of`, `Without` | `update_groundwork.py` |
 | A path that leaves the repository or lands in a directory .git is refused, and so is a result file that cannot be written | `refuse_steps_outside`, `paths_of`, `inside`, `in_git_directory`, `check_result_path` | `update_groundwork.py` |
 | The branch is created and each step is applied with a three-way merge | `apply_path`, `decide`, `merge`, `read`, `write`, `remove` | `update_groundwork.py` |
@@ -98,8 +104,8 @@ The words of the code, with the ADR that defines what they stand for.
 
 | Word | Meaning | ADR |
 | --- | --- | --- |
-| `adopted` | The ranges of numbers that the file `.groundwork-adrs` lists, or nothing when the project has no file | ADR 1000 |
-| `kept` | The ADRs that the project keeps: the adopted ones, those that they need, and ADR 0001 | ADR 1000 |
+| `adopted` | The ranges of numbers that the file `.groundwork-adrs` lists, or no value when the project has no file, in which case it keeps everything that the source reserves | ADR 1000 |
+| `kept` | The ADRs that the project keeps: the adopted ones, those that they need, and ADR 0001, or every ADR that the source reserves when the project has no file | ADR 1000 |
 | `listed` | An ADR that a range of the file holds, as opposed to one that is kept because another needs it | ADR 1000 |
 | `needs` | For each ADR, the numbers of the ADRs that it cannot be applied without, from the map | ADR 1000, ADR 0008 |
 | `needed` | The listed ADRs and ADR 0001, with the ADRs that they need, and those in turn | ADR 1000 |
@@ -112,7 +118,7 @@ The words of the code, with the ADR that defines what they stand for.
 | `entering` | The ADRs that enter the choice at a version: kept now and not before, or kept by a choice that has no file for them | ADR 1000 |
 | `candidates` | The paths that an update considers: those that changed, those that start from nothing, and those with a block of an ADR that enters | ADR 1000 |
 | `from_nothing` | A path whose base is empty, because its ADR enters the choice or was left out before, so that its file is not taken for a deletion | ADR 1000 |
-| `said` | The ADRs that enter the choice and that the project does not list, which the update names in its line added | ADR 1000 |
+| `said` | The ADRs that enter the choice and that the project does not list, which the update names in its line added. A project with no file has none | ADR 1000 |
 | `base`, `theirs`, `ours` | The three versions of a file in a merge: the version that the project is based on, the new version of groundwork, and the file of the project | ADR 1000 |
 | `source` | The repository of groundwork that an update reads: `--source`, else `.groundwork-source`, else groundwork | ADR 1000, ADR 1004 |
 | `head` | The default branch of the source, to which `--to head` moves a project to try a change before its release | ADR 1004 |
