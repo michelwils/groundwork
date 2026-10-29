@@ -150,6 +150,8 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
 ## Decisions
 
 Significant decisions are recorded as ADRs, following the template in [`docs/adr/template.md`](docs/adr/template.md) ([ADR 0001](docs/adr/0001-record-architecture-decisions.md)).
+
+A decision that names neither the project, nor its stack, nor its domain serves every project of the same source: propose it in an issue of the source, which is groundwork or the base that `.groundwork-source` names, before or while recording it as an ADR of the project.
 <!-- /groundwork -->
 
 <!-- groundwork:0005 -->
