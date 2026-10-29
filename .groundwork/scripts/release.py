@@ -175,26 +175,21 @@ def notes(commits, extra=""):
     return f"{extra.strip()}\n\n{text}".rstrip() + "\n" if extra.strip() else text
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--version", help="version to release, without the leading v")
-    parser.add_argument("--notes", help="file that receives the release notes")
-    parser.add_argument("--notes-extra", help="file whose text opens the release notes")
-    args = parser.parse_args()
+def read_extra(path):
+    """Return the text that opens the release notes, from the file that --notes-extra names, or nothing."""
+    if not path:
+        return ""
+    try:
+        with open(path) as handle:
+            return handle.read()
+    except OSError as error:
+        sys.exit(f"error: cannot read the extra notes: {error}")
 
-    extra = ""
-    if args.notes_extra:
-        try:
-            with open(args.notes_extra) as handle:
-                extra = handle.read()
-        except OSError as error:
-            sys.exit(f"error: cannot read the extra notes: {error}")
 
-    previous = previous_version()
-    commits = commits_since(previous)
-    released = released_keys(previous) if any(commit["type"] == "revert" for commit in commits) else {}
-    ambiguous = cancel_reverts(commits, released)
-    if ambiguous and not args.version:
+def stop_on_what_needs_the_maintainers(commits, ambiguous, extra, version):
+    """Stop on a revert that matches several changes, unless the version is given, and on a breaking change with no
+    text, unless the extra notes give the migration."""
+    if ambiguous and not version:
         sys.exit("\n".join(
             [f"error: the revert '{revert['title']}' ({revert['sha'][:7]}) matches" + "".join(f"\n  {title}" for title in titles)
              for revert, titles in ambiguous]
@@ -206,28 +201,25 @@ def main():
             [f"error: the breaking change '{commit['title']}' ({commit['sha'][:7]}) has no BREAKING CHANGE: text in its commit." for commit in bare]
             + ['Give the migration with --notes-extra (the field "notes" of the release workflow).']
         ))
-    major = int((previous or "0.0.0").split(".")[0])
-    level = max((increment(c, major) for c in commits), key=LEVELS.get, default="none")
 
-    if args.version:
-        if not VERSION.match(args.version):
-            sys.exit(f"error: '{args.version}' is not a version of the form X.Y.Z")
-        version = args.version
-        if previous and tuple(map(int, version.split("."))) <= tuple(map(int, previous.split("."))):
-            sys.exit(f"error: {version} is not greater than the previous version {previous}")
-    elif level == "none":
-        print(f"previous: {previous or 'none'}")
-        print("version: none (no change since the previous version affects it)")
-        return
-    else:
-        version = bump(previous, level)
 
-    if git("tag", "--list", f"v{version}").strip():
-        sys.exit(f"error: the tag v{version} already exists")
+def version_to_release(given, previous, level):
+    """Return the version that is given, once checked, or the one that the level of the commits gives, or None."""
+    if given:
+        if not VERSION.match(given):
+            sys.exit(f"error: '{given}' is not a version of the form X.Y.Z")
+        if previous and tuple(map(int, given.split("."))) <= tuple(map(int, previous.split("."))):
+            sys.exit(f"error: {given} is not greater than the previous version {previous}")
+        return given
+    if level == "none":
+        return None
+    return bump(previous, level)
 
-    text = notes(commits, extra)
-    if args.notes:
-        with open(args.notes, "w") as handle:
+
+def publish(text, version, previous, level, notes_file):
+    """Write the notes and the version where the workflow reads them, and print them."""
+    if notes_file:
+        with open(notes_file, "w") as handle:
             handle.write(text)
     print(f"previous: {previous or 'none'}")
     print(f"increment: {level}")
@@ -237,6 +229,32 @@ def main():
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
             handle.write(f"version={version}\n")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--version", help="version to release, without the leading v")
+    parser.add_argument("--notes", help="file that receives the release notes")
+    parser.add_argument("--notes-extra", help="file whose text opens the release notes")
+    args = parser.parse_args()
+
+    extra = read_extra(args.notes_extra)
+    previous = previous_version()
+    commits = commits_since(previous)
+    released = released_keys(previous) if any(commit["type"] == "revert" for commit in commits) else {}
+    ambiguous = cancel_reverts(commits, released)
+    stop_on_what_needs_the_maintainers(commits, ambiguous, extra, args.version)
+    major = int((previous or "0.0.0").split(".")[0])
+    level = max((increment(c, major) for c in commits), key=LEVELS.get, default="none")
+
+    version = version_to_release(args.version, previous, level)
+    if version is None:
+        print(f"previous: {previous or 'none'}")
+        print("version: none (no change since the previous version affects it)")
+        return
+    if git("tag", "--list", f"v{version}").strip():
+        sys.exit(f"error: the tag v{version} already exists")
+    publish(notes(commits, extra), version, previous, level, args.notes)
 
 
 if __name__ == "__main__":

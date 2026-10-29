@@ -159,26 +159,45 @@ def lowered(detail, wanted):
     return names
 
 
+def ruleset_on_the_platform(api):
+    """Return the id of the ruleset of the file's name on the platform, or None, and its detail, or {}."""
+    ruleset_id = next((r["id"] for r in json.loads(gh("api", f"{api}/rulesets")) if r["name"] == ruleset_name()), None)
+    if not ruleset_id:
+        return None, {}
+    try:
+        return ruleset_id, json.loads(gh("api", f"{api}/rulesets/{ruleset_id}") or "{}")
+    except ValueError as error:
+        raise Failure(f"the platform answered something that is not JSON: {error}")
+
+
+def reporting_step(api, visibility):
+    """Return the step that enables private vulnerability reporting, or a skipped step, with no arguments, on a private
+    or internal repository."""
+    if visibility not in ("private", "internal"):
+        return ("private vulnerability reporting: enabled", ("-X", "PUT", f"{api}/private-vulnerability-reporting"))
+    return (f"private vulnerability reporting: GitHub offers it on public repositories only, and this one is {visibility}", None)
+
+
+def ruleset_step(api, ruleset_id, wanted, words, asks_reviews):
+    """Return the step that creates or updates the ruleset: the file itself when no review option is given, else the
+    ruleset that the options ask for, on the standard input."""
+    target = ("-X", "PUT", f"{api}/rulesets/{ruleset_id}") if ruleset_id else ("-X", "POST", f"{api}/rulesets")
+    if asks_reviews:
+        file, text, stdin = "-", f" ({', '.join(words)})", json.dumps(wanted)
+    else:
+        file, text, stdin = os.path.abspath(RULESET), "", None
+    return (f"ruleset '{ruleset_name()}': {'updated' if ruleset_id else 'created'}{text}", (*target, "--input", file), stdin)
+
+
 def settings(repository, code_owner_review=False, last_push_approval=False, visibility="public"):
     """Return the steps, in the order they are applied, as (description, arguments of gh api, standard input of gh),
     and the approval settings of the ruleset on the platform that this run would lower. A step without arguments is
     skipped. Private vulnerability reporting is one for a repository that is not public."""
     api = f"repos/{repository}"
-    ruleset_id = next((r["id"] for r in json.loads(gh("api", f"{api}/rulesets")) if r["name"] == ruleset_name()), None)
-    ruleset = ("-X", "PUT", f"{api}/rulesets/{ruleset_id}") if ruleset_id else ("-X", "POST", f"{api}/rulesets")
-    detail = {}
-    if ruleset_id:
-        try:
-            detail = json.loads(gh("api", f"{api}/rulesets/{ruleset_id}") or "{}")
-        except ValueError as error:
-            raise Failure(f"the platform answered something that is not JSON: {error}")
+    ruleset_id, detail = ruleset_on_the_platform(api)
     approvals = pull_request_parameters(detail).get("required_approving_review_count") or 0
     wanted, words = protected(code_owner_review, last_push_approval, approvals)
     turned_off = lowered(detail, wanted) if ruleset_id else []
-    if code_owner_review or last_push_approval:
-        file, text, stdin = "-", f" ({', '.join(words)})", json.dumps(wanted)
-    else:
-        file, text, stdin = os.path.abspath(RULESET), "", None
     steps = [
         (
             "merge: squash only, pull request title as commit title, empty message, branches deleted after a merge",
@@ -187,32 +206,44 @@ def settings(repository, code_owner_review=False, last_push_approval=False, visi
              "-F", "delete_branch_on_merge=true",
              "-f", "squash_merge_commit_title=PR_TITLE", "-f", "squash_merge_commit_message=BLANK"),
         ),
-        (
-            ("private vulnerability reporting: enabled", ("-X", "PUT", f"{api}/private-vulnerability-reporting"))
-            if visibility not in ("private", "internal")
-            else (f"private vulnerability reporting: GitHub offers it on public repositories only, and this one is {visibility}", None)
-        ),
+        reporting_step(api, visibility),
         ("immutable releases: enabled", ("-X", "PUT", f"{api}/immutable-releases")),
         ("vulnerability alerts: enabled", ("-X", "PUT", f"{api}/vulnerability-alerts")),
         ("security updates: enabled", ("-X", "PUT", f"{api}/automated-security-fixes")),
-        (
-            f"ruleset '{ruleset_name()}': {'updated' if ruleset_id else 'created'}{text}",
-            (*ruleset, "--input", file),
-            stdin,
-        ),
+        ruleset_step(api, ruleset_id, wanted, words, code_owner_review or last_push_approval),
     ]
     return steps, turned_off
+
+
+def check_options(args):
+    """Stop, before any call that writes, on options that go wrong together or that the files of the project refuse."""
+    if args.last_push_approval and not args.code_owner_review:
+        raise Failure("--last-push-approval goes with --code-owner-review: with no approval required, it enforces nothing.")
+    protected(args.code_owner_review, args.last_push_approval)  # stops here when the file has no pull_request rule
+    if args.code_owner_review:
+        check_not_alone(check_owners())
+
+
+def apply_steps(steps, repository, dry_run):
+    for description, arguments, *stdin in steps:
+        if arguments is None:
+            print(f"{'would skip' if dry_run else 'skipped'} {description}")
+            continue
+        if dry_run:
+            print(f"would apply {description}")
+            continue
+        try:
+            gh("api", *arguments, input=stdin[0] if stdin else None)
+        except Failure as failure:
+            raise Failure(f"could not apply {description.split(':')[0]} to {repository}: {failure}{rights(failure)}")
+        print(f"applied {description}")
 
 
 def run(args):
     repository = args.repository or current_repository()
     if not REPOSITORY.match(repository):
         raise Failure(f"'{repository}' is not of the form OWNER/REPO")
-    if args.last_push_approval and not args.code_owner_review:
-        raise Failure("--last-push-approval goes with --code-owner-review: with no approval required, it enforces nothing.")
-    protected(args.code_owner_review, args.last_push_approval)  # stops here when the file has no pull_request rule
-    if args.code_owner_review:
-        check_not_alone(check_owners())
+    check_options(args)
     print(f"repository: {repository}")
     try:
         visibility = gh("api", f"repos/{repository}", "--jq", ".visibility").strip()
@@ -227,18 +258,7 @@ def run(args):
             f"the ruleset '{ruleset_name()}' of {repository} has {' and '.join(turned_off)}, and this run would lower it. "
             "Give the same options to keep it, or --turn-off-reviews to lower it."
         )
-    for description, arguments, *stdin in steps:
-        if arguments is None:
-            print(f"{'would skip' if args.dry_run else 'skipped'} {description}")
-            continue
-        if args.dry_run:
-            print(f"would apply {description}")
-            continue
-        try:
-            gh("api", *arguments, input=stdin[0] if stdin else None)
-        except Failure as failure:
-            raise Failure(f"could not apply {description.split(':')[0]} to {repository}: {failure}{rights(failure)}")
-        print(f"applied {description}")
+    apply_steps(steps, repository, args.dry_run)
 
 
 def main():

@@ -186,7 +186,8 @@ def main():
             put_back(current, commit, before)
 
 
-def propose(args, current, commit):
+def run_the_update(args):
+    """Run the update script and return its status and the result it wrote, or None when it wrote none."""
     with tempfile.TemporaryDirectory() as directory:  # outside the working tree, so that the commit cannot hold it
         file = os.path.join(directory, "result.json")
         command = [sys.executable, UPDATE, "--result", file] + (["--source", args.source] if args.source else [])
@@ -194,31 +195,39 @@ def propose(args, current, commit):
         sys.stdout.write(update.stdout)
         sys.stderr.write(update.stderr)
         if update.returncode == 1:
-            return 1
-        fields = result(file)
-    if fields is None:
-        if update.returncode != 0:
-            raise Failure(f"The update script ended with status {update.returncode} and wrote no result.")
-        return 0  # up to date, the update script said so
-    agree(update.returncode, fields)
-    files = fields["conflicts"]
+            return 1, None
+        return update.returncode, result(file)
 
-    branch, old, new = fields["branch"], fields["from"], fields["to"]
-    if rejected(branch):
-        undo(branch, current, commit)
-        print(f"The pull request of groundwork {new} was closed without being merged: not proposed again.")
-        return 0
+
+def open_the_pull_request(fields):
+    """Commit the update on its branch, push it and open its pull request, a draft when files are in conflict."""
+    branch, old, new, files = fields["branch"], fields["from"], fields["to"], fields["conflicts"]
     title = f"chore: update groundwork to v{new}"
     run("git", "add", "-A")
     run("git", *IDENTITY, "commit", "-q", "-m", title)
     run("git", "push", "--force", "-q", "origin", f"HEAD:refs/heads/{branch}")
-
     url = run(
         "gh", "pr", "create", "--head", branch, "--title", title,
         "--body", body(old, new, files, fields["source"], fields["added"]),
         *(["--draft"] if files else []),
     ).strip()
     print(url)
+
+
+def propose(args, current, commit):
+    status, fields = run_the_update(args)
+    if status == 1:
+        return 1
+    if fields is None:
+        if status != 0:
+            raise Failure(f"The update script ended with status {status} and wrote no result.")
+        return 0  # up to date, the update script said so
+    agree(status, fields)
+    if rejected(fields["branch"]):
+        undo(fields["branch"], current, commit)
+        print(f"The pull request of groundwork {fields['to']} was closed without being merged: not proposed again.")
+        return 0
+    open_the_pull_request(fields)
     return 0
 
 

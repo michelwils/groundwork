@@ -415,6 +415,34 @@ class Plan:
         self.said, self.steps, self.side, self.kept = said, steps, side, kept
 
 
+def adrs_entering(new_paths, after, kept_before, kept_after, adopted):
+    """Return the ADRs that enter the choice at the version: kept now and not before, or kept by a choice that has no
+    file for them, among the ADRs of the ranges that the source reserves."""
+    directory = practices_map.ADR_DIRECTORY
+    in_project = {adr_number(f"{directory}/{name}") for name in os.listdir(directory)} if os.path.isdir(directory) else set()
+    in_tree = {adr_number(path) for path in new_paths} - {None}
+    return {
+        number for number in in_tree
+        if practices_map.is_reserved(number, after.reserved) and number in kept_after
+        and (number not in kept_before or (adopted is not None and number not in in_project))
+    }
+
+
+def paths_with_a_block_of(new, new_paths, entering, candidates):
+    """Return the paths of the version, outside the candidates, that have a block of an ADR that enters the choice."""
+    found = set()
+    for path in new_paths:
+        if path not in candidates and markers.kind(path):
+            text = blob(new, path)
+            try:
+                blocks = markers.parse(text.decode("utf-8").split("\n"), markers.kind(path))[0]
+            except UnicodeDecodeError:
+                continue
+            if any(block["adr"] in entering for block in blocks):
+                found.add(path)
+    return found
+
+
 def plan(old, new):
     """Return the plan to move the project from the version old to the version new (the same one to apply the
     choice only). It reads the project and the versions and writes nothing."""
@@ -430,127 +458,154 @@ def plan(old, new):
     kept_before = choice.Kept(adopted, before.needs) if before.has_map else kept_after
 
     new_paths = tree_paths(new)
-    directory = practices_map.ADR_DIRECTORY
-    held = {adr_number(f"{directory}/{name}") for name in os.listdir(directory)} if os.path.isdir(directory) else set()
-    in_tree = {adr_number(path) for path in new_paths} - {None}
-    entering = {
-        number for number in in_tree
-        if practices_map.is_reserved(number, after.reserved) and number in kept_after
-        and (number not in kept_before or (adopted is not None and number not in held))
-    }
+    new_set = set(new_paths)
+    entering = adrs_entering(new_paths, after, kept_before, kept_after, adopted)
     said = [number for number in sorted(entering) if adopted is not None and not kept_after.listed(number)]
 
-    def wanted(path):
+    def taken(path):
+        """Tell whether the choice takes the path: in the new version if it is there, else in the old one."""
         if path in new_set:
             return choice.included(path, after.owners, kept_after, after.reserved)
         return not before.has_map or choice.included(path, before.owners, kept_before, before.reserved)
 
-    def fresh(path):
+    def from_nothing(path):
+        """Tell whether the path starts from nothing: its ADR enters the choice, or the choice left it out before."""
         owner = adr_number(path) or after.owners.get(path)
         if owner in entering:
             return True
         return before.has_map and not choice.included(path, before.owners, kept_before, before.reserved)
 
-    new_set = set(new_paths)
-    candidates = set(changed_paths(old, new)) | {path for path in new_paths if fresh(path)}
+    candidates = set(changed_paths(old, new)) | {path for path in new_paths if from_nothing(path)}
     if entering:
-        for path in new_paths:
-            if path not in candidates and markers.kind(path):
-                text = blob(new, path)
-                try:
-                    found = markers.parse(text.decode("utf-8").split("\n"), markers.kind(path))[0]
-                except UnicodeDecodeError:
-                    continue
-                if any(block["adr"] in entering for block in found):
-                    candidates.add(path)
+        candidates |= paths_with_a_block_of(new, new_paths, entering, candidates)
     steps = []
     for path in sorted(candidates):
-        if wanted(path):
-            base = None if path in new_set and fresh(path) else blob(old, path)
+        if taken(path):
+            base = None if path in new_set and from_nothing(path) else blob(old, path)
             steps.append((path, text_of(path, base, Without(kept_after, entering)), text_of(path, blob(new, path), kept_after)))
     return Plan(said, steps, after, kept_after)
 
 
-def run(args):
+def check_arguments(args):
     if args.issue is not None and not args.issue.isdigit():
         raise Failure(f"'{args.issue}' is not an issue number.")
     if args.result is not None:
         if not args.result:
             raise Failure("--result needs the path of a file.")
         args.result = os.path.abspath(args.result)  # the script goes to the root of the repository next
+
+
+def up_to_date(old, more=""):
+    print(f"The project is up to date with groundwork {old}." + more)
+
+
+def target_head(old, source):
+    """Return the version of the head of the source, or None when the project is already there."""
+    commit = git("rev-parse", "--verify", f"{HEAD_REF}^{{commit}}").stdout.strip()
+    if not is_ancestor(revision(old), commit):
+        raise Failure(f"The head of {source} does not contain {old}: it was perhaps rewritten.")
+    new = version_of_head(commit)
+    if commit == (commit_of(old) or git("rev-parse", f"{revision(old)}^{{commit}}").stdout.strip()):
+        return None
+    return new
+
+
+def target_release(to, old, versions, source):
+    """Return the release that --to names, once it is known to be one that the project can move to."""
+    if not RELEASE.match(to):
+        raise Failure(f"'{to}' is not a version of the form X.Y.Z, or {HEAD}.")
+    if not commit_of(old) and as_tuple(to) <= as_tuple(old):
+        raise Failure(f"{to} is not a later version than the recorded {old}.")
+    if to not in versions:
+        raise Failure(f"{to} is not a release of groundwork at {source}.")
+    if commit_of(old) and not is_ancestor(commit_of(old), revision(to)):
+        raise Failure(f"{to} does not contain the commit {commit_of(old)} that the project is based on.")
+    return to
+
+
+def target_latest(old, versions):
+    """Return the latest release, or None when the project is up to date with it or when it lacks the recorded commit."""
+    new = versions[-1]
+    if as_tuple(new) <= as_tuple(old) or (commit_of(old) and not is_ancestor(commit_of(old), revision(new))):
+        return None
+    return new
+
+
+def target(args, old, versions, source):
+    """Return the version to move to, or None when the project is up to date."""
+    if args.to == HEAD:
+        return target_head(old, source)
+    if args.to:
+        return target_release(args.to, old, versions, source)
+    return target_latest(old, versions)
+
+
+def branch_name(issue, new):
+    return f"chore/{issue}-update-groundwork-to-{label(new)}" if issue else f"groundwork/update-to-{label(new)}"
+
+
+def refuse_steps_outside(steps):
+    root = os.path.realpath(".")
+    for path, _, _ in steps:
+        if not inside(root, path):
+            raise Failure(f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed.")
+
+
+def report(result):
+    for field in ("branch", "from", "to", "source"):
+        print(f"{field}: {result[field]}")
+    if result["added"]:
+        print("added: " + ", ".join(result["added"]))
+    if result["conflicts"]:
+        print("Resolve the conflicts in these files:")
+        for path in result["conflicts"]:
+            print(f"- {path}")
+
+
+def write_result(path, result):
+    branch = result["branch"]
+    try:
+        with open(path, "w") as handle:
+            json.dump(result, handle)
+    except OSError as error:
+        raise Failure(
+            f"The branch {branch} is prepared, but the result could not be written to {path} ({error.strerror}). "
+            f"To undo the update, run `git reset --hard`, `git clean -fd`, `git switch -` and `git branch -D {branch}`."
+        )
+
+
+def run(args):
+    check_arguments(args)
     os.chdir(git("rev-parse", "--show-toplevel").stdout.strip())
     old = recorded_version()
     if git("status", "--porcelain").stdout.strip():
         raise Failure("The working tree is not clean: commit or stash the changes first.")
 
     source = source_of(args.source)
-    head = args.to == HEAD
-    versions, known = fetch_base(source, old, head)
+    versions, known = fetch_base(source, old, args.to == HEAD)
     if not known:
         raise Failure(unknown_message(old, source))
+    new = target(args, old, versions, source)
+    if new is None:
+        up_to_date(old, " No release has its commit yet." if args.to != HEAD and commit_of(old) else "")
+        return 0
 
-    if head:
-        commit = git("rev-parse", "--verify", f"{HEAD_REF}^{{commit}}").stdout.strip()
-        if not is_ancestor(revision(old), commit):
-            raise Failure(f"The head of {source} does not contain {old}: it was perhaps rewritten.")
-        new = version_of_head(commit)
-        if commit == (commit_of(old) or git("rev-parse", f"{revision(old)}^{{commit}}").stdout.strip()):
-            print(f"The project is up to date with groundwork {old}.")
-            return 0
-    elif args.to:
-        if not RELEASE.match(args.to):
-            raise Failure(f"'{args.to}' is not a version of the form X.Y.Z, or {HEAD}.")
-        if not commit_of(old) and as_tuple(args.to) <= as_tuple(old):
-            raise Failure(f"{args.to} is not a later version than the recorded {old}.")
-        if args.to not in versions:
-            raise Failure(f"{args.to} is not a release of groundwork at {source}.")
-        if commit_of(old) and not is_ancestor(commit_of(old), revision(args.to)):
-            raise Failure(f"{args.to} does not contain the commit {commit_of(old)} that the project is based on.")
-        new = args.to
-    else:
-        new = versions[-1]
-        if as_tuple(new) <= as_tuple(old) or (commit_of(old) and not is_ancestor(commit_of(old), revision(new))):
-            print(f"The project is up to date with groundwork {old}." + (" No release has its commit yet." if commit_of(old) else ""))
-            return 0
-
-    slug = f"update-groundwork-to-{label(new)}"
-    branch = f"chore/{args.issue}-{slug}" if args.issue else f"groundwork/update-to-{label(new)}"
+    branch = branch_name(args.issue, new)
     if git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
         raise Failure(f"The branch {branch} already exists.")
-    made = plan(old, new)
-    said, steps = made.said, made.steps
-    root = os.path.realpath(".")
-    for path, _, _ in steps:
-        if not inside(root, path):
-            raise Failure(f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed.")
+    planned = plan(old, new)
+    refuse_steps_outside(planned.steps)
     if args.result:
         check_result_path(args.result)
     git("switch", "--quiet", "-c", branch)
 
-    conflicts = [path for path, base, theirs in steps if apply_path(path, base, theirs, read(path), mode(new, path))]
+    conflicts = [path for path, base, theirs in planned.steps if apply_path(path, base, theirs, read(path), mode(new, path))]
     with open(VERSION_FILE, "w") as handle:
         handle.write(new + "\n")
-
-    print(f"branch: {branch}")
-    print(f"from: {old}")
-    print(f"to: {new}")
-    print(f"source: {source}")
-    if said:
-        print("added: " + ", ".join(f"{number:04d}" for number in said))
-    if conflicts:
-        print("Resolve the conflicts in these files:")
-        for path in conflicts:
-            print(f"- {path}")
+    result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in planned.said], "conflicts": conflicts}
+    report(result)
     if args.result:
-        result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in said], "conflicts": conflicts}
-        try:
-            with open(args.result, "w") as handle:
-                json.dump(result, handle)
-        except OSError as error:
-            raise Failure(
-                f"The branch {branch} is prepared, but the result could not be written to {args.result} ({error.strerror}). "
-                f"To undo the update, run `git reset --hard`, `git clean -fd`, `git switch -` and `git branch -D {branch}`."
-            )
+        write_result(args.result, result)
     return CONFLICTS if conflicts else 0
 
 
