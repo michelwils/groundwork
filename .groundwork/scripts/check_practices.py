@@ -42,7 +42,19 @@ import sys
 
 import choice
 import markers
-from practices_map import ADR_DIRECTORY, ADR_FILE, BASE, MAP, RANGES_FILE, cycles, is_reserved, needs_of, parse, read_map, read_ranges, references
+from practices_map import (
+    ADR_DIRECTORY,
+    ADR_FILE,
+    BASE,
+    MAP,
+    RANGES_FILE,
+    cycles,
+    is_reserved,
+    needs_of,
+    read_map,
+    read_ranges,
+    references,
+)
 
 VERSION_FILE = ".groundwork-version"
 PROJECT_OWN = ("README.md", "LICENSE")

@@ -480,7 +480,9 @@ class Body(unittest.TestCase):
         self.assertIsNone(opener.result(os.path.join(tempfile.gettempdir(), "no-such-groundwork-result.json")))
 
     def test_a_result_that_is_not_the_expected_one_is_refused(self):
-        without = lambda name: {key: value for key, value in self.RESULT.items() if key != name}
+        def without(name):
+            return {key: value for key, value in self.RESULT.items() if key != name}
+
         for fields in (
             "not json",
             "[]",
