@@ -64,7 +64,9 @@ class Parse(unittest.TestCase):
 
     def test_the_blocks_of_a_markdown_file_are_read_with_their_lines(self):
         found = self.blocks(MARKDOWN)
-        self.assertEqual([(block["adr"], block["start"], block["end"]) for block in found], [(4, 5, 9), (3, 11, 15), (10, 20, 22)])
+        self.assertEqual(
+            [(block["adr"], block["start"], block["end"]) for block in found], [(4, 5, 9), (3, 11, 15), (10, 20, 22)]
+        )
 
     def test_the_blocks_of_a_yaml_file_are_read_with_their_indentation(self):
         found = self.blocks(YAML, "yaml")

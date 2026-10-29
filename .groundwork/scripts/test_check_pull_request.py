@@ -50,9 +50,7 @@ class Accepted(unittest.TestCase):
         self.assertEqual(check(branch="fix/12-handle-empty-input", base="maintenance/v1"), [])
 
     def test_backport_refers_to_its_issue(self):
-        self.assertEqual(
-            check(branch="fix/12-handle-empty-input-v1", base="maintenance/v1", body="Refs #12"), []
-        )
+        self.assertEqual(check(branch="fix/12-handle-empty-input-v1", base="maintenance/v1", body="Refs #12"), [])
 
 
 class UpdateOfGroundwork(unittest.TestCase):
@@ -62,11 +60,17 @@ class UpdateOfGroundwork(unittest.TestCase):
         for added in ([], ["0002"]):
             for conflicts in ([], ["a.md"]):
                 with self.subTest(added=added, conflicts=conflicts):
-                    body = open_update_pull_request.body("0.1.0", "0.2.0", conflicts, "https://github.com/o/g.git", added)
-                    self.assertEqual(check_pull_request.check("groundwork/update-to-v0-2-0", "main", body, "chore: update"), [])
+                    body = open_update_pull_request.body(
+                        "0.1.0", "0.2.0", conflicts, "https://github.com/o/g.git", added
+                    )
+                    self.assertEqual(
+                        check_pull_request.check("groundwork/update-to-v0-2-0", "main", body, "chore: update"), []
+                    )
 
     def test_the_branch_with_an_issue_is_accepted_with_its_closing_line(self):
-        self.assertEqual(check_pull_request.check("chore/42-update-groundwork-to-v0-2-0", "main", "Closes #42", "chore: update"), [])
+        self.assertEqual(
+            check_pull_request.check("chore/42-update-groundwork-to-v0-2-0", "main", "Closes #42", "chore: update"), []
+        )
 
 
 class BranchName(unittest.TestCase):
@@ -133,7 +137,12 @@ class BreakingChange(unittest.TestCase):
         branch = "fix/12-handle-empty-input-v1"
         self.assertEqual(len(check(branch=branch, base="maintenance/v1", body="Refs #12", title="fix!: change it")), 1)
         self.assertEqual(
-            check(branch=branch, base="maintenance/v1", body="Refs #12\nBREAKING CHANGE: read `account`.", title="fix!: change it"),
+            check(
+                branch=branch,
+                base="maintenance/v1",
+                body="Refs #12\nBREAKING CHANGE: read `account`.",
+                title="fix!: change it",
+            ),
             [],
         )
 

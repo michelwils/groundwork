@@ -38,7 +38,12 @@ ADDRESS = "https://example.org/base.git"
 
 def rewritten_env(address, path):
     """The environment in which git takes the address for the repository at the path, so that no test needs the network."""
-    return {**os.environ, "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": f"url.{path}.insteadOf", "GIT_CONFIG_VALUE_0": address}
+    return {
+        **os.environ,
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": f"url.{path}.insteadOf",
+        "GIT_CONFIG_VALUE_0": address,
+    }
 
 
 def git(cwd, *args):
@@ -71,14 +76,24 @@ def tag_with_hook(repo, base, version, directory):
     (a/b for a nested one): git mktree builds such a tree, which no checkout can."""
 
     def run(*args, input=""):
-        return subprocess.run(["git", *args], cwd=repo, input=input, check=True, capture_output=True, text=True).stdout.strip()
+        return subprocess.run(
+            ["git", *args], cwd=repo, input=input, check=True, capture_output=True, text=True
+        ).stdout.strip()
 
     hook = run("hash-object", "-w", "--stdin", input="#!/bin/sh\ntouch ran\n")
     entry = f"100755 blob {hook}\tpre-commit\n"
     for name in reversed(f"{directory}/hooks".split("/")):
         entry = f"040000 tree {run('mktree', input=entry)}\t{name}\n"
     root = run("mktree", input=git(repo, "ls-tree", base) + entry)
-    git(repo, "tag", "-a", f"v{version}", "-m", f"v{version}", run("commit-tree", root, "-p", f"{base}^{{commit}}", "-m", f"feat: release {version}"))
+    git(
+        repo,
+        "tag",
+        "-a",
+        f"v{version}",
+        "-m",
+        f"v{version}",
+        run("commit-tree", root, "-p", f"{base}^{{commit}}", "-m", f"feat: release {version}"),
+    )
 
 
 class CheckOfTheResultPath(unittest.TestCase):
@@ -213,7 +228,9 @@ class Update(unittest.TestCase):
         head = self.advance({**V3, "SECURITY.md": "security head\n", "extra.md": "extra\n"})
         result = self.run_script("--to", "head")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(git(self.project, "branch", "--show-current").strip(), f"chore/42-update-groundwork-to-{head[:12]}")
+        self.assertEqual(
+            git(self.project, "branch", "--show-current").strip(), f"chore/42-update-groundwork-to-{head[:12]}"
+        )
         self.assertEqual(read(self.project, "SECURITY.md"), "security head\n")
         self.assertEqual(read(self.project, "extra.md"), "extra\n")
         self.assertEqual(read(self.project, ".groundwork-version"), f"0.3.0+{head}\n")
@@ -329,7 +346,14 @@ class Update(unittest.TestCase):
         self.assertIn("No release has its commit yet", self.run_script().stdout)
 
     def test_fails_with_a_malformed_commit_in_the_version_file(self):
-        for content in ("0.3.0+abc\n", f"0.3.0+{'A' * 40}\n", f"0.3.0+{'a' * 39}\n", f"0.3.0+{'a' * 41}\n", f"0.3.0+{'a' * 40}+{'a' * 40}\n", f"+{'a' * 40}\n"):
+        for content in (
+            "0.3.0+abc\n",
+            f"0.3.0+{'A' * 40}\n",
+            f"0.3.0+{'a' * 39}\n",
+            f"0.3.0+{'a' * 41}\n",
+            f"0.3.0+{'a' * 40}+{'a' * 40}\n",
+            f"+{'a' * 40}\n",
+        ):
             with self.subTest(content=content):
                 self.commit_project({".groundwork-version": content})
                 result = self.run_script("--to", "head")
@@ -459,7 +483,9 @@ class Update(unittest.TestCase):
 
     def test_a_path_cannot_add_or_replace_a_field_of_the_result(self):
         name = 'x", "branch": "victim.md'
-        self.assertEqual(json.loads(json.dumps({"conflicts": [name]}))["conflicts"], [name])  # the encoding the script relies on
+        self.assertEqual(
+            json.loads(json.dumps({"conflicts": [name]}))["conflicts"], [name]
+        )  # the encoding the script relies on
         self.commit_project({name: "mine\n"})
         git(self.source, "checkout", "-q", "-b", "other", "v0.3.0")
         write(self.source, {name: "theirs\n"})
@@ -542,7 +568,17 @@ class Update(unittest.TestCase):
 
     # Names that a file system can take for .git: in any case, on HFS+ with the characters it ignores, on NTFS with
     # trailing dots and spaces, a stream, its short name or a backslash for a separator.
-    GIT_DIRECTORIES = (".git", ".GIT", "sub/.git", ".git.", ".git ", ".git::$INDEX_ALLOCATION", "GIT~1", ".g\u200cit", ".git\\x")
+    GIT_DIRECTORIES = (
+        ".git",
+        ".GIT",
+        "sub/.git",
+        ".git.",
+        ".git ",
+        ".git::$INDEX_ALLOCATION",
+        "GIT~1",
+        ".g\u200cit",
+        ".git\\x",
+    )
 
     def test_a_version_that_holds_a_path_under_git_is_refused_before_anything_changes(self):
         for version, directory in enumerate(self.GIT_DIRECTORIES, start=4):
@@ -560,7 +596,9 @@ class Update(unittest.TestCase):
     def test_a_version_that_holds_a_path_with_a_control_character_is_refused_before_anything_changes(self):
         # A line break in a name would add a line to the text that the script prints. A bidirectional
         # control, such as U+202E, changes how the name is shown to the reviewer.
-        for version, character in enumerate(("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029", "\u202a", "\u202e", "\u2066", "\u2069"), start=4):
+        for version, character in enumerate(
+            ("\n", "\r", "\x1b", "\x85", "\u2028", "\u2029", "\u202a", "\u202e", "\u2066", "\u2069"), start=4
+        ):
             with self.subTest(character=character):
                 shutil.rmtree(self.project)
                 self.adopt("0.1.0", V1)
@@ -679,7 +717,11 @@ class Update(unittest.TestCase):
 
     def run_from_the_file(self, *args, address=ADDRESS):
         return subprocess.run(
-            [sys.executable, SCRIPT, "42", *args], cwd=self.project, capture_output=True, text=True, env=rewritten_env(address, self.source)
+            [sys.executable, SCRIPT, "42", *args],
+            cwd=self.project,
+            capture_output=True,
+            text=True,
+            env=rewritten_env(address, self.source),
         )
 
     def test_takes_its_updates_from_the_source_that_the_project_recorded(self):
@@ -710,11 +752,28 @@ class Update(unittest.TestCase):
 
     def test_a_file_that_is_not_one_address_stops_the_update_before_any_fetch(self):
         refused = [
-            "", "\n", ADDRESS, ADDRESS + "\n\n", ADDRESS + "\r\n", "\ufeff" + ADDRESS + "\n", b"\xff\n",
-            " " + ADDRESS + "\n", "http://example.org/base.git\n", "ssh://example.org/base.git\n", "git://example.org/base.git\n",
-            "/tmp/base\n", "../base\n", "-x\n", "--upload-pack=true\n", "https://\n", "https://user:token@example.org/base.git\n",
-            "https://user@example.org/base.git\n", "https://example.org/base .git\n", "https://example.org/base.git?x=1\n",
-            "https://example.org/base.git#x\n", "https://example.org/" + "a" * 2100 + "\n",
+            "",
+            "\n",
+            ADDRESS,
+            ADDRESS + "\n\n",
+            ADDRESS + "\r\n",
+            "\ufeff" + ADDRESS + "\n",
+            b"\xff\n",
+            " " + ADDRESS + "\n",
+            "http://example.org/base.git\n",
+            "ssh://example.org/base.git\n",
+            "git://example.org/base.git\n",
+            "/tmp/base\n",
+            "../base\n",
+            "-x\n",
+            "--upload-pack=true\n",
+            "https://\n",
+            "https://user:token@example.org/base.git\n",
+            "https://user@example.org/base.git\n",
+            "https://example.org/base .git\n",
+            "https://example.org/base.git?x=1\n",
+            "https://example.org/base.git#x\n",
+            "https://example.org/" + "a" * 2100 + "\n",
         ]
         for content in refused:
             with self.subTest(content=content[:60] if isinstance(content, str) else content):
@@ -761,7 +820,10 @@ class Update(unittest.TestCase):
     def test_an_address_is_never_taken_for_an_option_of_git(self):
         marker = os.path.join(self.directory.name, "marker")
         result = subprocess.run(
-            [sys.executable, SCRIPT, "42", f"--source=--upload-pack=touch {marker}"], cwd=self.project, capture_output=True, text=True
+            [sys.executable, SCRIPT, "42", f"--source=--upload-pack=touch {marker}"],
+            cwd=self.project,
+            capture_output=True,
+            text=True,
         )
         self.assertEqual(result.returncode, 1)
         self.assertFalse(os.path.exists(marker))
@@ -782,7 +844,16 @@ def practices(owned, apart):
     for number in (2, 3, 4):
         files = "".join(f"  - `{path}`\n" for path in owned.get(number, [])) or "  - none\n"
         needs = ", ".join(f"ADR {need:04d}" for need in NEEDS[number]) or "none"
-        lines += [f"### {number:04d}. [{NAMES[number].title()}](adr/{number:04d}-{NAMES[number]}.md)", "", f"- Needs: {needs}", "- Files:", files.rstrip("\n"), "- Shared lines:", "  - `SHARED.md`", ""]
+        lines += [
+            f"### {number:04d}. [{NAMES[number].title()}](adr/{number:04d}-{NAMES[number]}.md)",
+            "",
+            f"- Needs: {needs}",
+            "- Files:",
+            files.rstrip("\n"),
+            "- Shared lines:",
+            "  - `SHARED.md`",
+            "",
+        ]
     lines += ["## Shared files", "", "- `SHARED.md`", "", "## Not part of a practice", ""]
     lines += [f"- `{path}`" for path in apart]
     return "\n".join(lines) + "\n"
@@ -848,12 +919,24 @@ class Choice(unittest.TestCase):
 
     def adopt(self, files, choice=None, version="0.1.0"):
         init(self.project)
-        self.put(self.project, {**files, ".groundwork-version": f"{version}\n", **({".groundwork-adrs": choice} if choice is not None else {})})
+        self.put(
+            self.project,
+            {
+                **files,
+                ".groundwork-version": f"{version}\n",
+                **({".groundwork-adrs": choice} if choice is not None else {}),
+            },
+        )
         git(self.project, "add", "-A")
         git(self.project, "commit", "-q", "-m", "Initial commit")
 
     def run_script(self, *args):
-        return subprocess.run([sys.executable, SCRIPT, "42", "--source", self.source, *args], cwd=self.project, capture_output=True, text=True)
+        return subprocess.run(
+            [sys.executable, SCRIPT, "42", "--source", self.source, *args],
+            cwd=self.project,
+            capture_output=True,
+            text=True,
+        )
 
     def branches(self):
         return git(self.project, "branch", "--format=%(refname:short)").split()
@@ -926,7 +1009,9 @@ class Choice(unittest.TestCase):
         self.adopt(trimmed(world("1"), {1}), "0002\n0003\n")
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(read(self.project, "SHARED.md"), markers.remove(world("2")["SHARED.md"], "markdown", {1, 2, 3}))
+        self.assertEqual(
+            read(self.project, "SHARED.md"), markers.remove(world("2")["SHARED.md"], "markdown", {1, 2, 3})
+        )
         for name in ("two.txt", "three.txt", adr(2), adr(3)):
             self.assertTrue(self.has(name), name)
 
@@ -1051,7 +1136,9 @@ class Choice(unittest.TestCase):
         self.assertEqual(read(self.project, ".groundwork-version"), "0.2.0\n")
 
     def test_a_version_without_a_map_is_refused_when_the_project_has_a_choice(self):
-        self.releases(world("1"), {name: text for name, text in world("2").items() if name != ".groundwork/practices.md"})
+        self.releases(
+            world("1"), {name: text for name, text in world("2").items() if name != ".groundwork/practices.md"}
+        )
         self.adopt(trimmed(world("1"), {1, 2}), "0002\n")
         result = self.run_script()
         self.assertEqual(result.returncode, 1)
@@ -1059,13 +1146,17 @@ class Choice(unittest.TestCase):
         self.assertEqual(self.branches(), ["main"])
 
     def test_a_version_without_a_map_is_still_applied_without_a_choice(self):
-        self.releases(world("1"), {name: text for name, text in world("2").items() if name != ".groundwork/practices.md"})
+        self.releases(
+            world("1"), {name: text for name, text in world("2").items() if name != ".groundwork/practices.md"}
+        )
         self.adopt(world("1"))
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_a_move_of_owner_is_not_looked_for_when_the_old_version_has_no_map(self):
-        self.releases({name: text for name, text in world("1").items() if name != ".groundwork/practices.md"}, world("2"))
+        self.releases(
+            {name: text for name, text in world("1").items() if name != ".groundwork/practices.md"}, world("2")
+        )
         self.adopt(trimmed(world("1"), {1, 2}), "0002\n")
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -1112,7 +1203,9 @@ class Chain(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         root = self.directory.name
-        self.groundwork, self.base, self.project = (os.path.join(root, name) for name in ("groundwork", "base", "project"))
+        self.groundwork, self.base, self.project = (
+            os.path.join(root, name) for name in ("groundwork", "base", "project")
+        )
         with open(SCRIPT) as handle:
             self.script = handle.read()
         self.assertIn('SOURCE = "https://github.com/michelwils/groundwork.git"\n', self.script)
@@ -1144,7 +1237,10 @@ class Chain(unittest.TestCase):
     def found_base(self, order):
         """The base: groundwork 0.1.0 with a range of its own, an ADR in it and its entry, released as v0.9.0."""
         init(self.base)
-        self.put(self.base, {**tree([1, 13], self.script, order=[n for n in order if n != 9000]), ".groundwork-version": "0.1.0\n"})
+        self.put(
+            self.base,
+            {**tree([1, 13], self.script, order=[n for n in order if n != 9000]), ".groundwork-version": "0.1.0\n"},
+        )
         git(self.base, "add", "-A")
         git(self.base, "commit", "-q", "-m", "Initial commit")
         self.put(self.base, {**tree([1, 13, 9000], self.script, order=order), ".groundwork-ranges": "9000-9999\n"})
@@ -1190,13 +1286,19 @@ class Chain(unittest.TestCase):
     def adopt_from_the_base(self):
         """A project made from the base at v0.9.0, which sets the source of its updates to the base."""
         init(self.project)
-        archive = subprocess.run(["git", "archive", "--format=tar", "v0.9.0"], cwd=self.base, capture_output=True, check=True).stdout
+        archive = subprocess.run(
+            ["git", "archive", "--format=tar", "v0.9.0"], cwd=self.base, capture_output=True, check=True
+        ).stdout
         subprocess.run(["tar", "-x", "-C", self.project], input=archive, check=True)
         path = os.path.join(self.project, ".groundwork/scripts/update_groundwork.py")
         with open(path) as handle:
             text = handle.read()
         with open(path, "w") as handle:
-            handle.write(text.replace('SOURCE = "https://github.com/michelwils/groundwork.git"', 'SOURCE = "https://example.org/base.git"'))
+            handle.write(
+                text.replace(
+                    'SOURCE = "https://github.com/michelwils/groundwork.git"', 'SOURCE = "https://example.org/base.git"'
+                )
+            )
         self.put(self.project, {".groundwork-version": "0.9.0\n"})
         git(self.project, "add", "-A")
         git(self.project, "commit", "-q", "-m", "Initial commit")

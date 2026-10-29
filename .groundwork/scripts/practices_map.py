@@ -38,7 +38,13 @@ def parse(lines):
         elif line.startswith("## "):
             section, entry, list_name = None, None, None
         elif HEADING.match(line):
-            entry = {"number": int(HEADING.match(line).group(1)), "line": number, "needs": None, "files": [], "shared": []}
+            entry = {
+                "number": int(HEADING.match(line).group(1)),
+                "line": number,
+                "needs": None,
+                "files": [],
+                "shared": [],
+            }
             entries.append(entry)
             list_name = None
         elif entry is not None and line.startswith("- "):
@@ -140,7 +146,9 @@ def read_ranges(root):
             if start > end:
                 problems.append((number, f"the first bound of the range {line} is above the second"))
             elif start <= BASE[1]:
-                problems.append((number, f"the range {line} overlaps {BASE[0]:04d}-{BASE[1]:04d}, which groundwork reserves"))
+                problems.append(
+                    (number, f"the range {line} overlaps {BASE[0]:04d}-{BASE[1]:04d}, which groundwork reserves")
+                )
             elif any(start <= other_end and other_start <= end for other_start, other_end in reserved):
                 problems.append((number, f"the range {line} overlaps another range"))
             else:

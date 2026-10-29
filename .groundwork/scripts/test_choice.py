@@ -23,7 +23,9 @@ class Read(unittest.TestCase):
         self.directory.cleanup()
 
     def write(self, text, mode="w"):
-        with open(os.path.join(self.root, ".groundwork-adrs"), mode, **({"encoding": "utf-8"} if mode == "w" else {})) as handle:
+        with open(
+            os.path.join(self.root, ".groundwork-adrs"), mode, **({"encoding": "utf-8"} if mode == "w" else {})
+        ) as handle:
             handle.write(text)
 
     def test_without_the_file_everything_is_synchronised(self):
@@ -147,7 +149,13 @@ class Included(unittest.TestCase):
 
     def test_a_file_that_the_map_does_not_give_to_an_adr_is_taken(self):
         kept = choice.Kept([], NEEDS)
-        for path in (".groundwork/practices.md", "README.md", "docs/adr/template.md", "docs/adr/notes.md", "CONTRIBUTING.md"):
+        for path in (
+            ".groundwork/practices.md",
+            "README.md",
+            "docs/adr/template.md",
+            "docs/adr/notes.md",
+            "CONTRIBUTING.md",
+        ):
             with self.subTest(path=path):
                 self.assertTrue(self.included(path, kept))
 
@@ -185,7 +193,9 @@ class Content(unittest.TestCase):
 
     def test_the_blocks_of_a_yaml_file_are_removed(self):
         text = "hooks:\n  # groundwork:0004\n  - id: four\n  # /groundwork\n  - id: other\n"
-        self.assertEqual(choice.content(".pre-commit-config.yaml", text, choice.Kept([], NEEDS)), "hooks:\n  - id: other\n")
+        self.assertEqual(
+            choice.content(".pre-commit-config.yaml", text, choice.Kept([], NEEDS)), "hooks:\n  - id: other\n"
+        )
 
     def test_a_file_that_has_no_markers_syntax_is_unchanged(self):
         text = "# groundwork:0004\nprint(1)\n# /groundwork\n"

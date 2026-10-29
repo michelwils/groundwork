@@ -43,7 +43,9 @@ def read(root, reserved):
         elif RANGE.match(line):
             start, end = (int(part) for part in line.split("-"))
         else:
-            problems.append((number, f"'{line}' is not a number such as 0003, a range such as 0001-0999, a comment or a blank line"))
+            problems.append(
+                (number, f"'{line}' is not a number such as 0003, a range such as 0001-0999, a comment or a blank line")
+            )
             continue
         if start > end:
             problems.append((number, f"the first bound of the range {line} is above the second"))

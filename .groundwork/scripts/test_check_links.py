@@ -32,7 +32,13 @@ class Fixture(unittest.TestCase):
 
 class Links(Fixture):
     def test_a_link_to_an_existing_file_is_accepted(self):
-        self.make({"README.md": "[guide](docs/guide.md) and [config](.editorconfig)\n", "docs/guide.md": "# Guide\n", ".editorconfig": ""})
+        self.make(
+            {
+                "README.md": "[guide](docs/guide.md) and [config](.editorconfig)\n",
+                "docs/guide.md": "# Guide\n",
+                ".editorconfig": "",
+            }
+        )
         self.assertEqual(self.problems(), [])
 
     def test_a_link_to_a_directory_is_accepted(self):
@@ -62,7 +68,11 @@ class Links(Fixture):
         self.assertIn("outside", problem)
 
     def test_an_anchor_of_the_same_file_is_checked(self):
-        self.make({"README.md": "# Title\n\n## Moving to a later version\n\n[a](#moving-to-a-later-version) [b](#title) [c](#nope)\n"})
+        self.make(
+            {
+                "README.md": "# Title\n\n## Moving to a later version\n\n[a](#moving-to-a-later-version) [b](#title) [c](#nope)\n"
+            }
+        )
         (problem,) = self.problems()
         self.assertIn("#nope", problem)
 
@@ -82,7 +92,9 @@ class Links(Fixture):
         self.assertEqual(self.problems(), [])
 
     def test_an_id_on_any_html_element_is_an_anchor(self):
-        self.make({"README.md": '<h2 id="top">Top</h2>\n<div class="x" id="box"></div>\n\n[a](#top) [b](#box) [c](#nope)\n'})
+        self.make(
+            {"README.md": '<h2 id="top">Top</h2>\n<div class="x" id="box"></div>\n\n[a](#top) [b](#box) [c](#nope)\n'}
+        )
         (problem,) = self.problems()
         self.assertIn("#nope", problem)
 
@@ -131,7 +143,9 @@ class Links(Fixture):
         self.assertEqual(self.problems(), [])
 
     def test_links_in_code_are_ignored(self):
-        self.make({"README.md": "```md\n[a](missing.md)\n```\n\n~~~\n[b](missing.md)\n~~~\n\nUse `[c](missing.md)` here.\n"})
+        self.make(
+            {"README.md": "```md\n[a](missing.md)\n```\n\n~~~\n[b](missing.md)\n~~~\n\nUse `[c](missing.md)` here.\n"}
+        )
         self.assertEqual(self.problems(), [])
 
     def test_links_in_an_html_comment_are_ignored(self):
@@ -181,7 +195,14 @@ class LeftOut(Fixture):
     """A project that keeps some of the ADRs: the map still links what it left out."""
 
     def project(self, listed="0001\n", files=None):
-        self.make({".groundwork/practices.md": MAP, "docs/adr/0001-first.md": "# 0001. First\n", ".groundwork-adrs": listed, **(files or {})})
+        self.make(
+            {
+                ".groundwork/practices.md": MAP,
+                "docs/adr/0001-first.md": "# 0001. First\n",
+                ".groundwork-adrs": listed,
+                **(files or {}),
+            }
+        )
 
     def test_the_links_of_the_map_to_what_is_left_out_are_not_reported(self):
         """The ADR, its anchors and the file of an entry: no problem at all."""

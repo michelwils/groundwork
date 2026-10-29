@@ -22,7 +22,9 @@ def read():
     return text[: text.index(ANCHOR) + len(ANCHOR)] if ANCHOR in text else text
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the file of groundwork, which a project extends with its own entries")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ), "it reads the file of groundwork, which a project extends with its own entries"
+)
 class EntriesOfTheProject(unittest.TestCase):
     """A project writes its entries below the comment that ends those of groundwork, and the update merges them."""
 
@@ -34,8 +36,13 @@ class EntriesOfTheProject(unittest.TestCase):
     def test_the_entries_of_groundwork_end_with_the_comment_for_those_of_the_project(self):
         with open(CONFIG, encoding="utf-8") as handle:
             text = handle.read()
-        self.assertEqual(text.count(ANCHOR), 1, "the file lacks the comment of the entries of the project, or has it twice")
-        self.assertTrue(text.split(ANCHOR)[0].endswith("]\n\n"), "the comment does not follow a blank line after the last entry of groundwork")
+        self.assertEqual(
+            text.count(ANCHOR), 1, "the file lacks the comment of the entries of the project, or has it twice"
+        )
+        self.assertTrue(
+            text.split(ANCHOR)[0].endswith("]\n\n"),
+            "the comment does not follow a blank line after the last entry of groundwork",
+        )
 
     def test_an_entry_of_the_project_and_an_entry_that_groundwork_adds_above_merge_without_conflict(self):
         text = read()
@@ -82,7 +89,9 @@ class AllBut:
         return number not in self.left_out
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it reads the file of groundwork, which a project extends with its own hooks")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ), "it reads the file of groundwork, which a project extends with its own hooks"
+)
 class HooksOfTheProject(unittest.TestCase):
     """A project writes its hooks below the comment that ends the configuration of groundwork, and the update merges them."""
 
@@ -96,9 +105,14 @@ class HooksOfTheProject(unittest.TestCase):
     def test_the_configuration_of_groundwork_ends_with_the_comment_for_the_hooks_of_the_project(self):
         with open(HOOKS, encoding="utf-8") as handle:
             text = handle.read()
-        self.assertEqual(text.count(HOOKS_ANCHOR), 1, "the file lacks the comment of the hooks of the project, or has it twice")
+        self.assertEqual(
+            text.count(HOOKS_ANCHOR), 1, "the file lacks the comment of the hooks of the project, or has it twice"
+        )
         before = text.split(HOOKS_ANCHOR)[0]
-        self.assertTrue(before.endswith("# /groundwork\n\n"), "the comment does not follow a blank line after the last block of groundwork")
+        self.assertTrue(
+            before.endswith("# /groundwork\n\n"),
+            "the comment does not follow a blank line after the last block of groundwork",
+        )
 
     def test_a_repository_of_the_project_and_a_block_that_groundwork_adds_above_merge_without_conflict(self):
         text = read_hooks()

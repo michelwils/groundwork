@@ -30,7 +30,10 @@ def dependents(needs, number):
     return found
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ),
+    "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base",
+)
 class RealTree(unittest.TestCase):
     """The files of groundwork itself, copied into a source and into a project."""
 
@@ -39,7 +42,9 @@ class RealTree(unittest.TestCase):
         entries = practices_map.read_map(ROOT)[0]
         cls.needs = practices_map.needs_of(entries)
         cls.numbers = sorted(cls.needs)
-        listed = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, text=True, check=True).stdout
+        listed = subprocess.run(
+            ["git", "-C", ROOT, "ls-files", "-z"], capture_output=True, text=True, check=True
+        ).stdout
         cls.paths = [path for path in listed.split("\0") if path and os.path.isfile(os.path.join(ROOT, path))]
 
     def copy(self, destination, version=None, choice=None):
@@ -69,7 +74,9 @@ class RealTree(unittest.TestCase):
 
     def run_in(self, project, source, *args):
         if os.path.exists(os.path.join(project, ".groundwork-version")):
-            return subprocess.run([sys.executable, SCRIPT, "--source", source, *args], cwd=project, capture_output=True, text=True)
+            return subprocess.run(
+                [sys.executable, SCRIPT, "--source", source, *args], cwd=project, capture_output=True, text=True
+            )
         env = rewritten_env(update_groundwork.SOURCE, source)
         return subprocess.run([sys.executable, SCRIPT, *args], cwd=project, capture_output=True, text=True, env=env)
 
@@ -81,10 +88,17 @@ class RealTree(unittest.TestCase):
         """A project that exists: files of its own, a recorded version and the choice."""
         project = os.path.join(directory, "existing")
         init(project)
-        put(project, {
-            "README.md": README, "LICENSE": LICENSE, ".gitignore": "build/\n", "src/app.py": "print(1)\n",
-            ".groundwork-version": "0.1.0\n", ".groundwork-adrs": "".join(f"{number:04d}\n" for number in kept),
-        })
+        put(
+            project,
+            {
+                "README.md": README,
+                "LICENSE": LICENSE,
+                ".gitignore": "build/\n",
+                "src/app.py": "print(1)\n",
+                ".groundwork-version": "0.1.0\n",
+                ".groundwork-adrs": "".join(f"{number:04d}\n" for number in kept),
+            },
+        )
         commit(project, "Initial commit")
         git(project, "switch", "-q", "-c", "feat/1-adopt")
         return project
@@ -100,13 +114,18 @@ class RealTree(unittest.TestCase):
         return found
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ),
+    "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base",
+)
 class RealFiles(RealTree):
     """What the command does to the files of groundwork itself."""
 
     def test_a_project_that_exists_gets_the_files_of_the_template_and_its_own_checks_run(self):
         own = {"README.md", "LICENSE", ".gitignore", "src/app.py", ".groundwork-version", ".groundwork-adrs"}
-        sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
+        sets = [("0001", [1])] + [
+            (f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1
+        ]
         for name, kept in sets:
             with self.subTest(left_out=name):
                 source, template = self.world()
@@ -122,16 +141,33 @@ class RealFiles(RealTree):
                 for script in ("check_adrs.py", "check_practices.py"):
                     if not os.path.exists(os.path.join(project, ".groundwork", "scripts", script)):
                         continue  # the script belongs to an ADR that the project left out
-                    run = subprocess.run([sys.executable, f".groundwork/scripts/{script}"], cwd=project, capture_output=True, text=True)
+                    run = subprocess.run(
+                        [sys.executable, f".groundwork/scripts/{script}"], cwd=project, capture_output=True, text=True
+                    )
                     self.assertEqual(run.returncode, 0, f"{script}: {run.stdout}{run.stderr}")
                 imports = subprocess.run(
-                    [sys.executable, "-m", "unittest", "discover", "-s", ".groundwork/scripts", "-p", "test_*.py", "-k", "no_test_has_this_name"],
-                    cwd=project, capture_output=True, text=True,
+                    [
+                        sys.executable,
+                        "-m",
+                        "unittest",
+                        "discover",
+                        "-s",
+                        ".groundwork/scripts",
+                        "-p",
+                        "test_*.py",
+                        "-k",
+                        "no_test_has_this_name",
+                    ],
+                    cwd=project,
+                    capture_output=True,
+                    text=True,
                 )
                 self.assertNotIn("_FailedTest", imports.stdout + imports.stderr, imports.stderr[-600:])
 
     def test_the_checks_pass_after_the_command_for_each_adr_left_out_and_for_adr_0001_alone(self):
-        sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
+        sets = [("0001", [1])] + [
+            (f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1
+        ]
         for name, kept in sets:
             with self.subTest(left_out=name):
                 source, project = self.world()
@@ -143,7 +179,9 @@ class RealFiles(RealTree):
                 self.assertEqual(problems, [])
 
     def test_the_map_passes_after_the_command_before_the_deletions_are_staged(self):
-        sets = [("0001", [1])] + [(f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1]
+        sets = [("0001", [1])] + [
+            (f"{number:04d}", self.kept_without(number)) for number in self.numbers if number != 1
+        ]
         for name, kept in sets:
             with self.subTest(left_out=name):
                 source, project = self.world()
@@ -171,7 +209,10 @@ class RealFiles(RealTree):
                     self.assertEqual(read(project, path), original, path)
 
 
-@unittest.skipUnless(is_source(ROOT, os.environ), "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base")
+@unittest.skipUnless(
+    is_source(ROOT, os.environ),
+    "it describes the files of a source of ADRs, and a project has not all of them: set GROUNDWORK_SOURCE=true to run it in a community base",
+)
 class ExistingProject(RealTree):
     """A project that exists, with files of its own, follows the path of the README phase by phase."""
 
@@ -203,11 +244,17 @@ class ExistingProject(RealTree):
                 commit(project, "chore: list the ADRs of the step")
                 result = self.run_in(project, source)
                 self.assertIn(result.returncode, (0, 3), result.stdout + result.stderr)
-                for path in [line[len("conflict: "):] for line in result.stdout.splitlines() if line.startswith("conflict: ")]:
+                for path in [
+                    line[len("conflict: ") :] for line in result.stdout.splitlines() if line.startswith("conflict: ")
+                ]:
                     self.assertIn(path, self.OWN, f"{path} is in conflict and the project did not have it")
                     with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
                         put(project, {path: handle.read()})
-                for path in [line[len("keep: "):].split(" (")[0] for line in result.stdout.splitlines() if line.startswith("keep: ")]:
+                for path in [
+                    line[len("keep: ") :].split(" (")[0]
+                    for line in result.stdout.splitlines()
+                    if line.startswith("keep: ")
+                ]:
                     self.assertIn(path, self.OWN, f"{path} is kept and the project did not have it")
                 commit(project)
         for number in order:

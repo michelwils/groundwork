@@ -15,7 +15,10 @@ the ADRs that a project did not keep, with their markers, and leaves no blank li
 import re
 
 PATTERNS = {
-    "markdown": (re.compile(r"^[ \t]*<!-- groundwork:(\d{4}) -->[ \t]*$"), re.compile(r"^[ \t]*<!-- /groundwork -->[ \t]*$")),
+    "markdown": (
+        re.compile(r"^[ \t]*<!-- groundwork:(\d{4}) -->[ \t]*$"),
+        re.compile(r"^[ \t]*<!-- /groundwork -->[ \t]*$"),
+    ),
     "yaml": (re.compile(r"^[ \t]*# groundwork:(\d{4})[ \t]*$"), re.compile(r"^[ \t]*# /groundwork[ \t]*$")),
 }
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
@@ -51,7 +54,12 @@ def parse(lines, syntax):
         start = opening.match(line)
         if start:
             if current:
-                problems.append((number, f"a block is opened inside the block of the ADR {current['adr']:04d} opened at line {current['start']}"))
+                problems.append(
+                    (
+                        number,
+                        f"a block is opened inside the block of the ADR {current['adr']:04d} opened at line {current['start']}",
+                    )
+                )
                 continue
             current = {"adr": int(start.group(1)), "start": number, "end": None}
         elif closing.match(line):

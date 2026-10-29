@@ -98,7 +98,9 @@ def refuse_paths_outside(root, side, kept):
     """Stop at a file of the map, for an ADR that is left out, that is not inside the repository or that is in a directory .git."""
     for path, owner in sorted(side.owners.items()):
         if owner not in kept and not update.inside(root, path):
-            raise Failure(f"The map gives {path} to the ADR {owner:04d}, and it is outside the repository or in a directory .git: nothing is changed.")
+            raise Failure(
+                f"The map gives {path} to the ADR {owner:04d}, and it is outside the repository or in a directory .git: nothing is changed."
+            )
 
 
 def decoded(content):
@@ -113,7 +115,7 @@ def blocks_of(text, syntax):
     lines = text.split("\n")
     found = {}
     for block in markers.parse(lines, syntax)[0]:
-        found.setdefault(block["adr"], []).append(lines[block["start"]:block["end"] - 1])
+        found.setdefault(block["adr"], []).append(lines[block["start"] : block["end"] - 1])
     return found
 
 
@@ -214,9 +216,9 @@ def leave_out_of_a_new_project(root, side, kept, changes):
             continue
         number = update.adr_number(path)
         owner = number if number is not None else side.owners.get(path)
-        leaves = (number is not None and (not practices_map.is_reserved(number, side.reserved) or number not in kept)) or (
-            number is None and owner is not None and owner not in kept
-        )
+        leaves = (
+            number is not None and (not practices_map.is_reserved(number, side.reserved) or number not in kept)
+        ) or (number is None and owner is not None and owner not in kept)
         if leaves:
             if not update.inside(root, path):
                 raise Failure(f"{path} leaves the repository or is in a directory .git: it is not deleted.")
@@ -246,7 +248,9 @@ def new_project(args, root):
     leave_out_of_a_new_project(root, side, kept, changes)
     if text is not None:
         changes.write("write", choice.CHOICE_FILE, text.encode("utf-8"))
-    changes.write("write", update.VERSION_FILE, f"{version}\n".encode("utf-8"), label=f"{update.VERSION_FILE} {version}")
+    changes.write(
+        "write", update.VERSION_FILE, f"{version}\n".encode("utf-8"), label=f"{update.VERSION_FILE} {version}"
+    )
     if args.source is not None:
         changes.write("write", update.SOURCE_FILE, f"{args.source}\n".encode("utf-8"))
     return changes, BY_HAND, kept.added()
@@ -272,7 +276,9 @@ def files_left_out(root, old, side, kept, changes):
             continue
         number = update.adr_number(path)
         owner = side.owners.get(path)
-        if (number is not None and left_out(number, kept, side.reserved)) or (number is None and owner is not None and owner not in kept):
+        if (number is not None and left_out(number, kept, side.reserved)) or (
+            number is None and owner is not None and owner not in kept
+        ):
             if not update.inside(root, path):
                 raise Failure(f"{path} leaves the repository or is in a directory .git: it is not deleted.")
             if update.read(path) == update.blob(old, path):
@@ -319,7 +325,12 @@ def bring_into_line(path, step, old, side, kept, changes):
 def add_the_files_of_no_practice(old, by_path, side, kept, changes):
     """Add the files of the version that belong to no practice and that the project lacks."""
     for path in sorted(update.tree_paths(old)):
-        if path in by_path or os.path.lexists(path) or update.adr_number(path) is not None or side.owners.get(path) is not None:
+        if (
+            path in by_path
+            or os.path.lexists(path)
+            or update.adr_number(path) is not None
+            or side.owners.get(path) is not None
+        ):
             continue
         changes.write("add", path, update.text_of(path, update.blob(old, path), kept), update.mode(old, path))
 
@@ -340,7 +351,13 @@ def existing_project(args, root):
     planned = update.plan(old, old)
     changes = Changes()
     if planned.kept.adopted is None:
-        return changes, [f"There is no {choice.CHOICE_FILE}: the project keeps everything that its source reserves, nothing to apply."], []
+        return (
+            changes,
+            [
+                f"There is no {choice.CHOICE_FILE}: the project keeps everything that its source reserves, nothing to apply."
+            ],
+            [],
+        )
     side, kept = planned.side, planned.kept
     refuse_paths_outside(root, side, kept)
     by_path = {path: (base, theirs) for path, base, theirs in planned.steps}
@@ -388,10 +405,19 @@ def run(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Make the files of a project agree with the ADRs of groundwork that it keeps.")
-    parser.add_argument("adrs", nargs="*", help="the ADRs to keep, for a new project: a number such as 0003 or a range such as 0001-0999")
+    parser = argparse.ArgumentParser(
+        description="Make the files of a project agree with the ADRs of groundwork that it keeps."
+    )
+    parser.add_argument(
+        "adrs",
+        nargs="*",
+        help="the ADRs to keep, for a new project: a number such as 0003 or a range such as 0001-0999",
+    )
     parser.add_argument("--dry-run", action="store_true", help="say what would be done and change no file")
-    parser.add_argument("--source", help=f"repository of groundwork (default: the address in {update.SOURCE_FILE}, else {update.SOURCE})")
+    parser.add_argument(
+        "--source",
+        help=f"repository of groundwork (default: the address in {update.SOURCE_FILE}, else {update.SOURCE})",
+    )
     parser.add_argument("--version", help="for a new project, the version to record (default: the latest release)")
     try:
         sys.exit(run(parser.parse_args()))

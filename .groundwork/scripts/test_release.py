@@ -480,7 +480,9 @@ class BreakingFooter(unittest.TestCase):
     def test_a_trailer_is_removed_whatever_the_case_of_its_key(self):
         for key in ("Co-authored-by", "CO-AUTHORED-BY", "signed-off-by"):
             with self.subTest(key=key):
-                text = self.breaking_notes("feat!: change it", f"BREAKING CHANGE: read `account`.\n\n{key}: Someone <someone@example.com>")
+                text = self.breaking_notes(
+                    "feat!: change it", f"BREAKING CHANGE: read `account`.\n\n{key}: Someone <someone@example.com>"
+                )
                 self.assertEqual(text, "## Breaking changes\n\n- change it\n\n  read `account`.\n")
 
     def test_a_line_that_looks_like_a_trailer_in_the_middle_of_the_footer_is_kept(self):

@@ -68,7 +68,10 @@ def sections(lines):
         if line.startswith("## ")
     ]
     ends = [number - 1 for _, number in headings[1:]] + [len(lines)]
-    return [(name, number, not any(line.strip() for line in lines[number:end])) for (name, number), end in zip(headings, ends)]
+    return [
+        (name, number, not any(line.strip() for line in lines[number:end]))
+        for (name, number), end in zip(headings, ends)
+    ]
 
 
 def check_sections(name, lines, problems):
@@ -103,7 +106,9 @@ def check_adr(name, number, lines, numbers, problems):
         if value in STATUSES:
             pass
         elif not superseded:
-            problems.append(f"{name}:{index}: the status '{value}' is not proposed, accepted, rejected or superseded by NNNN")
+            problems.append(
+                f"{name}:{index}: the status '{value}' is not proposed, accepted, rejected or superseded by NNNN"
+            )
         else:
             text, target, plain = superseded.groups()
             referred = int(plain or text)
@@ -155,7 +160,10 @@ def check(root):
             problems.append(f"{relative}: not named NNNN-title-in-kebab-case.md")
     for number, entries in files.items():
         if len(entries) > 1:
-            problems.append(f"{DIRECTORY}: the number {number:04d} is used by {len(entries)} files: " + ", ".join(e[0] for e in entries))
+            problems.append(
+                f"{DIRECTORY}: the number {number:04d} is used by {len(entries)} files: "
+                + ", ".join(e[0] for e in entries)
+            )
     for number, entries in files.items():
         for relative, path in entries:
             check_adr(relative, number, read(path), set(files), problems)

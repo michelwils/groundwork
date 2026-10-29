@@ -80,7 +80,15 @@ class Ranges(unittest.TestCase):
         return reserved
 
     def test_a_line_that_is_not_a_range_is_refused_with_its_line_number(self):
-        for text in ("9000\n", "abc\n", "9000-99999\n", "900-999\n", "9000–9999\n", "9000-9999 extra\n", "9000 - 9999\n"):
+        for text in (
+            "9000\n",
+            "abc\n",
+            "9000-99999\n",
+            "900-999\n",
+            "9000–9999\n",
+            "9000-9999 extra\n",
+            "9000 - 9999\n",
+        ):
             with self.subTest(text=text):
                 self.assertEqual(self.refused("# comment\n" + text, 2), [(1, 999)])
 
