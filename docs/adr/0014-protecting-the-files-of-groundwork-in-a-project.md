@@ -14,7 +14,7 @@ The platform cannot tell a maintainer from an agent that holds the maintainer's 
 
 We will let a project require the review of its code owners for the files of groundwork, with an option that is off by default.
 
-- **Protected files.** "Protected" does not mean locked: when the project requires the review of its code owners, a change to one of these files is meant to need the approval of an owner, and the Consequences say what was verified of that. The project makes its changes in its own pull requests.
+- **Protected files.** "Protected" does not mean locked: when the project requires the review of its code owners, a change to one of these files is meant to need the approval of an owner. The project makes its changes in its own pull requests.
   - The reserved ADRs and `docs/adr/template.md`.
   - `.groundwork/`.
   - `.groundwork-version`, `.groundwork-adrs`, `.groundwork-source` and `.groundwork-ranges`, the last of which decides where the next update comes from.
