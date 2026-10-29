@@ -58,7 +58,7 @@ def git(*args):
     return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
 
-def previous_version():
+def previous_version() -> str | None:
     """Return the highest version among the tags reachable from HEAD, or None."""
     versions = []
     for tag in git("tag", "--merged", "HEAD", "--list", "v[0-9]*").split():
@@ -68,7 +68,7 @@ def previous_version():
     return max(versions, key=lambda version: tuple(map(int, version.split(".")))) if versions else None
 
 
-def commits_since(version):
+def commits_since(version: str | None) -> list[Commit]:
     """Return the commits since the version, oldest first."""
     span = f"v{version}..HEAD" if version else "HEAD"
     raw = git("log", "--reverse", "--format=%H%x1f%B%x1e", span)
@@ -110,12 +110,12 @@ def key(description):
     return PULL_REQUEST.sub("", description).strip()
 
 
-def released_keys(version):
+def released_keys(version: str) -> dict[str, str]:
     """Return the descriptions of the changes released up to the version that no released revert undid, with the
     title of the latest one of each."""
     if not version:
         return {}
-    found = {}
+    found: dict[str, str] = {}
     for title in git("log", "--reverse", "--format=%s", f"v{version}").splitlines():
         match = TITLE.match(title)
         if not match:
@@ -128,7 +128,7 @@ def released_keys(version):
     return found
 
 
-def cancel_reverts(commits, released=None):
+def cancel_reverts(commits: list[Commit], released: dict[str, str] | None = None) -> list[tuple[Commit, list[str]]]:
     """Mark a reverted commit and its revert as undone, when both are in the range.
 
     A revert is paired only with the one change that has its description, in the range or released. One that
@@ -157,7 +157,7 @@ def without_text(commits):
     return [commit for commit in commits if commit.breaking and not commit.undone and not commit.footer]
 
 
-def increment(commit, major):
+def increment(commit: Commit, major: int) -> str:
     if commit.undone or commit.type is None:
         return "none"
     if commit.breaking:
@@ -165,7 +165,7 @@ def increment(commit, major):
     return {"feat": "minor", "fix": "patch", "perf": "patch"}.get(commit.type, "none")
 
 
-def bump(version, level):
+def bump(version: str | None, level: str) -> str:
     major, minor, patch = (int(part) for part in (version or "0.0.0").split("."))
     if level == "major":
         return f"{major + 1}.0.0"
@@ -174,8 +174,8 @@ def bump(version, level):
     return f"{major}.{minor}.{patch + 1}"
 
 
-def notes(commits, extra=""):
-    groups = {}
+def notes(commits: list[Commit], extra: str = "") -> str:
+    groups: dict[str, list[Commit]] = {}
     for commit in commits:
         if commit.undone:
             continue

@@ -13,6 +13,8 @@ maintainer copies it into the body of the squash commit, and the release notes g
 Usage: check_pull_request.py BRANCH BASE BODY TITLE
 """
 
+from __future__ import annotations
+
 import re
 import sys
 
@@ -26,7 +28,7 @@ BREAKING_TITLE = re.compile(r"^(?:" + "|".join(TYPES) + r")(?:\([a-z]+\))?!: ")
 BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE:[ \t]*\S", re.MULTILINE)
 
 
-def check(branch, base, body, title):
+def check(branch: str, base: str, body: str, title: str) -> list[str]:
     """Return the problems of the pull request, empty when it follows the rules."""
     if branch.startswith(BOT_BRANCHES):
         return []

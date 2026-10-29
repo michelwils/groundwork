@@ -17,6 +17,8 @@ Console scripts of the packages are not usable, since the environment is renamed
 Usage: run_with_requirements.py [--requirements FILE] SCRIPT [ARGS…]
 """
 
+from __future__ import annotations
+
 import hashlib
 import os
 import shutil
@@ -52,7 +54,7 @@ def python_of(environment):
     )
 
 
-def key_of(requirements):
+def key_of(requirements: str) -> str:
     with open(requirements, "rb") as handle:
         content = handle.read()
     version = f"{sys.version_info.major}.{sys.version_info.minor}".encode()

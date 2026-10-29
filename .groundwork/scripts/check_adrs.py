@@ -20,6 +20,8 @@ choice, so a skipped number in it is not reported: the base lists its range to b
 Usage: check_adrs.py [DIR]
 """
 
+from __future__ import annotations
+
 import os
 import re
 import sys
@@ -137,12 +139,13 @@ def check_numbers(numbers, reserved, kept, problems):
             problems.append(f"{DIRECTORY}: the number {missing:04d} of the project ADRs is skipped")
 
 
-def check(root):
+def check(root: str) -> list[str]:
     """Return the problems of the ADRs under the root, as 'file:line: message'."""
     directory = os.path.join(root, DIRECTORY)
     if not os.path.isdir(directory):
         return [f"{DIRECTORY}: the directory does not exist"]
-    problems, files = [], {}
+    problems: list[str] = []
+    files: dict[int, list[tuple[str, str]]] = {}
     for name in sorted(os.listdir(directory)):
         path = os.path.join(directory, name)
         if os.path.isdir(path) or not name.endswith(".md"):

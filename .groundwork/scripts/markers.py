@@ -12,7 +12,10 @@ ADR, and blocks are neither nested nor split. A Markdown marker in a code block 
 the ADRs that a project did not keep, with their markers, and leaves no blank line in excess.
 """
 
+from __future__ import annotations
+
 import re
+from collections.abc import Container
 from typing import NamedTuple
 
 PATTERNS = {
@@ -33,7 +36,7 @@ class Block(NamedTuple):
     end: int
 
 
-def kind(path):
+def kind(path: str) -> str | None:
     """Return the syntax of the markers of a file, from its extension, or None."""
     if path.endswith(".md"):
         return "markdown"
@@ -42,7 +45,7 @@ def kind(path):
     return None
 
 
-def parse(lines, syntax):
+def parse(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, str]]]:
     """Return the blocks and the problems of the lines.
 
     A problem is a (line, message)."""
@@ -56,8 +59,8 @@ def parse(lines, syntax):
                 if line.strip() and set(line.strip()) == {fence[0]} and len(line.strip()) >= len(fence):
                     fence = None
                 continue
-            if FENCE.match(line):
-                fence = FENCE.match(line).group(1)
+            if opened := FENCE.match(line):
+                fence = opened.group(1)
                 continue
         start = opening.match(line)
         if start:
@@ -81,7 +84,7 @@ def parse(lines, syntax):
     return blocks, problems
 
 
-def remove(text, syntax, kept):
+def remove(text: str, syntax: str, kept: Container[int]) -> str:
     """Return the text without the blocks of the ADRs that are not kept.
 
     A blank line that follows a removed block goes with it when a blank line precedes it, and the
@@ -95,7 +98,8 @@ def remove(text, syntax, kept):
     if problems:
         raise ValueError("; ".join(f"line {line}: {message}" for line, message in problems))
     dropped = {block.start - 1: block.end - 1 for block in blocks if block.adr not in kept}
-    out, junction, index = [], False, 0
+    out: list[str] = []
+    junction, index = False, 0
     while index < len(lines):
         if index in dropped:
             index = dropped[index] + 1

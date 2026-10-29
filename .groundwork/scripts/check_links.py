@@ -17,6 +17,8 @@ The files are read with markdown-it-py, a parser of CommonMark, which requiremen
 Usage: check_links.py [DIR]
 """
 
+from __future__ import annotations
+
 import os
 import re
 import subprocess
@@ -121,7 +123,7 @@ def left_out(root):
     return lambda file: not choice.included(file, owners, kept, reserved)
 
 
-def check(root):
+def check(root: str) -> list[str]:
     """Return the broken links of the Markdown files under the root, as 'file:line: message'."""
     root = os.path.abspath(root)
     texts, known = {}, {}

@@ -23,6 +23,8 @@ and the job holds a token that can push.
 Usage: open_update_pull_request.py [--source URL]
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -30,6 +32,8 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UPDATE = os.path.join(HERE, "update_groundwork.py")
@@ -54,7 +58,7 @@ class Failure(Exception):
     pass
 
 
-def without_hooks(environ):
+def without_hooks(environ: Mapping[str, str]) -> dict[str, str]:
     """Return the environment in which git runs no hook, with the configuration already given in it."""
     count = int(environ.get("GIT_CONFIG_COUNT", "0"))
     return {
@@ -116,7 +120,7 @@ def put_back(current, commit, before):
         print(f"error: could not put the project back as it was: {failure}", file=sys.stderr)
 
 
-def result(path):
+def result(path: str) -> dict[str, Any] | None:
     """Return the result that the update script wrote to the file, or None when it wrote none: the project is up to date.
     It holds the strings branch, from, to and source, the list added of numbers of four digits and the list conflicts of
     paths, and no other field. `to` is always a release, `X.Y.Z`, with the branch of that version: this script never asks
@@ -147,7 +151,7 @@ def result(path):
     return fields
 
 
-def agree(status, fields):
+def agree(status: int, fields: dict[str, Any]) -> None:
     """Check that the status of the update says what its result says: CONFLICTS (3) when files are in conflict, 0 when none is."""
     if status != (CONFLICTS if fields["conflicts"] else 0):
         raise Failure(
@@ -163,7 +167,7 @@ def code(text):
     return f"{fence}{pad}{text}{pad}{fence}"
 
 
-def body(old, new, conflicts, source, added=()):
+def body(old: str, new: str, conflicts: list[str], source: str, added: Sequence[str] = ()) -> str:
     lines = [f"Moves the project from groundwork {old} to {new}."]
     if source.startswith("https://"):
         lines.append(f"Release notes: {source.removesuffix('.git')}/releases/tag/v{new}")

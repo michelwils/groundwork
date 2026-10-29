@@ -55,6 +55,7 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
+from collections.abc import Container
 from dataclasses import dataclass
 from typing import NamedTuple
 
@@ -89,7 +90,9 @@ class Failure(Exception):
     pass
 
 
-def git(*args, check=True, text=True, input=None):
+def git(
+    *args: str, check: bool = True, text: bool = True, input: str | bytes | None = None
+) -> subprocess.CompletedProcess:
     result = subprocess.run(["git", *args], capture_output=True, text=text, input=input)
     if check and result.returncode != 0:
         message = result.stderr if text else result.stderr.decode(errors="replace")
@@ -116,7 +119,7 @@ def label(version):
     return commit_of(version)[:12] if commit_of(version) else f"v{version.replace('.', '-')}"
 
 
-def recorded_version():
+def recorded_version() -> str:
     try:
         with open(VERSION_FILE) as handle:
             content = handle.read()
@@ -152,12 +155,12 @@ def recorded_source():
     return address
 
 
-def is_address(address):
+def is_address(address: str) -> bool:
     """Tell whether the text is an address of a source that a project may record."""
     return len(address) <= ADDRESS_LENGTH and ADDRESS.fullmatch(address) is not None
 
 
-def source_of(explicit):
+def source_of(explicit: str | None) -> str:
     """Return the source of the updates: the one given, else the one the project recorded, else groundwork."""
     return explicit or recorded_source() or SOURCE
 
@@ -169,7 +172,7 @@ def forget_tags():
         git("update-ref", "--stdin", input="".join(f"delete {ref}\n" for ref in refs))
 
 
-def fetch_releases(source):
+def fetch_releases(source: str) -> list[str]:
     """Copy the tags of the source under `groundwork/` and return its versions, the oldest first."""
     forget_tags()
     git("fetch", "--quiet", "--no-tags", "--", source, f"+refs/tags/v*:refs/tags/{PREFIX}v*")
@@ -188,7 +191,7 @@ def fetch_head(source):
     return git("rev-parse", "--verify", f"{HEAD_REF}^{{commit}}").stdout.strip()
 
 
-def fetch_base(source, old, head=False):
+def fetch_base(source: str, old: str, head: bool = False) -> tuple[list[str], bool]:
     """Fetch what the update reads from the source: its tags, and its head when the project is on a commit or asks for
     the head. Return the versions and whether the recorded version is known to the source: a release it published, or
     a commit that it has."""
@@ -209,7 +212,7 @@ def reached(commit):
     return result.returncode == 0 and bool(result.stdout.split())
 
 
-def unknown_message(old, source):
+def unknown_message(old: str, source: str) -> str:
     """Return the sentence for a recorded version that the source does not have."""
     if commit_of(old):
         return f"The recorded commit {commit_of(old)} is not in {source}."
@@ -232,13 +235,13 @@ def version_of_head(commit):
     return releases[-1] if release_commit == commit else f"{releases[-1]}+{commit}"
 
 
-def blob(version, path):
+def blob(version: str, path: str) -> bytes | None:
     """Return the content of the path in the version, or None when it does not exist there."""
     result = git("cat-file", "blob", f"{revision(version)}:{path}", check=False, text=False)
     return result.stdout if result.returncode == 0 else None
 
 
-def mode(version, path):
+def mode(version: str, path: str) -> int:
     line = git("ls-tree", revision(version), "--", path).stdout.split()
     return int(line[0], 8) if line else 0o100644
 
@@ -251,7 +254,7 @@ def in_git_directory(path):
     return any(name.split(":", 1)[0].rstrip(". ").lower() in (".git", "git~1") for name in names)
 
 
-def inside(root, path):
+def inside(root: str, path: str) -> bool:
     """Tell whether the path stays in the repository once it is resolved, links included, and out of a directory .git."""
     if os.path.isabs(path) or ".." in path.split("/") or not path or in_git_directory(path):
         return False
@@ -280,7 +283,7 @@ def paths_of(raw):
     return [path for path in paths if path not in EXCLUDED]
 
 
-def tree_paths(version):
+def tree_paths(version: str) -> list[str]:
     return paths_of(git("ls-tree", "-r", "--name-only", "-z", revision(version), text=False).stdout.decode())
 
 
@@ -289,7 +292,7 @@ def changed_paths(old, new):
     return paths_of(raw.decode())
 
 
-def read(path):
+def read(path: str) -> bytes | None:
     try:
         with open(path, "rb") as handle:
             return handle.read()
@@ -297,14 +300,14 @@ def read(path):
         return None
 
 
-def write(path, content, file_mode):
+def write(path: str, content: bytes, file_mode: int) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "wb") as handle:
         handle.write(content)
     os.chmod(path, 0o755 if file_mode & 0o111 else 0o644)
 
 
-def remove(path):
+def remove(path: str) -> None:
     os.remove(path)
     try:
         os.removedirs(os.path.dirname(path) or ".")
@@ -312,7 +315,7 @@ def remove(path):
         pass
 
 
-def merge(ours, base, theirs):
+def merge(ours: bytes, base: bytes | None, theirs: bytes) -> tuple[bytes, bool]:
     """Return (content, conflict) of the three-way merge of three versions of a text file."""
     with tempfile.TemporaryDirectory() as directory:
         paths = []
@@ -329,7 +332,7 @@ def merge(ours, base, theirs):
     return result.stdout, result.returncode > 0
 
 
-def check_result_path(path):
+def check_result_path(path: str) -> None:
     """Stop, before any branch, when the result cannot be written. It creates and truncates nothing, so a run that fails
     later leaves no file behind, as ADR 1003 says."""
     if os.path.isdir(path):
@@ -340,7 +343,7 @@ def check_result_path(path):
         raise Failure(f"{path} cannot be written ({error.strerror}). No branch is created.")
 
 
-def decide(base, theirs, ours):
+def decide(base: bytes | None, theirs: bytes | None, ours: bytes | None) -> tuple:
     """Tell what applying the change from the base to theirs does to a file that holds ours.
 
     Return ("none",), ("write", content), ("remove",), ("conflict",) when nothing can be merged, or
@@ -400,13 +403,13 @@ class Side:
         self.owners = practices_map.owners(entries)
 
 
-def adr_number(path):
+def adr_number(path: str) -> int | None:
     directory, _, name = path.rpartition("/")
     match = practices_map.ADR_FILE.match(name) if directory == practices_map.ADR_DIRECTORY else None
     return int(match.group(1)) if match else None
 
 
-def text_of(path, content, kept):
+def text_of(path: str, content: bytes | None, kept: Container[int]) -> bytes | None:
     """Return the content without the blocks of the ADRs that are not kept, when it is a file with blocks."""
     if content is None or markers.kind(path) is None:
         return content
@@ -471,7 +474,7 @@ def paths_with_a_block_of(new, new_paths, entering, candidates):
     return found
 
 
-def plan(old, new):
+def plan(old: str, new: str) -> Plan:
     """Return the plan to move the project from the version old to the version new (the same one to apply the
     choice only). It reads the project and the versions and writes nothing."""
     after, before = Side(new), Side(old)

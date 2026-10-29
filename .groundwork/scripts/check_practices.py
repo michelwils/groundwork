@@ -35,10 +35,13 @@ refused in the two files are reported by check_adrs.py.
 Usage: check_practices.py [ROOT]
 """
 
+from __future__ import annotations
+
 import os
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
 
 import choice
 import markers
@@ -144,7 +147,7 @@ def check_entries(entries, numbers, reserved, problems):
         problems.append((MAP, lines[number], f"the ADR {number:04d} is on a cycle of needs"))
 
 
-def outside_code(lines):
+def outside_code(lines: list[str]) -> list[tuple[int, str]]:
     """Return the (number, line) of the lines that are not in a code block, nor its fences."""
     kept, fence = [], None
     for number, line in enumerate(lines, start=1):
@@ -192,7 +195,7 @@ def adrs_named_in(line):
     return named | {int(number) for number in LINKED.findall(line)}
 
 
-def named_adrs(line, reserved=(BASE,)):
+def named_adrs(line: str, reserved: Sequence[tuple[int, int]] = (BASE,)) -> set[int]:
     """Return the numbers of the ADRs of the ranges that the source reserves that a line names or links."""
     return {number for number in adrs_named_in(line) if is_reserved(number, reserved)}
 
@@ -324,7 +327,7 @@ def check_files(root, entries, shared, apart, files, problems):
         problems.append((MAP, 1, f"the file {path} is tracked and the map does not name it"))
 
 
-def check(root):
+def check(root: str) -> list[str]:
     """Return the problems of the map under the root, as 'file:line: message'."""
     path = os.path.join(root, MAP)
     if not os.path.isfile(path):
@@ -334,7 +337,7 @@ def check(root):
         return [f"{root}: not a git repository, the tracked files are unknown"]
     files = {name for name in files if os.path.lexists(os.path.join(root, name))}
     entries, shared, apart = read_map(root)
-    problems = []
+    problems: list[tuple[str, int, str]] = []
     reserved = read_ranges(root)[0]
     kept = choice.Kept(choice.read(root, reserved)[0], needs_of(entries))
     owned, entries = entries, [entry for entry in entries if entry.number in kept]
