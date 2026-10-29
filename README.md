@@ -266,7 +266,7 @@ The [`update-groundwork` workflow](.github/workflows/update-groundwork.yml) does
 
 ## Working on groundwork
 
-This repository contains documentation, configuration and the scripts, with their tests.
+This repository contains documentation, configuration and the scripts, with their tests. [How the scripts work](.groundwork/scripts/README.md) tells how they fit together, where to change each step of an update and what the words of their code mean.
 
 ### Checks and tests
 

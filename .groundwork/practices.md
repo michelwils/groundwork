@@ -187,6 +187,7 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 
 - `.gitattributes`
 - `.gitignore`
+- `.groundwork/scripts/README.md`
 - `.groundwork/scripts/apply_choice.py`
 - `.groundwork/scripts/choice.py`
 - `.groundwork/scripts/coveragerc`
@@ -199,6 +200,7 @@ These files concern groundwork itself, or the repository as a whole, or are the 
 - `.groundwork/scripts/test_markers.py`
 - `.groundwork/scripts/test_open_update_pull_request.py`
 - `.groundwork/scripts/test_practices_map.py`
+- `.groundwork/scripts/test_readme_of_the_scripts.py`
 - `.groundwork/scripts/test_update_groundwork.py`
 - `.groundwork/scripts/test_update_workflow.py`
 - `.groundwork/scripts/update_groundwork.py`
