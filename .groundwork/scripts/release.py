@@ -110,7 +110,7 @@ def key(description):
     return PULL_REQUEST.sub("", description).strip()
 
 
-def released_keys(version: str) -> dict[str, str]:
+def released_keys(version: str | None) -> dict[str, str]:
     """Return the descriptions of the changes released up to the version that no released revert undid, with the
     title of the latest one of each."""
     if not version:

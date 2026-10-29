@@ -61,26 +61,26 @@ def parse(lines: list[str]) -> tuple[list[Entry], list[Listed], list[Listed]]:
     entries: list[Entry] = []
     shared: list[Listed] = []
     apart: list[Listed] = []
-    section = list_name = entry = None
+    section = entry = listing = None
     for number, line in enumerate(lines, start=1):
         line = line.rstrip("\r")
         if line in SECTIONS:
-            section, entry, list_name = SECTIONS[line], None, None
+            section, entry, listing = SECTIONS[line], None, None
         elif line.startswith("## "):
-            section, entry, list_name = None, None, None
+            section, entry, listing = None, None, None
         elif heading := HEADING.match(line):
             entry = Entry(number=int(heading.group(1)), line=number)
             entries.append(entry)
-            list_name = None
+            listing = None
         elif entry is not None and line.startswith("- "):
             head, _, value = line[2:].partition(":")
-            list_name = {"Files": "files", "Shared lines": "shared"}.get(head)
+            listing = {"Files": entry.files, "Shared lines": entry.shared}.get(head)
             if head == "Needs":
                 entry.needs = Needs(value.strip(), number)
-        elif entry is not None and list_name and (listed := LIST_ITEM.match(line)):
+        elif entry is not None and listing is not None and (listed := LIST_ITEM.match(line)):
             path = PATH.match(listed.group(1))
             if path:
-                getattr(entry, list_name).append(Listed(path.group(1), number))
+                listing.append(Listed(path.group(1), number))
         elif section in ("shared", "apart") and line.startswith("- "):
             path = PATH.match(line[2:])
             if path:

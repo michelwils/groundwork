@@ -51,7 +51,9 @@ def parse(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, s
     A problem is a (line, message)."""
     opening, closing = PATTERNS[syntax]
     blocks, problems = [], []
-    current = fence = None
+    fence = None
+    opened_adr: int | None = None
+    opened_at = 0
     for number, line in enumerate(lines, start=1):
         line = line.rstrip("\r")
         if syntax == "markdown":
@@ -64,23 +66,23 @@ def parse(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, s
                 continue
         start = opening.match(line)
         if start:
-            if current:
+            if opened_adr is not None:
                 problems.append(
                     (
                         number,
-                        f"a block is opened inside the block of the ADR {current[0]:04d} opened at line {current[1]}",
+                        f"a block is opened inside the block of the ADR {opened_adr:04d} opened at line {opened_at}",
                     )
                 )
                 continue
-            current = (int(start.group(1)), number)
+            opened_adr, opened_at = int(start.group(1)), number
         elif closing.match(line):
-            if not current:
+            if opened_adr is None:
                 problems.append((number, "a closing marker has no block to close"))
                 continue
-            blocks.append(Block(*current, number))
-            current = None
-    if current:
-        problems.append((current[1], f"the block of the ADR {current[0]:04d} is not closed"))
+            blocks.append(Block(opened_adr, opened_at, number))
+            opened_adr = None
+    if opened_adr is not None:
+        problems.append((opened_at, f"the block of the ADR {opened_adr:04d} is not closed"))
     return blocks, problems
 
 
