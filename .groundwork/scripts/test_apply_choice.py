@@ -493,7 +493,9 @@ class Safety(Fixture):
         self.adopt(trimmed(world("1"), {1, 2, 3}), version="0.1.0", choice="0001\n0004\n")
         dry = self.run_script("--dry-run")
         real = self.run_script()
-        keep = lambda result: [line for line in result.stdout.splitlines() if line.split(":")[0] in ("add", "merge", "delete", "edit", "keep")]  # noqa: E731
+        def keep(result):
+            return [line for line in result.stdout.splitlines() if line.split(":")[0] in ("add", "merge", "delete", "edit", "keep")]
+
         self.assertEqual(keep(dry), keep(real))
 
     def test_a_second_run_changes_nothing(self):
