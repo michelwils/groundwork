@@ -401,6 +401,26 @@ class Update(unittest.TestCase):
         self.assertIn("--result", result.stderr)
         self.assertEqual(self.branches(), ["main"])
 
+    def test_a_result_that_cannot_be_written_stops_the_update_before_the_branch(self):
+        missing = os.path.join(self.directory.name, "missing", "result.json")
+        for path in (missing, self.directory.name):  # a folder that does not exist, and a folder in place of a file
+            with self.subTest(path=path):
+                result = self.run_script("--to", "0.2.0", "--result", path)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(path, result.stderr)
+                self.assertIn("No branch is created", result.stderr)
+                self.assertEqual(self.branches(), ["main"])
+                self.assertEqual(git(self.project, "status", "--porcelain").strip(), "")
+                self.assertEqual(read(self.project, ".groundwork-version"), "0.1.0\n")
+
+    def test_a_result_that_cannot_be_written_does_not_matter_when_the_project_is_up_to_date(self):
+        self.commit_project({".groundwork-version": "0.3.0\n"})
+        missing = os.path.join(self.directory.name, "missing", "result.json")
+        result = self.run_script("--result", missing)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("up to date", result.stdout)
+        self.assertFalse(os.path.exists(os.path.dirname(missing)))
+
     def test_the_result_of_an_update_without_conflict_lists_none(self):
         result = self.run_script("--to", "0.2.0", "--result", self.result_file())
         self.assertEqual(result.returncode, 0, result.stderr)

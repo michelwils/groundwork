@@ -268,6 +268,90 @@ class OpenUpdatePullRequest(unittest.TestCase):
         self.assertIn("error: the update stopped at a step", result.stderr)
         self.assertIn("status 4", result.stderr)
 
+    # A stand-in for the update that the test names: it prepares the branch of the update and changes files, then does what
+    # the test appends to it. It is copied next to a copy of the opener, which runs it in place of the real one.
+    STAND_IN = """import json, subprocess, sys
+subprocess.run(["git", "switch", "-q", "-c", "groundwork/update-to-v0-2-0"], check=True)
+with open(".groundwork-version", "w") as handle:
+    handle.write("0.2.0\\n")
+with open("update.md", "w") as handle:
+    handle.write("update\\n")
+path = sys.argv[sys.argv.index("--result") + 1]
+"""
+
+    def run_with_update(self, ending):
+        copy = os.path.join(self.directory.name, "copy")
+        os.makedirs(copy, exist_ok=True)
+        shutil.copy(SCRIPT, copy)
+        with open(os.path.join(copy, "update_groundwork.py"), "w") as handle:
+            handle.write(self.STAND_IN + ending)
+        env = {
+            **os.environ, "PATH": self.bin + os.pathsep + os.environ["PATH"], "FAKE_LOG": self.log,
+            "FAKE_PULL_REQUESTS": "[]", "FAKE_CLOSED_PULL_REQUESTS": "[]",
+        }
+        return subprocess.run(
+            [sys.executable, os.path.join(copy, "open_update_pull_request.py"), "--source", self.source],
+            cwd=self.project, capture_output=True, text=True, env=env,
+        )
+
+    def assert_put_back(self, result, head, branch="main"):
+        """The opener failed and left the project as it found it, so that a later run goes through."""
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(git(self.project, "for-each-ref", "--format=%(refname:short)", "refs/heads").split(), ["main"])
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), branch if branch == "main" else "")
+        self.assertEqual(git(self.project, "status", "--porcelain").strip(), "")
+        self.assertEqual(git(self.project, "rev-parse", "HEAD").strip(), head)
+        self.assertFalse(os.path.exists(os.path.join(self.project, "update.md")))
+        self.assertEqual(git(self.project, "show", "HEAD:.groundwork-version"), "0.1.0\n")
+        self.assertEqual(self.created(), [])
+        later = self.run_script()
+        self.assertEqual(later.returncode, 0, later.stderr)
+        self.assertEqual(len(self.created()), 1)
+
+    def test_puts_the_project_back_when_the_result_is_not_json(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        result = self.run_with_update("open(path, 'w').write('not json')\n")
+        self.assertIn("not JSON", result.stderr)
+        self.assert_put_back(result, head)
+
+    def test_puts_the_project_back_when_the_update_ends_with_another_status_and_no_result(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        result = self.run_with_update("sys.exit(4)\n")
+        self.assertIn("status 4", result.stderr)
+        self.assert_put_back(result, head)
+
+    def test_puts_the_project_back_when_the_status_and_the_result_disagree(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        fields = {"branch": "groundwork/update-to-v0-2-0", "from": "0.1.0", "to": "0.2.0", "source": "x", "added": [], "conflicts": []}
+        result = self.run_with_update(f"open(path, 'w').write(json.dumps({fields!r}))\nsys.exit(3)\n")
+        self.assertIn("status 3", result.stderr)
+        self.assert_put_back(result, head)
+
+    def test_puts_the_project_back_when_the_update_fails_after_it_prepared_the_branch(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        self.assert_put_back(self.run_with_update("sys.exit(1)\n"), head)
+
+    def test_puts_a_detached_project_back_on_its_commit(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        git(self.project, "switch", "-q", "--detach")
+        self.assert_put_back(self.run_with_update("sys.exit(1)\n"), head, branch="")
+
+    def test_puts_the_project_back_when_the_push_fails(self):
+        head = git(self.project, "rev-parse", "HEAD").strip()
+        git(self.project, "remote", "set-url", "origin", os.path.join(self.directory.name, "no-such-remote.git"))
+        result = self.run_script()
+        git(self.project, "remote", "set-url", "origin", self.remote)
+        self.assert_put_back(result, head)
+
+    def test_leaves_the_changes_of_the_person_when_the_update_refuses_a_tree_that_is_not_clean(self):
+        write(self.project, {"CONTRIBUTING.md": "mine\n"})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("not clean", result.stderr)
+        with open(os.path.join(self.project, "CONTRIBUTING.md")) as handle:
+            self.assertEqual(handle.read(), "mine\n")
+        self.assertEqual(git(self.project, "branch", "--show-current").strip(), "main")
+
     def test_replaces_a_branch_left_by_an_earlier_run_that_has_no_pull_request(self):
         git(self.project, "switch", "-q", "-c", "groundwork/update-to-v0-2-0")
         write(self.project, {"stale.md": "stale\n"})

@@ -13,6 +13,10 @@ is already open, when the pull request of that version was closed without being 
 project has no `.groundwork-version`. A later version is proposed again. The branch of an earlier
 run that has no pull request is replaced.
 
+When it stops after the update has run, it puts the project back as it was, on its branch or detached, and deletes the branch
+that the update made, so that a later run does not stop on it. It does so only for a branch `groundwork/…` that the update
+checked out: a project that the update refused to touch, such as a working tree that is not clean, keeps its changes.
+
 Git runs no hook, neither in this script nor in the update: the files of the source are not reviewed yet,
 and the job holds a token that can push.
 
@@ -75,6 +79,23 @@ def undo(branch, current, commit):
     run("git", "clean", "-fdq")
     run("git", "switch", "-q", *([current] if current else ["--detach", commit]))
     run("git", "branch", "-q", "-D", branch)
+
+
+def created_branch(current):
+    """Return the branch `groundwork/…` that the update checked out in place of `current`, or None when it made none."""
+    now = run("git", "branch", "--show-current").strip()
+    return now if now.startswith(PREFIX) and now != current else None
+
+
+def put_back(current, commit):
+    """Undo what the update left when this script stops: only a branch that the update made, after it checked that the
+    working tree was clean. A failure to undo is told, and does not hide the error that stopped the script."""
+    try:
+        branch = created_branch(current)
+        if branch:
+            undo(branch, current, commit)
+    except Failure as failure:
+        print(f"error: could not put the project back as it was: {failure}", file=sys.stderr)
 
 
 def result(path):
@@ -148,6 +169,17 @@ def main():
 
     current = run("git", "branch", "--show-current").strip()
     commit = run("git", "rev-parse", "HEAD").strip()
+    try:
+        status = propose(args, current, commit)
+    except Failure:
+        put_back(current, commit)
+        raise
+    if status != 0:
+        put_back(current, commit)
+    return status
+
+
+def propose(args, current, commit):
     with tempfile.TemporaryDirectory() as directory:  # outside the working tree, so that the commit cannot hold it
         file = os.path.join(directory, "result.json")
         command = [sys.executable, UPDATE, "--result", file] + (["--source", args.source] if args.source else [])
