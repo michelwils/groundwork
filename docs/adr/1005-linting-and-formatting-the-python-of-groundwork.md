@@ -24,7 +24,7 @@ We will lint and format the Python of `.groundwork/scripts/` with Ruff, in the C
 - The check is a step of the CI and not a hook, as is the measure of the coverage, so `pre-commit run` does not run it. A change that breaks it is seen when the contributor runs the commands of the README, or in the CI.
 - A project receives Ruff with the other dependencies of the scripts, in the environment of the CI and in the one that `run_with_requirements.py` makes for the hook that checks the links, and does not run it. It receives `ruff.toml` too, which only applies to the folder of the scripts, so a project that uses Ruff for its own code is not affected.
 - A community base is a source of ADRs, and gets the same check.
-- The first application reformats most of the files of the scripts, and fixes the few errors of the rules. The reformatting is a commit of its own, so that `git blame` can skip it.
+- The first application reformats most of the files of the scripts, and fixes the few errors that the rules report.
 - The commands run from the root of the repository: `ruff.toml` names the folder of the scripts as the source root, so that the scripts, which import each other, are not taken for dependencies.
 
 ## Options considered
