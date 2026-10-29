@@ -111,6 +111,7 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `.groundwork/scripts/test_apply_choice_on_the_real_files.py`
   - `.groundwork/scripts/test_filtered_trees.py`
 - Shared lines:
+  - `AGENTS.md`
   - `CONTRIBUTING.md`
 
 ### 0009. [Test-first development](../docs/adr/0009-test-first-development.md)

@@ -95,6 +95,9 @@ A reviewer, and whoever checks their own work, check:
 - each acceptance criterion of the issue against the diff, not against the pull request description
 - contradictions with, and repetitions of, the ADRs, the README and this file
 - the commands that the change documents, by running them
+<!-- groundwork:0008 -->
+- the checks and the tests of the change, run as the CI runs them ([Checks](#checks))
+<!-- /groundwork -->
 - the links, by following them
 <!-- groundwork:0005 -->
 - the type of the pull request title, against the public contract in the [README](README.md), since it sets the next version
@@ -113,7 +116,14 @@ A reviewer, and whoever checks their own work, check:
 <!-- groundwork:0008 -->
 ## Checks
 
-Checks run before each commit and in CI on every pull request ([ADR 0008](docs/adr/0008-automated-checks.md)). Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`. A failing check is fixed, not skipped. The checks cover the commit message, secrets, Markdown and the settings of `.editorconfig`, and, on a pull request, its title, its branch name and its closing line.
+Checks run before each commit and in CI on every pull request ([ADR 0008](docs/adr/0008-automated-checks.md)). Install the hooks once with `pre-commit install`. Before you present a change, commit it or mark a pull request ready, run what the CI runs:
+
+```sh
+pre-commit run --all-files --hook-stage manual
+python3 -m unittest discover -s .groundwork/scripts -p 'test_*.py'
+```
+
+The first command runs every check on all files, including a scan of the whole history for secrets. A plain `pre-commit run --all-files` leaves out the hooks of the `manual` stage, such as that scan, and no hook runs the tests of the scripts, so they have a command of their own. The CI of a project runs all of those tests when `.groundwork/scripts` or the `checks` workflow changed, and otherwise those that read the files of the repository: running all of them covers both. A failing check is fixed, not skipped. The checks cover the commit message, secrets, Markdown and the settings of `.editorconfig`, and, on a pull request, its title, its branch name and its closing line, which only the CI runs, since the pull request does not exist before.
 <!-- /groundwork -->
 
 <!-- groundwork:0007 -->
