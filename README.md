@@ -96,9 +96,14 @@ Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/000
 - GitHub Actions workflows have no security mistake such as an expression injection, an unpinned action or excessive permissions, audited offline by [zizmor](https://docs.zizmor.sh) and configured in [`.github/zizmor.yml`](.github/zizmor.yml)
 - the scripts' dependencies have no known vulnerability, audited by [pip-audit](https://github.com/pypa/pip-audit) when [`.groundwork/scripts/requirements.txt`](.groundwork/scripts/requirements.txt) changes and in the CI, since it needs the network ([ADR 0008](docs/adr/0008-automated-checks.md))
 
-Install the hooks once with `pre-commit install`, and run every check on all files, including a scan of the whole history for secrets, with `pre-commit run --all-files --hook-stage manual`. Run the tests of the scripts too, with the command of [Checks and tests](#checks-and-tests).
+Install the hooks once with `pre-commit install`, then run every check and the tests as [`CONTRIBUTING.md`](CONTRIBUTING.md#checks) says. For groundwork itself, the commands are in [Checks and tests](#checks-and-tests).
 
-The [`checks` workflow](.github/workflows/checks.yml) runs that command on every pull request and on `main`. It checks that the pull request title follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title, except for Dependabot's pull requests. It checks that the branch is named `<type>/<issue-number>-<slug>` and that the description closes that issue ([ADR 0003](docs/adr/0003-change-workflow.md)). It also runs the tests of its scripts. It keeps the environments of the hooks of pre-commit in the [cache of GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching), which a change of `.pre-commit-config.yaml`, of the version of pre-commit or of the Python that it runs with renews. The first run that installs them saves them, even if a check fails: pre-commit installs again an environment that did not finish. Only a push to `main` writes the cache that the pull requests restore: the cache of a pull request stays in its own scope. When the CI gets slow, look at the cache of `main` in the Actions tab.
+The [`checks` workflow](.github/workflows/checks.yml) runs the same checks on every pull request and on `main`:
+
+- It checks that the pull request title follows [ADR 0002](docs/adr/0002-conventional-commits.md), since it becomes the commit title, except for Dependabot's pull requests.
+- It checks that the branch is named `<type>/<issue-number>-<slug>` and that the description closes that issue ([ADR 0003](docs/adr/0003-change-workflow.md)).
+- It also runs the tests of its scripts.
+- It keeps the environments of the hooks of pre-commit in the [cache of GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching), which a change of `.pre-commit-config.yaml`, of the version of pre-commit or of the Python that it runs with renews. The first run that installs them saves them, even if a check fails: pre-commit installs again an environment that did not finish. Only a push to `main` writes the cache that the pull requests restore: the cache of a pull request stays in its own scope. When the CI gets slow, look at the cache of `main` in the Actions tab.
 
 ## Adopting groundwork
 
@@ -111,9 +116,20 @@ groundwork is a GitHub template repository.
    python3 .groundwork/scripts/apply_settings.py [<owner>/<repo>] [--dry-run] [--code-owner-review] [--last-push-approval] [--turn-off-reviews]
    ```
 
-   It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on. It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on and which GitHub offers on public repositories only: on a private or internal repository, the script skips it and says so. It also makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards. It also turns on the vulnerability alerts and the security updates for the dependencies. Last, it protects the default branch with this repository's ruleset, which rejects direct pushes and requires the `checks` job of the CI and no approval. Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing. `--code-owner-review` requires at least one approval on every pull request and the approval of a code owner on the files of groundwork, and `--last-push-approval` goes with it ([ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md)). The script refuses `--code-owner-review` when the only code owner is the person who runs it, since nobody else could approve. The script stops when a run would lower an approval setting that the ruleset already has, unless it gets `--turn-off-reviews`. Copy `.groundwork/CODEOWNERS.template` to `.github/CODEOWNERS` first, and merge it into the default branch.
+   - It applies the merge settings that [ADR 0003](docs/adr/0003-change-workflow.md) relies on.
+   - It enables private vulnerability reporting, which [`SECURITY.md`](SECURITY.md) relies on and which GitHub offers on public repositories only: on a private or internal repository, the script skips it and says so.
+   - It also makes published releases immutable, so that the tag of a release cannot be moved. That applies to the releases published afterwards.
+   - It also turns on the vulnerability alerts and the security updates for the dependencies.
+   - Last, it protects the default branch with this repository's ruleset, which rejects direct pushes and requires the `checks` job of the CI and no approval.
 
-   The jobs that the project adds to its CI go in [`.github/workflows/project-checks.yml`](.github/workflows/project-checks.yml), which the required job `checks` waits for ([ADR 0008](docs/adr/0008-automated-checks.md)): the ruleset needs no change, nor a new run of the script.
+   Run it again and the repository stays in the same state. With `--dry-run`, it shows what it would apply and changes nothing.
+
+   - `--code-owner-review` requires at least one approval on every pull request and the approval of a code owner on the files of groundwork, and `--last-push-approval` goes with it ([ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md)). The script refuses `--code-owner-review` when the only code owner is the person who runs it, since nobody else could approve.
+   - The script stops when a run would lower an approval setting that the ruleset already has, unless it gets `--turn-off-reviews`.
+
+   Copy `.groundwork/CODEOWNERS.template` to `.github/CODEOWNERS` first, before `--code-owner-review`, and merge it into the default branch.
+
+   The jobs that the project adds to its CI go where [ADR 0008](docs/adr/0008-automated-checks.md) says, and need no change of the ruleset, nor a new run of the script.
 
    Also create the secret `GROUNDWORK_UPDATE_TOKEN`, which the [automatic update](#automatic-update) of groundwork needs.
 3. **Create** the first milestone, then the first issue, which adapts the template to the project.
@@ -176,7 +192,7 @@ The second phase, the workflow:
 
 The third phase, the checks:
 
-- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks below the comment of `.pre-commit-config.yaml`, its jobs in `.github/workflows/project-checks.yml` and its Dependabot entries below the comment of `.github/dependabot.yml`, and add groundwork's. Check with `pre-commit run --all-files --hook-stage manual` and the tests, as [`CONTRIBUTING.md`](CONTRIBUTING.md#checks) says.
+- **ADR 0008**, automated checks. It brings `.pre-commit-config.yaml`, the `checks` workflow and the tools of its checks. This is where the gaps appear: the checks run on all the files and fail on the code that exists, and the scan of the history may find secrets. Record the gaps before the pull request. Keep the project's hooks below the comment of `.pre-commit-config.yaml`, its jobs in `.github/workflows/project-checks.yml` and its Dependabot entries below the comment of `.github/dependabot.yml`, and add groundwork's. Check with the commands of [`CONTRIBUTING.md`](CONTRIBUTING.md#checks).
 
 The fourth phase, the rules that no tool checks:
 
@@ -185,7 +201,7 @@ The fourth phase, the rules that no tool checks:
 - **ADR 0012**, responding to an incident. It brings `SECURITY.md`. The project's own is merged by hand. Check that it names who leads the response. A private repository has no private vulnerability reporting, so its `SECURITY.md` replaces the first paragraph with an address where the maintainer can be reached privately.
 - **ADR 0011**, confidential and personal data. The project classifies its data in its documentation. Check by review.
 - **ADR 0013**, licenses of the dependencies. The project writes the licenses it accepts. Check by review.
-- **ADR 0014**, protecting the files of groundwork. It brings `.groundwork/CODEOWNERS.template` and a line of `AGENTS.md`. A protected file is not a locked one: once the requirement is on, a change to it needs the approval of an owner, the lines of the project in it included. Copy the template to `.github/CODEOWNERS`, replace `@OWNER` and merge it. When someone other than the maintainer can approve, run `apply_settings.py --code-owner-review`, which requires one approval on every pull request, and add `--last-push-approval` for several reviewers. Check with `python3 .groundwork/scripts/apply_settings.py --dry-run --code-owner-review`, which names the approvals the ruleset would require.
+- **ADR 0014**, protecting the files of groundwork. It brings `.groundwork/CODEOWNERS.template` and a line of `AGENTS.md`. A protected file is not a locked one, as [ADR 0014](docs/adr/0014-protecting-the-files-of-groundwork-in-a-project.md) says. Copy the template to `.github/CODEOWNERS`, replace `@OWNER` and merge it. When someone other than the maintainer can approve, run `apply_settings.py --code-owner-review`, which requires one approval on every pull request, and add `--last-push-approval` for several reviewers. Check with `python3 .groundwork/scripts/apply_settings.py --dry-run --code-owner-review`, which names the approvals the ruleset would require.
 - **ADR 0015**, logs and diagnostic. The project states in its documentation its fields, the meaning of its levels and how it turns diagnostic on and off. Check by review.
 
 ### Recording the gaps
