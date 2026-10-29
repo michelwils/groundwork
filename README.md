@@ -14,7 +14,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 ## What it covers
 
 - Recording architecture decisions, with the numbers `0001` to `0999` reserved for the ADRs of groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md))
-- How changes are made: issues, branches and pull requests
+- How changes are made: issues, milestones, including one that tests a hypothesis, branches and pull requests
 - Commit messages
 - Versioning and releases
 - Rules for changes made with AI coding agents

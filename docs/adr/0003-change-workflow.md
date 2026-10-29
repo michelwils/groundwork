@@ -15,6 +15,7 @@ Those pull requests, such as the ones that update the pinned versions of the too
 The fix of a vulnerability that is not public yet is made in the temporary private fork of its security advisory, without a public issue or pull request, as `SECURITY.md` says. The advisory is its record, its test is written first as usual, and its checks run on the maintainer's machine, since none runs in the fork.
 
 - **Issues:** one issue per change. The title names the outcome. The body gives the context, the deliverables, the acceptance criteria as a plain list, and what is out of scope. Each issue belongs to a milestone.
+- **Milestones:** a milestone may test a hypothesis. When it opens, its description states the hypothesis and what would confirm or refute it. It is closed with a verdict, confirmed, refuted or inconclusive, written in its description with links to the ADRs and the issues that follow from it. It has no version of its own: its changes are released as any others.
 - **Branches:** one branch per issue, created from `main` and named `<type>/<issue-number>-<issue-title-in-kebab-case>`, where `<type>` is a commit type defined in [ADR 0002](0002-conventional-commits.md), for example `docs/1-bootstrap-the-repository`.
 - **Pull requests:** one pull request per issue, from that branch to `main`.
   - The title follows [ADR 0002](0002-conventional-commits.md).
