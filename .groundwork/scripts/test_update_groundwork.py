@@ -81,6 +81,29 @@ def tag_with_hook(repo, base, version, directory):
     git(repo, "tag", "-a", f"v{version}", "-m", f"v{version}", run("commit-tree", root, "-p", f"{base}^{{commit}}", "-m", f"feat: release {version}"))
 
 
+class CheckOfTheResultPath(unittest.TestCase):
+    def test_a_path_that_can_be_written_is_left_as_it_was(self):
+        with tempfile.TemporaryDirectory() as directory:
+            new, old = os.path.join(directory, "new.json"), os.path.join(directory, "old.json")
+            with open(old, "w") as handle:
+                handle.write("kept")
+            update_groundwork.check_result_path(new)
+            update_groundwork.check_result_path(old)
+            self.assertFalse(os.path.exists(new))
+            with open(old) as handle:
+                self.assertEqual(handle.read(), "kept")
+            self.assertEqual(sorted(os.listdir(directory)), ["old.json"])
+
+    def test_a_path_that_cannot_be_written_is_refused_with_its_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for path in (os.path.join(directory, "missing", "result.json"), directory):
+                with self.subTest(path=path):
+                    with self.assertRaises(update_groundwork.Failure) as caught:
+                        update_groundwork.check_result_path(path)
+                    self.assertIn(path, str(caught.exception))
+                    self.assertIn("No branch is created", str(caught.exception))
+
+
 class Inside(unittest.TestCase):
     def test_a_path_through_a_link_to_git_is_not_inside(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -400,6 +423,26 @@ class Update(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("--result", result.stderr)
         self.assertEqual(self.branches(), ["main"])
+
+    def test_a_result_that_cannot_be_written_stops_the_update_before_the_branch(self):
+        missing = os.path.join(self.directory.name, "missing", "result.json")
+        for path in (missing, self.directory.name):  # a folder that does not exist, and a folder in place of a file
+            with self.subTest(path=path):
+                result = self.run_script("--to", "0.2.0", "--result", path)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(path, result.stderr)
+                self.assertIn("No branch is created", result.stderr)
+                self.assertEqual(self.branches(), ["main"])
+                self.assertEqual(git(self.project, "status", "--porcelain").strip(), "")
+                self.assertEqual(read(self.project, ".groundwork-version"), "0.1.0\n")
+
+    def test_a_result_that_cannot_be_written_does_not_matter_when_the_project_is_up_to_date(self):
+        self.commit_project({".groundwork-version": "0.3.0\n"})
+        missing = os.path.join(self.directory.name, "missing", "result.json")
+        result = self.run_script("--result", missing)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("up to date", result.stdout)
+        self.assertFalse(os.path.exists(os.path.dirname(missing)))
 
     def test_the_result_of_an_update_without_conflict_lists_none(self):
         result = self.run_script("--to", "0.2.0", "--result", self.result_file())

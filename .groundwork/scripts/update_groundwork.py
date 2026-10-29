@@ -33,7 +33,8 @@ choice and that the project does not list, and the lines `- path` name the files
 
 With `--result PATH`, the script also writes its result to PATH as one JSON object, once the branch is prepared,
 for open_update_pull_request.py to read (ADR 1003): `branch`, `from`, `to` and `source` as strings, `added` as a list
-of ADR numbers and `conflicts` as a list of paths. It writes none when the project is up to date.
+of ADR numbers and `conflicts` as a list of paths. It writes none when the project is up to date. It checks that it can write
+the file before it creates the branch, and stops there, with no branch, when it cannot.
 
 With `--to head`, the script moves the project to the head of the source, that is its default branch, to try a change
 before its release. It is never the default, and open_update_pull_request.py never uses it (ADR 1004). The script
@@ -316,6 +317,17 @@ def merge(ours, base, theirs):
     return result.stdout, result.returncode > 0
 
 
+def check_result_path(path):
+    """Stop, before any branch, when the result cannot be written. It creates and truncates nothing, so a run that fails
+    later leaves no file behind, as ADR 1003 says."""
+    if os.path.isdir(path):
+        raise Failure(f"{path} is a folder, not a file for the result. No branch is created.")
+    try:
+        tempfile.TemporaryFile(dir=os.path.dirname(path) or ".").close()
+    except OSError as error:
+        raise Failure(f"{path} cannot be written ({error.strerror}). No branch is created.")
+
+
 def decide(base, theirs, ours):
     """Tell what applying the change from the base to theirs does to a file that holds ours.
 
@@ -511,6 +523,8 @@ def run(args):
     for path, _, _ in steps:
         if not inside(root, path):
             raise Failure(f"{path} leaves the repository or is in a directory .git once the links of the project are followed: nothing is changed.")
+    if args.result:
+        check_result_path(args.result)
     git("switch", "--quiet", "-c", branch)
 
     conflicts = [path for path, base, theirs in steps if apply_path(path, base, theirs, read(path), mode(new, path))]
@@ -529,8 +543,14 @@ def run(args):
             print(f"- {path}")
     if args.result:
         result = {"branch": branch, "from": old, "to": new, "source": source, "added": [f"{number:04d}" for number in said], "conflicts": conflicts}
-        with open(args.result, "w") as handle:
-            json.dump(result, handle)
+        try:
+            with open(args.result, "w") as handle:
+                json.dump(result, handle)
+        except OSError as error:
+            raise Failure(
+                f"The branch {branch} is prepared, but the result could not be written to {args.result} ({error.strerror}). "
+                f"To undo the update, run `git reset --hard`, `git clean -fd`, `git switch -` and `git branch -D {branch}`."
+            )
     return CONFLICTS if conflicts else 0
 
 
