@@ -69,6 +69,32 @@ class JobsOfTheProject(unittest.TestCase):
         self.assertRegex(text, re.compile(r"^permissions:\n  contents: read\n(?!  )", flags=re.MULTILINE))
 
 
+class Concurrency(unittest.TestCase):
+    """An edit of the title or of the description of a pull request has a concurrency group of its own, so that it does not
+    cancel the run of a push, which would leave a cancelled run as the last one created, and is not cancelled by it."""
+
+    def workflow(self):
+        return without_comments(WORKFLOW)
+
+    def test_an_edit_has_a_group_of_its_own_that_a_push_does_not_share(self):
+        group = re.search(r"^  group: (.+)$", self.workflow(), flags=re.MULTILINE).group(1)
+        self.assertIn("${{ github.ref }}", group)
+        self.assertRegex(group, r"github\.event\.action == 'edited' && '([a-z]+)' \|\| '([a-z]+)'")
+        edit, other = re.search(r"github\.event\.action == 'edited' && '([a-z]+)' \|\| '([a-z]+)'", group).groups()
+        self.assertNotEqual(edit, other)
+
+    def test_the_group_of_the_pull_request_checks_does_not_depend_on_the_commit(self):
+        group = re.search(r"^  group: (.+)$", self.workflow(), flags=re.MULTILINE).group(1)
+        self.assertNotIn("github.sha", group)
+        self.assertNotIn("run_id", group)
+
+    def test_a_run_cancels_the_run_in_progress_of_its_group_for_a_pull_request_only(self):
+        self.assertRegex(self.workflow(), re.compile(r"^  cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}$", flags=re.MULTILINE))
+
+    def test_an_edit_still_starts_a_run_to_check_the_title_and_the_description_again(self):
+        self.assertRegex(self.workflow(), re.compile(r"^    types: \[opened, edited, synchronize, reopened\]$", flags=re.MULTILINE))
+
+
 class ChecksWorkflow(unittest.TestCase):
     def test_the_title_of_a_pull_request_of_dependabot_is_not_checked(self):
         step = steps()["Check the pull request title"]

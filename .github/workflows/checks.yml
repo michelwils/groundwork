@@ -9,8 +9,11 @@ on:
 permissions:
   contents: read
 
+# An edit of the title or of the description starts a run of its own, in a group of its own: it does not cancel the run
+# of a push, which would leave a cancelled run as the last one created, and a push does not cancel it. A new push still
+# cancels the run of the previous push, and a new edit the previous edit.
 concurrency:
-  group: checks-${{ github.ref }}
+  group: checks-${{ github.ref }}-${{ github.event.action == 'edited' && 'edit' || 'code' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
