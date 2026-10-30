@@ -7,6 +7,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 import choice  # noqa: E402
+import markers  # noqa: E402
 import update_groundwork as update  # noqa: E402
 from test_filtered_trees import is_source  # noqa: E402
 
@@ -55,7 +56,7 @@ class EntriesOfTheProject(unittest.TestCase):
     def test_an_entry_stays_outside_the_block_for_a_project_that_has_none_of_its_own(self):
         # Dependabot refuses a file with no entry, and two entries for the same ecosystem and directory.
         text = read()
-        outside = text.replace(text[text.index("  # groundwork:source") : text.index("# /groundwork\n") + 15], "")
+        outside = markers.remove_source(text, "yaml")
         self.assertEqual(outside.count("package-ecosystem:"), 1)
         self.assertIn("package-ecosystem: github-actions\n    directory: /.groundwork\n", outside)
         self.assertIn("open-pull-requests-limit: 0", outside)
