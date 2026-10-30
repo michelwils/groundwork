@@ -27,6 +27,7 @@ The base's `update-groundwork` workflow opens a pull request `chore: update grou
 
 - Review it like any change: if the base has a choice, the pull request says which ADRs enter it because an ADR it keeps needs them.
 - **Change its title before the merge.** A `chore` does not change the version, and the release workflow publishes nothing for it, so the projects would not see the change. Use `fix:` or `feat:` according to the effect on the projects, and `feat!:` if it makes them change something.
+- **The entries of Dependabot.** The update does not bring the block `# groundwork:source` of `.github/dependabot.yml` to the base, so Dependabot opens the pull request for what groundwork owns in groundwork only. Put the entries for what the base owns in a block of the same name below the comment of the project: its projects do not get it either ([ADR 0008](https://github.com/michelwils/groundwork/blob/main/docs/adr/0008-automated-checks.md)).
 - Conflicts come when both sides change lines that are close. The entries of the base placed before the entry of ADR 0001, and its blocks placed away from the lines that groundwork changes, do not conflict with the entries and the lines that groundwork adds.
 - Publish a version once the pull request is merged. The version numbers of the base and of groundwork have nothing in common: the base's `.groundwork-version` holds a version of groundwork, and a project's holds a version of the base.
 

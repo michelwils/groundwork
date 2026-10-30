@@ -12,6 +12,7 @@ sys.path.insert(0, HERE)
 import check_adrs  # noqa: E402
 import check_links  # noqa: E402
 import check_practices  # noqa: E402
+import markers  # noqa: E402
 import practices_map  # noqa: E402
 import update_groundwork  # noqa: E402
 from test_apply_choice import SCRIPT, commit, put  # noqa: E402
@@ -203,9 +204,13 @@ class RealFiles(RealTree):
                 commit(project)
                 result = self.run_in(project, source)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                owners = practices_map.owners(practices_map.read_map(ROOT)[0])
                 for path in self.paths:
                     with open(os.path.join(ROOT, path), encoding="utf-8", errors="surrogateescape") as handle:
                         original = handle.read()
+                    # A file that left with its ADR comes back without the blocks that only a source needs.
+                    if markers.kind(path) and owners.get(path) not in (None, *kept):
+                        original = markers.remove_source(original, markers.kind(path))
                     self.assertEqual(read(project, path), original, path)
 
 

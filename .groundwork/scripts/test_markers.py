@@ -176,5 +176,61 @@ class Remove(unittest.TestCase):
             markers.remove("<!-- groundwork:0004 -->\nText.\n", "markdown", set())
 
 
+SOURCE = """updates:
+  - own: neutral
+
+  # groundwork:source
+  - for: the source
+  # /groundwork
+
+  # groundwork:0002
+  - for: an adr
+  # /groundwork
+
+  # The entries of the project go below this line.
+"""
+
+
+class SourceBlocks(unittest.TestCase):
+    """A block of the source holds the lines that only the source needs, and that the update does not bring."""
+
+    def test_a_block_of_the_source_is_not_a_block_of_an_adr(self):
+        blocks, problems = markers.parse(SOURCE.split("\n"), "yaml")
+        self.assertEqual(problems, [])
+        self.assertEqual([block.adr for block in blocks], [2])
+
+    def test_a_block_of_an_adr_inside_a_block_of_the_source_is_reported(self):
+        text = "# groundwork:source\n# groundwork:0002\nx\n# /groundwork\n# /groundwork\n"
+        self.assertTrue(any("inside" in message for _, message in markers.parse(text.split("\n"), "yaml")[1]))
+
+    def test_a_block_of_the_source_that_is_not_closed_is_reported_at_its_line(self):
+        (problem,) = markers.parse("x\n# groundwork:source\ny\n".split("\n"), "yaml")[1]
+        self.assertEqual(problem[0], 2)
+        self.assertIn("not closed", problem[1])
+
+    def test_the_choice_of_the_adrs_keeps_a_block_of_the_source(self):
+        self.assertEqual(markers.remove(SOURCE, "yaml", set()).count("groundwork:source"), 1)
+        self.assertNotIn("an adr", markers.remove(SOURCE, "yaml", set()))
+
+    def test_remove_source_takes_out_the_block_with_its_markers_and_its_blank_line(self):
+        self.assertEqual(
+            markers.remove_source(SOURCE, "yaml"),
+            "updates:\n  - own: neutral\n\n  # groundwork:0002\n  - for: an adr\n  # /groundwork\n\n"
+            "  # The entries of the project go below this line.\n",
+        )
+
+    def test_remove_source_leaves_the_blocks_of_the_adrs(self):
+        self.assertEqual(markers.remove_source(YAML, "yaml"), YAML)
+        self.assertEqual(markers.remove_source(MARKDOWN, "markdown"), MARKDOWN)
+
+    def test_removing_the_source_twice_gives_the_same_text(self):
+        once = markers.remove_source(SOURCE, "yaml")
+        self.assertEqual(markers.remove_source(once, "yaml"), once)
+
+    def test_a_text_with_a_malformed_block_is_refused_by_remove_source(self):
+        with self.assertRaises(ValueError):
+            markers.remove_source("# groundwork:source\nText.\n", "yaml")
+
+
 if __name__ == "__main__":
     unittest.main()

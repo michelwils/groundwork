@@ -16,6 +16,8 @@ A version whose files include a path that a file system can put in a directory .
 or a path that holds a control character or a line break, which would add a line to the text it prints,
 or a bidirectional control, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
+The blocks of lines that only a source needs, `# groundwork:source` … `# /groundwork` (markers.py), are not brought: the
+version moved to is read without them, so that the merge also takes them out of the project that still has them.
 
 The project may list the ADRs it keeps in `.groundwork-adrs` (choice.py). The script then reads,
 in the version it moves to, the ranges of ADR numbers that the source reserves and the map of the
@@ -421,6 +423,19 @@ def text_of(path: str, content: bytes | None, kept: Container[int]) -> bytes | N
         raise Failure(f"{path}: {error}")
 
 
+def without_source(path: str, content: bytes | None) -> bytes | None:
+    """Return the content without the blocks of the source, which the update does not bring to a project."""
+    syntax = markers.kind(path)
+    if content is None or syntax is None:
+        return content
+    try:
+        return markers.remove_source(content.decode("utf-8"), syntax).encode("utf-8")
+    except UnicodeDecodeError:
+        return content
+    except ValueError as error:
+        raise Failure(f"{path}: {error}")
+
+
 class Step(NamedTuple):
     """What the update does to one path: the content at the base and the one at the new version, already filtered by
     the choice. The base is None for a path that starts from nothing, and a content is None for a file that is absent."""
@@ -517,11 +532,10 @@ def plan(old: str, new: str) -> Plan:
     for path in sorted(candidates):
         if taken(path):
             base = None if path in new_set and from_nothing(path) else blob(old, path)
-            steps.append(
-                Step(
-                    path, text_of(path, base, Without(kept_after, entering)), text_of(path, blob(new, path), kept_after)
-                )
-            )
+            # Only the version moved to loses the blocks of the source: the version moved from keeps them, so that the
+            # merge deletes in a project what it holds of them.
+            theirs = without_source(path, text_of(path, blob(new, path), kept_after))
+            steps.append(Step(path, text_of(path, base, Without(kept_after, entering)), theirs))
     return Plan(said, steps, after, kept_after)
 
 
