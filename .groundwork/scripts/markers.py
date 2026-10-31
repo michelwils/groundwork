@@ -5,10 +5,14 @@ A block starts with a marker line and ends with a closing marker line:
     <!-- groundwork:0010 -->   …   <!-- /groundwork -->     in Markdown
     # groundwork:0010          …   # /groundwork            in YAML
 
+The block of the source is closed by its own marker, `<!-- /groundwork:source -->` or `# /groundwork:source`: a project
+runs the scripts of its previous version on the files of the new one, and the patterns of those scripts, which
+know no block of the source, must read both of its markers as ordinary text, or they refuse the file.
+
 The markers are alone on their line, and their indentation is free. A block holds the lines of one
 ADR, and blocks are neither nested nor split. A Markdown marker in a code block is not read.
 
-A block can also be named `source`, as in `# groundwork:source`: it holds lines that only a source of
+A block can also be named `source`, as in `# groundwork:source` … `# /groundwork:source`: it holds lines that only a source of
 ADRs needs, such as the entries of Dependabot for what the source owns. It is no ADR's, so `parse`
 does not return it and the choice of the ADRs never takes it out. The update does not bring it to a
 project, and a new project takes it out (`remove_source`).
@@ -26,9 +30,9 @@ from typing import NamedTuple
 PATTERNS = {
     "markdown": (
         re.compile(r"^[ \t]*<!-- groundwork:(\d{4}|source) -->[ \t]*$"),
-        re.compile(r"^[ \t]*<!-- /groundwork -->[ \t]*$"),
+        re.compile(r"^[ \t]*<!-- /groundwork(:source)? -->[ \t]*$"),
     ),
-    "yaml": (re.compile(r"^[ \t]*# groundwork:(\d{4}|source)[ \t]*$"), re.compile(r"^[ \t]*# /groundwork[ \t]*$")),
+    "yaml": (re.compile(r"^[ \t]*# groundwork:(\d{4}|source)[ \t]*$"), re.compile(r"^[ \t]*# /groundwork(:source)?[ \t]*$")),
 }
 SOURCE = "source"
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
@@ -80,9 +84,12 @@ def scan(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, in
                 )
                 continue
             opened, opened_at = start.group(1), number
-        elif closing.match(line):
+        elif ended := closing.match(line):
             if opened is None:
                 problems.append((number, "a closing marker has no block to close"))
+                continue
+            if (ended.group(1) is not None) != (opened == SOURCE):
+                problems.append((number, f"the block of {label(opened)} opened at line {opened_at} is closed by the wrong marker"))
                 continue
             if opened == SOURCE:
                 source.append((opened_at, number))

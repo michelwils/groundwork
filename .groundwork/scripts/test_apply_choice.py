@@ -131,7 +131,7 @@ class NewProject(Fixture):
 
     def test_it_takes_out_the_block_of_the_source_so_that_dependabot_opens_nothing_for_what_the_source_owns(self):
         entries = (
-            "updates:\n  - own: neutral\n\n  # groundwork:source\n  - for: the source\n  # /groundwork\n\n  # anchor\n"
+            "updates:\n  - own: neutral\n\n  # groundwork:source\n  - for: the source\n  # /groundwork:source\n\n  # anchor\n"
         )
         self.adopt(self.template(**{".github/dependabot.yml": entries}))
         result = self.run_new()

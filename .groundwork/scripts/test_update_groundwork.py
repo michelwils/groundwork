@@ -1240,7 +1240,7 @@ class EntriesOfTheSource(Fixture):
         + NEUTRAL
         + "  # groundwork:source\n"
         + ENTRIES.rstrip("\n")
-        + "\n  # /groundwork\n\n"
+        + "\n  # /groundwork:source\n\n"
         + ANCHOR
     )
 
