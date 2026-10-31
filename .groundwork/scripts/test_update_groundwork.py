@@ -1235,7 +1235,14 @@ class EntriesOfTheSource(Fixture):
 
     # Before the block existed, the entries had no marker.
     BEFORE = "version: 2\nupdates:\n" + ENTRIES + ANCHOR
-    AFTER = "version: 2\nupdates:\n" + NEUTRAL + "  # groundwork:source\n" + ENTRIES.rstrip("\n") + "\n  # /groundwork\n\n" + ANCHOR
+    AFTER = (
+        "version: 2\nupdates:\n"
+        + NEUTRAL
+        + "  # groundwork:source\n"
+        + ENTRIES.rstrip("\n")
+        + "\n  # /groundwork\n\n"
+        + ANCHOR
+    )
 
     def test_a_project_that_has_the_entries_without_markers_loses_them_and_keeps_its_own(self):
         self.release("0.1.0", {DEPENDABOT: self.BEFORE})
