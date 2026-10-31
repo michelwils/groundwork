@@ -1,5 +1,19 @@
 version: 2
 updates:
+  # Dependabot refuses a file with no entry, and two entries for the same ecosystem and directory. This entry watches
+  # a directory that holds no workflow and opens no pull request, so that a project with no entry of its own keeps a
+  # valid file, and can add one for github-actions on / (ADR 0008).
+  - package-ecosystem: github-actions
+    directory: /.groundwork
+    open-pull-requests-limit: 0
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  # groundwork:source
+  # The entries for what groundwork owns. The update does not bring them to a project: the pull request of
+  # Dependabot opens in the source, and the project gets the change by the update (ADR 0008).
   - package-ecosystem: pre-commit
     directory: /
     schedule:
@@ -39,5 +53,6 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+  # /groundwork
 
   # The entries of the project go below this line. groundwork adds its own above it.

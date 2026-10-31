@@ -910,8 +910,8 @@ def trimmed(files, kept):
     return out
 
 
-class Choice(unittest.TestCase):
-    """The update applies the ADRs that the project chose (ADR 1000)."""
+class Fixture(unittest.TestCase):
+    """A source of groundwork that releases versions, and a project in a repository of its own."""
 
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -964,6 +964,10 @@ class Choice(unittest.TestCase):
 
     def has(self, name):
         return os.path.exists(os.path.join(self.project, name))
+
+
+class Choice(Fixture):
+    """The update applies the ADRs that the project chose (ADR 1000)."""
 
     def releases(self, first, second):
         self.release("0.1.0", first)
@@ -1216,6 +1220,68 @@ def tree(numbers, script, order=None):
     files = {".groundwork/practices.md": ledger(order or numbers), ".groundwork/scripts/update_groundwork.py": script}
     files.update({f"docs/adr/{n:04d}-decision.md": f"# {n}\n" for n in numbers})
     return files
+
+
+DEPENDABOT = ".github/dependabot.yml"
+NEUTRAL = "  - package-ecosystem: github-actions\n    directory: /.groundwork\n\n"
+ENTRIES = "  - package-ecosystem: pip\n    groups: x\n\n"
+ANCHOR = "  # The entries of the project go below this line.\n"
+CARGO = "\n  - package-ecosystem: cargo\n"
+
+
+class EntriesOfTheSource(Fixture):
+    """The entries of Dependabot for what the source owns are not brought to a project, which would open the same
+    pull requests as the source (ADR 0008)."""
+
+    # Before the block existed, the entries had no marker.
+    BEFORE = "version: 2\nupdates:\n" + ENTRIES + ANCHOR
+    AFTER = (
+        "version: 2\nupdates:\n"
+        + NEUTRAL
+        + "  # groundwork:source\n"
+        + ENTRIES.rstrip("\n")
+        + "\n  # /groundwork\n\n"
+        + ANCHOR
+    )
+
+    def test_a_project_that_has_the_entries_without_markers_loses_them_and_keeps_its_own(self):
+        self.release("0.1.0", {DEPENDABOT: self.BEFORE})
+        self.release("0.2.0", {DEPENDABOT: self.AFTER})
+        self.adopt({DEPENDABOT: self.BEFORE + CARGO})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, DEPENDABOT), "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO)
+
+    def test_a_project_created_from_the_template_loses_the_block_at_its_first_update(self):
+        self.release("0.2.0", {DEPENDABOT: self.AFTER})
+        self.release("0.3.0", {DEPENDABOT: self.AFTER.replace("groups: x", "groups: y")})
+        self.adopt({DEPENDABOT: self.AFTER + CARGO}, version="0.2.0")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, DEPENDABOT), "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO)
+
+    def test_a_project_that_changed_an_entry_of_the_source_has_a_conflict(self):
+        self.release("0.1.0", {DEPENDABOT: self.BEFORE})
+        self.release("0.2.0", {DEPENDABOT: self.AFTER})
+        self.adopt({DEPENDABOT: (self.BEFORE + CARGO).replace("groups: x", "groups: mine")})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn(DEPENDABOT, result.stdout)
+
+    def test_the_block_is_not_brought_back_by_a_later_update(self):
+        self.release("0.1.0", {DEPENDABOT: self.BEFORE})
+        self.release("0.2.0", {DEPENDABOT: self.AFTER})
+        self.adopt({DEPENDABOT: self.BEFORE + CARGO})
+        self.assertEqual(self.run_script().returncode, 0)
+        branch = git(self.project, "branch", "--show-current").strip()
+        git(self.project, "add", "-A")
+        git(self.project, "commit", "-q", "-m", "chore: update groundwork")
+        git(self.project, "switch", "-q", "main")
+        git(self.project, "merge", "-q", "--ff-only", branch)
+        self.release("0.3.0", {DEPENDABOT: self.AFTER.replace("groups: x", "groups: y")})
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, DEPENDABOT), "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO)
 
 
 class Chain(unittest.TestCase):

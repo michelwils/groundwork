@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import unittest
 
@@ -6,6 +7,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 import choice  # noqa: E402
+import markers  # noqa: E402
 import update_groundwork as update  # noqa: E402
 from test_filtered_trees import is_source  # noqa: E402
 
@@ -40,9 +42,24 @@ class EntriesOfTheProject(unittest.TestCase):
             text.count(ANCHOR), 1, "the file lacks the comment of the entries of the project, or has it twice"
         )
         self.assertTrue(
-            text.split(ANCHOR)[0].endswith("]\n\n"),
-            "the comment does not follow a blank line after the last entry of groundwork",
+            text.split(ANCHOR)[0].endswith("# /groundwork\n\n"),
+            "the comment does not follow a blank line after the block of the entries of the source",
         )
+
+    def test_the_entries_for_what_groundwork_owns_are_in_a_block_of_the_source(self):
+        text = read()
+        self.assertEqual(text.count("# groundwork:source\n"), 1)
+        block = text.split("# groundwork:source\n")[1].split("# /groundwork")[0]
+        for ecosystem in ("pre-commit", "pip", "github-actions"):
+            self.assertIn(f"package-ecosystem: {ecosystem}\n", block)
+
+    def test_an_entry_stays_outside_the_block_for_a_project_that_has_none_of_its_own(self):
+        # Dependabot refuses a file with no entry, and two entries for the same ecosystem and directory.
+        text = read()
+        outside = markers.remove_source(text, "yaml")
+        self.assertEqual(outside.count("package-ecosystem:"), 1)
+        self.assertIn("package-ecosystem: github-actions\n    directory: /.groundwork\n", outside)
+        self.assertIn("open-pull-requests-limit: 0", outside)
 
     def test_an_entry_of_the_project_and_an_entry_that_groundwork_adds_above_merge_without_conflict(self):
         text = read()
@@ -130,6 +147,26 @@ class HooksOfTheProject(unittest.TestCase):
         self.assertFalse(conflict, merged)
         self.assertNotIn("groundwork:0007", merged)
         self.assertGreater(merged.index("id: example"), merged.index(HOOKS_ANCHOR))
+
+
+@unittest.skipUnless(
+    is_source(ROOT, os.environ), "it reads the files of groundwork, which a project extends with its own"
+)
+class WhatAProjectExcludes(unittest.TestCase):
+    """A project that follows its own workflows and hooks with Dependabot excludes those of groundwork, which
+    ADR 0008 lists: the list is true as long as it names them all."""
+
+    def test_adr_0008_names_the_workflows_and_the_hook_repositories_of_groundwork(self):
+        with open(os.path.join(ROOT, "docs", "adr", "0008-automated-checks.md"), encoding="utf-8") as handle:
+            adr = handle.read()
+        directory = os.path.join(ROOT, ".github", "workflows")
+        workflows = [name for name in sorted(os.listdir(directory)) if name != "project-checks.yml"]
+        repositories = re.findall(r"^\s*- repo: (https://\S+)\s*$", read_hooks(), re.MULTILINE)
+        self.assertTrue(workflows and repositories)
+        for name in workflows:
+            self.assertIn(f"`.github/workflows/{name}`", adr)
+        for address in repositories:
+            self.assertIn(f"`{address}`", adr)
 
 
 if __name__ == "__main__":

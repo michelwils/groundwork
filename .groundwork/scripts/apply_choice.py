@@ -15,7 +15,8 @@ writes `.groundwork-adrs` from the ADRs named (a number such as `0003`, or a ran
 `0001-0999`; with none, the project keeps everything that its source reserves and no file is
 written), records in `.groundwork-version` the latest release of the source or `--version`, records
 `--source` in `.groundwork-source`, and deletes the files and the blocks of the ADRs left out and the
-ADRs that no range reserves, which are decisions of groundwork itself.
+ADRs that no range reserves, which are decisions of groundwork itself, and takes out the blocks that only a source
+needs (`# groundwork:source`, markers.py).
 
 A project that has a `.groundwork-version`, which names a release or a commit of the source (ADR 1004), and that
 changed its choice in the file, whether it narrowed it or widened it:
@@ -240,6 +241,7 @@ def leave_out_of_a_new_project(root, side, kept, changes):
             if current is None:
                 continue
             new = removable_blocks(path, current, None, kept, side.reserved, changes)
+            new = update.without_source(path, new)
             if new != current:
                 changes.write("edit", path, new, os.stat(path).st_mode)
 

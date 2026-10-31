@@ -129,6 +129,15 @@ class NewProject(Fixture):
             self.assertTrue(self.has(name), name)
         self.assertFalse(self.has("docs/adr/1000-own-of-groundwork.md"))
 
+    def test_it_takes_out_the_block_of_the_source_so_that_dependabot_opens_nothing_for_what_the_source_owns(self):
+        entries = (
+            "updates:\n  - own: neutral\n\n  # groundwork:source\n  - for: the source\n  # /groundwork\n\n  # anchor\n"
+        )
+        self.adopt(self.template(**{".github/dependabot.yml": entries}))
+        result = self.run_new()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, ".github/dependabot.yml"), "updates:\n  - own: neutral\n\n  # anchor\n")
+
     def test_it_records_the_version_that_it_is_given(self):
         self.release(world("2"), version="0.2.0")
         self.adopt(self.template())
