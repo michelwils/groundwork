@@ -204,12 +204,11 @@ class RealFiles(RealTree):
                 commit(project)
                 result = self.run_in(project, source)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                owners = practices_map.owners(practices_map.read_map(ROOT)[0])
                 for path in self.paths:
                     with open(os.path.join(ROOT, path), encoding="utf-8", errors="surrogateescape") as handle:
                         original = handle.read()
-                    # A file that left with its ADR comes back without the blocks that only a source needs.
-                    if markers.kind(path) and owners.get(path) not in (None, *kept):
+                    # The update brings no block that only a source needs, and takes out the ones that a project holds.
+                    if markers.kind(path):
                         original = markers.remove_source(original, markers.kind(path))
                     self.assertEqual(read(project, path), original, path)
 

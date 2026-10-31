@@ -1283,6 +1283,15 @@ class EntriesOfTheSource(Fixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(read(self.project, DEPENDABOT), "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO)
 
+    def test_a_project_that_holds_the_block_loses_it_when_the_new_version_does_not_change_the_file(self):
+        # The update that brought the block ran with scripts that did not take it out.
+        self.release("0.2.0", {DEPENDABOT: self.AFTER, "other.txt": "1\n"})
+        self.release("0.3.0", {DEPENDABOT: self.AFTER, "other.txt": "2\n"})
+        self.adopt({DEPENDABOT: self.AFTER + CARGO, "other.txt": "1\n"}, version="0.2.0")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, DEPENDABOT), "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO)
+
 
 class Chain(unittest.TestCase):
     """A change of groundwork reaches a project through a community base, with a pull request on each (the guide of the bases)."""

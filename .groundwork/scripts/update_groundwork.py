@@ -18,6 +18,7 @@ or a bidirectional control, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
 The blocks of lines that only a source needs, `# groundwork:source` … `# /groundwork` (markers.py), are not brought: the
 version moved to is read without them, so that the merge also takes them out of the project that still has them.
+A file of the project that holds one is part of the update even when the version moved to does not change it.
 
 The project may list the ADRs it keeps in `.groundwork-adrs` (choice.py). The script then reads,
 in the version it moves to, the ranges of ADR numbers that the source reserves and the map of the
@@ -489,6 +490,26 @@ def paths_with_a_block_of(new, new_paths, entering, candidates):
     return found
 
 
+def paths_with_a_block_of_the_source(new_paths, candidates):
+    """Return the paths of the version, outside the candidates, where the project holds a block of the source.
+
+    A project that got one from scripts that did not take it out loses it at its next update, whether or not the
+    new version changes the file."""
+    found = set()
+    for path in new_paths:
+        syntax = markers.kind(path)
+        content = read(path)
+        if path in candidates or syntax is None or content is None:
+            continue
+        try:
+            lines = content.decode("utf-8").split("\n")
+        except UnicodeDecodeError:
+            continue
+        if markers.scan(lines, syntax)[1]:
+            found.add(path)
+    return found
+
+
 def plan(old: str, new: str) -> Plan:
     """Return the plan to move the project from the version old to the version new (the same one to apply the
     choice only). It reads the project and the versions and writes nothing."""
@@ -528,6 +549,7 @@ def plan(old: str, new: str) -> Plan:
     candidates = set(changed_paths(old, new)) | {path for path in new_paths if from_nothing(path)}
     if entering:
         candidates |= paths_with_a_block_of(new, new_paths, entering, candidates)
+    candidates |= paths_with_a_block_of_the_source(new_paths, candidates)
     steps = []
     for path in sorted(candidates):
         if taken(path):
