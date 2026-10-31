@@ -561,7 +561,13 @@ class FilesOfNoPractice(Fixture):
     def setUp(self):
         super().setUp()
         self.release(
-            {**world("1"), "README.md": "# groundwork\n", "LICENSE": "MIT\n", ".groundwork-ranges": "9000-9999\n"},
+            {
+                **world("1"),
+                "README.md": "# groundwork\n",
+                "LICENSE": "MIT\n",
+                ".groundwork-ranges": "9000-9999\n",
+                "NOTES.md": "a\n\n<!-- groundwork:source -->\nsource\n<!-- /groundwork:source -->\n\nb\n",
+            },
             version="0.2.0",
         )
 
@@ -579,6 +585,12 @@ class FilesOfNoPractice(Fixture):
         self.assertEqual(read(self.project, "tool.py"), "tool\n")
         self.assertEqual(read(self.project, ".groundwork/practices.md"), world("1")[".groundwork/practices.md"])
         self.assertIn("tool.py", self.lines(result, "add: "))
+
+    def test_a_file_of_no_practice_arrives_without_the_blocks_of_the_source(self):
+        self.existing("0001\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "NOTES.md"), "a\n\nb\n")
 
     def test_a_shared_file_with_no_owner_arrives_without_the_blocks_of_the_adrs_left_out(self):
         self.existing("0002\n")

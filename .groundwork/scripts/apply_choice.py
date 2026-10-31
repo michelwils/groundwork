@@ -345,7 +345,8 @@ def add_the_files_of_no_practice(old, by_path, side, kept, changes):
             or side.owners.get(path) is not None
         ):
             continue
-        changes.write("add", path, update.text_of(path, update.blob(old, path), kept), update.mode(old, path))
+        text = update.without_source(path, update.text_of(path, update.blob(old, path), kept))
+        changes.write("add", path, text, update.mode(old, path))
 
 
 def existing_project(args, root):

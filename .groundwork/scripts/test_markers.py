@@ -221,6 +221,10 @@ class SourceBlocks(unittest.TestCase):
         problems = markers.parse(text.split("\n"), "yaml")[1]
         self.assertTrue(any(line == 4 and "0002" in message for line, message in problems), problems)
 
+    def test_a_block_closed_by_the_wrong_marker_gives_one_problem(self):
+        text = "# groundwork:0002\n# /groundwork:source\n# groundwork:0003\nx\n# /groundwork\n"
+        self.assertEqual(len(markers.parse(text.split("\n"), "yaml")[1]), 1)
+
     def test_a_closing_marker_of_the_source_without_a_block_is_reported(self):
         (problem,) = markers.parse("x\n# /groundwork:source\n".split("\n"), "yaml")[1]
         self.assertEqual(problem[0], 2)

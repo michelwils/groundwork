@@ -90,6 +90,7 @@ def scan(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, in
                 continue
             if (ended.group(1) is not None) != (opened == SOURCE):
                 problems.append((number, f"the block of {label(opened)} opened at line {opened_at} is closed by the wrong marker"))
+                opened = None
                 continue
             if opened == SOURCE:
                 source.append((opened_at, number))
@@ -99,6 +100,11 @@ def scan(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, in
     if opened is not None:
         problems.append((opened_at, f"the block of {label(opened)} is not closed"))
     return blocks, source, problems
+
+
+def has_source(text: str, syntax: str) -> bool:
+    """Tell whether the text has a block of the source."""
+    return bool(scan(text.split("\n"), syntax)[1])
 
 
 def parse(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, str]]]:

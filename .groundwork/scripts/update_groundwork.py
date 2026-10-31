@@ -16,7 +16,7 @@ A version whose files include a path that a file system can put in a directory .
 or a path that holds a control character or a line break, which would add a line to the text it prints,
 or a bidirectional control, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
-The blocks of lines that only a source needs, `# groundwork:source` … `# /groundwork` (markers.py), are not brought: the
+The blocks of lines that only a source needs, `# groundwork:source` … `# /groundwork:source` (markers.py), are not brought: the
 version moved to is read without them, so that the merge also takes them out of the project that still has them.
 A file of the project that holds one is part of the update even when the version moved to does not change it.
 
@@ -496,17 +496,17 @@ def paths_with_a_block_of_the_source(new_paths, candidates):
     A project that got one from scripts that did not take it out loses it at its next update, whether or not the
     new version changes the file."""
     found = set()
+    root = os.path.realpath(".")
     for path in new_paths:
         syntax = markers.kind(path)
-        content = read(path)
-        if path in candidates or syntax is None or content is None:
+        if path in candidates or syntax is None or not inside(root, path) or not os.path.isfile(path):
             continue
+        content = read(path)
         try:
-            lines = content.decode("utf-8").split("\n")
+            if content is not None and markers.has_source(content.decode("utf-8"), syntax):
+                found.add(path)
         except UnicodeDecodeError:
             continue
-        if markers.scan(lines, syntax)[1]:
-            found.add(path)
     return found
 
 
@@ -549,15 +549,20 @@ def plan(old: str, new: str) -> Plan:
     candidates = set(changed_paths(old, new)) | {path for path in new_paths if from_nothing(path)}
     if entering:
         candidates |= paths_with_a_block_of(new, new_paths, entering, candidates)
-    candidates |= paths_with_a_block_of_the_source(new_paths, candidates)
+    holding = paths_with_a_block_of_the_source(new_paths, set())
+    candidates |= holding - candidates
     steps = []
     for path in sorted(candidates):
         if taken(path):
             base = None if path in new_set and from_nothing(path) else blob(old, path)
-            # Only the version moved to loses the blocks of the source: the version moved from keeps them, so that the
-            # merge deletes in a project what it holds of them.
+            # The version moved to loses the blocks of the source. The version moved from keeps them when the project
+            # holds some, so that the merge deletes them, and loses them when it holds none, so that the merge sees no
+            # change of the project next to a block that is not there.
             theirs = without_source(path, text_of(path, blob(new, path), kept_after))
-            steps.append(Step(path, text_of(path, base, Without(kept_after, entering)), theirs))
+            ours = text_of(path, base, Without(kept_after, entering))
+            if path not in holding:
+                ours = without_source(path, ours)
+            steps.append(Step(path, ours, theirs))
     return Plan(said, steps, after, kept_after)
 
 
