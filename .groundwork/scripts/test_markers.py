@@ -181,7 +181,7 @@ SOURCE = """updates:
 
   # groundwork:source
   - for: the source
-  # /groundwork
+  # /groundwork:source
 
   # groundwork:0002
   - for: an adr
@@ -200,7 +200,7 @@ class SourceBlocks(unittest.TestCase):
         self.assertEqual([block.adr for block in blocks], [2])
 
     def test_a_block_of_an_adr_inside_a_block_of_the_source_is_reported(self):
-        text = "# groundwork:source\n# groundwork:0002\nx\n# /groundwork\n# /groundwork\n"
+        text = "# groundwork:source\n# groundwork:0002\nx\n# /groundwork\n# /groundwork:source\n"
         self.assertTrue(any("inside" in message for _, message in markers.parse(text.split("\n"), "yaml")[1]))
 
     def test_a_block_of_the_source_that_is_not_closed_is_reported_at_its_line(self):
@@ -208,8 +208,32 @@ class SourceBlocks(unittest.TestCase):
         self.assertEqual(problem[0], 2)
         self.assertIn("not closed", problem[1])
 
+    def test_a_block_of_the_source_is_closed_by_its_own_marker(self):
+        self.assertEqual(
+            markers.parse("<!-- groundwork:source -->\nx\n<!-- /groundwork:source -->\n".split("\n"), "markdown")[1], []
+        )
+
+    def test_a_block_of_the_source_closed_by_the_marker_of_an_adr_is_reported(self):
+        text = "x\n# groundwork:source\ny\n# /groundwork\n"
+        problems = markers.parse(text.split("\n"), "yaml")[1]
+        self.assertTrue(any(line == 4 and "source" in message for line, message in problems), problems)
+
+    def test_a_block_of_an_adr_closed_by_the_marker_of_the_source_is_reported(self):
+        text = "x\n# groundwork:0002\ny\n# /groundwork:source\n"
+        problems = markers.parse(text.split("\n"), "yaml")[1]
+        self.assertTrue(any(line == 4 and "0002" in message for line, message in problems), problems)
+
+    def test_a_block_closed_by_the_wrong_marker_gives_one_problem(self):
+        text = "# groundwork:0002\n# /groundwork:source\n# groundwork:0003\nx\n# /groundwork\n"
+        self.assertEqual(len(markers.parse(text.split("\n"), "yaml")[1]), 1)
+
+    def test_a_closing_marker_of_the_source_without_a_block_is_reported(self):
+        (problem,) = markers.parse("x\n# /groundwork:source\n".split("\n"), "yaml")[1]
+        self.assertEqual(problem[0], 2)
+        self.assertIn("no block", problem[1])
+
     def test_the_choice_of_the_adrs_keeps_a_block_of_the_source(self):
-        self.assertEqual(markers.remove(SOURCE, "yaml", set()).count("groundwork:source"), 1)
+        self.assertEqual(markers.remove(SOURCE, "yaml", set()).count("# groundwork:source\n"), 1)
         self.assertNotIn("an adr", markers.remove(SOURCE, "yaml", set()))
 
     def test_remove_source_takes_out_the_block_with_its_markers_and_its_blank_line(self):

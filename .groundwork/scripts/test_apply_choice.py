@@ -130,9 +130,7 @@ class NewProject(Fixture):
         self.assertFalse(self.has("docs/adr/1000-own-of-groundwork.md"))
 
     def test_it_takes_out_the_block_of_the_source_so_that_dependabot_opens_nothing_for_what_the_source_owns(self):
-        entries = (
-            "updates:\n  - own: neutral\n\n  # groundwork:source\n  - for: the source\n  # /groundwork\n\n  # anchor\n"
-        )
+        entries = "updates:\n  - own: neutral\n\n  # groundwork:source\n  - for: the source\n  # /groundwork:source\n\n  # anchor\n"
         self.adopt(self.template(**{".github/dependabot.yml": entries}))
         result = self.run_new()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -561,7 +559,13 @@ class FilesOfNoPractice(Fixture):
     def setUp(self):
         super().setUp()
         self.release(
-            {**world("1"), "README.md": "# groundwork\n", "LICENSE": "MIT\n", ".groundwork-ranges": "9000-9999\n"},
+            {
+                **world("1"),
+                "README.md": "# groundwork\n",
+                "LICENSE": "MIT\n",
+                ".groundwork-ranges": "9000-9999\n",
+                "NOTES.md": "a\n\n<!-- groundwork:source -->\nsource\n<!-- /groundwork:source -->\n\nb\n",
+            },
             version="0.2.0",
         )
 
@@ -579,6 +583,12 @@ class FilesOfNoPractice(Fixture):
         self.assertEqual(read(self.project, "tool.py"), "tool\n")
         self.assertEqual(read(self.project, ".groundwork/practices.md"), world("1")[".groundwork/practices.md"])
         self.assertIn("tool.py", self.lines(result, "add: "))
+
+    def test_a_file_of_no_practice_arrives_without_the_blocks_of_the_source(self):
+        self.existing("0001\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, "NOTES.md"), "a\n\nb\n")
 
     def test_a_shared_file_with_no_owner_arrives_without_the_blocks_of_the_adrs_left_out(self):
         self.existing("0002\n")

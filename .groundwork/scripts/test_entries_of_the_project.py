@@ -42,14 +42,14 @@ class EntriesOfTheProject(unittest.TestCase):
             text.count(ANCHOR), 1, "the file lacks the comment of the entries of the project, or has it twice"
         )
         self.assertTrue(
-            text.split(ANCHOR)[0].endswith("# /groundwork\n\n"),
+            text.split(ANCHOR)[0].endswith("# /groundwork:source\n\n"),
             "the comment does not follow a blank line after the block of the entries of the source",
         )
 
     def test_the_entries_for_what_groundwork_owns_are_in_a_block_of_the_source(self):
         text = read()
         self.assertEqual(text.count("# groundwork:source\n"), 1)
-        block = text.split("# groundwork:source\n")[1].split("# /groundwork")[0]
+        block = text.split("# groundwork:source\n")[1].split("# /groundwork:source")[0]
         for ecosystem in ("pre-commit", "pip", "github-actions"):
             self.assertIn(f"package-ecosystem: {ecosystem}\n", block)
 
@@ -60,6 +60,14 @@ class EntriesOfTheProject(unittest.TestCase):
         self.assertEqual(outside.count("package-ecosystem:"), 1)
         self.assertIn("package-ecosystem: github-actions\n    directory: /.groundwork\n", outside)
         self.assertIn("open-pull-requests-limit: 0", outside)
+
+    def test_the_markers_of_the_source_are_plain_text_for_the_patterns_of_a_project_from_before_the_block(self):
+        # A project runs the scripts of its previous version on this file: they refuse a closing marker that closes
+        # nothing, and know no block of the source.
+        opening = re.compile(r"^[ \t]*# groundwork:(\d{4})[ \t]*$")
+        closing = re.compile(r"^[ \t]*# /groundwork[ \t]*$")
+        lines = read().split("\n")
+        self.assertFalse([n for n, line in enumerate(lines, 1) if opening.match(line) or closing.match(line)])
 
     def test_an_entry_of_the_project_and_an_entry_that_groundwork_adds_above_merge_without_conflict(self):
         text = read()

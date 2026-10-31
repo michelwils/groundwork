@@ -16,8 +16,9 @@ A version whose files include a path that a file system can put in a directory .
 or a path that holds a control character or a line break, which would add a line to the text it prints,
 or a bidirectional control, such as U+202E, which changes how the name is shown,
 stops the update before anything changes (paths_of).
-The blocks of lines that only a source needs, `# groundwork:source` … `# /groundwork` (markers.py), are not brought: the
+The blocks of lines that only a source needs, `# groundwork:source` … `# /groundwork:source` (markers.py), are not brought: the
 version moved to is read without them, so that the merge also takes them out of the project that still has them.
+A file of the project that holds one is part of the update even when the version moved to does not change it.
 
 The project may list the ADRs it keeps in `.groundwork-adrs` (choice.py). The script then reads,
 in the version it moves to, the ranges of ADR numbers that the source reserves and the map of the
@@ -489,6 +490,26 @@ def paths_with_a_block_of(new, new_paths, entering, candidates):
     return found
 
 
+def paths_with_a_block_of_the_source(new_paths, candidates):
+    """Return the paths of the version, outside the candidates, where the project holds a block of the source.
+
+    A project that got one from scripts that did not take it out loses it at its next update, whether or not the
+    new version changes the file."""
+    found = set()
+    root = os.path.realpath(".")
+    for path in new_paths:
+        syntax = markers.kind(path)
+        if path in candidates or syntax is None or not inside(root, path) or not os.path.isfile(path):
+            continue
+        content = read(path)
+        try:
+            if content is not None and markers.has_source(content.decode("utf-8"), syntax):
+                found.add(path)
+        except UnicodeDecodeError:
+            continue
+    return found
+
+
 def plan(old: str, new: str) -> Plan:
     """Return the plan to move the project from the version old to the version new (the same one to apply the
     choice only). It reads the project and the versions and writes nothing."""
@@ -528,14 +549,20 @@ def plan(old: str, new: str) -> Plan:
     candidates = set(changed_paths(old, new)) | {path for path in new_paths if from_nothing(path)}
     if entering:
         candidates |= paths_with_a_block_of(new, new_paths, entering, candidates)
+    holding = paths_with_a_block_of_the_source(new_paths, set())
+    candidates |= holding - candidates
     steps = []
     for path in sorted(candidates):
         if taken(path):
             base = None if path in new_set and from_nothing(path) else blob(old, path)
-            # Only the version moved to loses the blocks of the source: the version moved from keeps them, so that the
-            # merge deletes in a project what it holds of them.
+            # The version moved to loses the blocks of the source. The version moved from keeps them when the project
+            # holds some, so that the merge deletes them, and loses them when it holds none, so that the merge sees no
+            # change of the project next to a block that is not there.
             theirs = without_source(path, text_of(path, blob(new, path), kept_after))
-            steps.append(Step(path, text_of(path, base, Without(kept_after, entering)), theirs))
+            ours = text_of(path, base, Without(kept_after, entering))
+            if path not in holding:
+                ours = without_source(path, ours)
+            steps.append(Step(path, ours, theirs))
     return Plan(said, steps, after, kept_after)
 
 

@@ -53,6 +53,6 @@ updates:
     groups:
       actions:
         patterns: ["*"]
-  # /groundwork
+  # /groundwork:source
 
   # The entries of the project go below this line. groundwork adds its own above it.

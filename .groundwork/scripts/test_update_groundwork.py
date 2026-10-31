@@ -1240,7 +1240,7 @@ class EntriesOfTheSource(Fixture):
         + NEUTRAL
         + "  # groundwork:source\n"
         + ENTRIES.rstrip("\n")
-        + "\n  # /groundwork\n\n"
+        + "\n  # /groundwork:source\n\n"
         + ANCHOR
     )
 
@@ -1282,6 +1282,31 @@ class EntriesOfTheSource(Fixture):
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(read(self.project, DEPENDABOT), "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO)
+
+    def test_a_project_that_holds_the_block_loses_it_when_the_new_version_does_not_change_the_file(self):
+        # The update that brought the block ran with scripts that did not take it out.
+        self.release("0.2.0", {DEPENDABOT: self.AFTER, "other.txt": "1\n"})
+        self.release("0.3.0", {DEPENDABOT: self.AFTER, "other.txt": "2\n"})
+        self.adopt({DEPENDABOT: self.AFTER + CARGO, "other.txt": "1\n"}, version="0.2.0")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(read(self.project, DEPENDABOT), "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO)
+
+    def test_a_directory_of_the_project_where_the_version_has_a_file_of_markers_does_not_stop_the_update(self):
+        self.release("0.2.0", {DEPENDABOT: self.AFTER, "notes.md": "1\n"})
+        self.release("0.3.0", {DEPENDABOT: self.AFTER, "notes.md": "1\n", "other.txt": "2\n"})
+        self.adopt({DEPENDABOT: self.AFTER, "notes.md/inner.txt": "mine\n"}, version="0.2.0")
+        result = self.run_script()
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_a_project_that_has_no_block_has_no_conflict_when_the_version_changes_a_line_next_to_it(self):
+        self.release("0.2.0", {DEPENDABOT: self.AFTER})
+        self.release(
+            "0.3.0", {DEPENDABOT: self.AFTER.replace("directory: /.groundwork", "directory: /.groundwork/new")}
+        )
+        self.adopt({DEPENDABOT: "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO}, version="0.2.0")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 class Chain(unittest.TestCase):
