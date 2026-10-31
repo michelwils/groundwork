@@ -1301,7 +1301,9 @@ class EntriesOfTheSource(Fixture):
 
     def test_a_project_that_has_no_block_has_no_conflict_when_the_version_changes_a_line_next_to_it(self):
         self.release("0.2.0", {DEPENDABOT: self.AFTER})
-        self.release("0.3.0", {DEPENDABOT: self.AFTER.replace("directory: /.groundwork", "directory: /.groundwork/new")})
+        self.release(
+            "0.3.0", {DEPENDABOT: self.AFTER.replace("directory: /.groundwork", "directory: /.groundwork/new")}
+        )
         self.adopt({DEPENDABOT: "version: 2\nupdates:\n" + NEUTRAL + ANCHOR + CARGO}, version="0.2.0")
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

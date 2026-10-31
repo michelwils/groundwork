@@ -32,7 +32,10 @@ PATTERNS = {
         re.compile(r"^[ \t]*<!-- groundwork:(\d{4}|source) -->[ \t]*$"),
         re.compile(r"^[ \t]*<!-- /groundwork(:source)? -->[ \t]*$"),
     ),
-    "yaml": (re.compile(r"^[ \t]*# groundwork:(\d{4}|source)[ \t]*$"), re.compile(r"^[ \t]*# /groundwork(:source)?[ \t]*$")),
+    "yaml": (
+        re.compile(r"^[ \t]*# groundwork:(\d{4}|source)[ \t]*$"),
+        re.compile(r"^[ \t]*# /groundwork(:source)?[ \t]*$"),
+    ),
 }
 SOURCE = "source"
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
@@ -89,7 +92,9 @@ def scan(lines: list[str], syntax: str) -> tuple[list[Block], list[tuple[int, in
                 problems.append((number, "a closing marker has no block to close"))
                 continue
             if (ended.group(1) is not None) != (opened == SOURCE):
-                problems.append((number, f"the block of {label(opened)} opened at line {opened_at} is closed by the wrong marker"))
+                problems.append(
+                    (number, f"the block of {label(opened)} opened at line {opened_at} is closed by the wrong marker")
+                )
                 opened = None
                 continue
             if opened == SOURCE:

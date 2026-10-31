@@ -209,7 +209,9 @@ class SourceBlocks(unittest.TestCase):
         self.assertIn("not closed", problem[1])
 
     def test_a_block_of_the_source_is_closed_by_its_own_marker(self):
-        self.assertEqual(markers.parse("<!-- groundwork:source -->\nx\n<!-- /groundwork:source -->\n".split("\n"), "markdown")[1], [])
+        self.assertEqual(
+            markers.parse("<!-- groundwork:source -->\nx\n<!-- /groundwork:source -->\n".split("\n"), "markdown")[1], []
+        )
 
     def test_a_block_of_the_source_closed_by_the_marker_of_an_adr_is_reported(self):
         text = "x\n# groundwork:source\ny\n# /groundwork\n"
