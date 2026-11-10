@@ -21,6 +21,7 @@ The page is copied into every project with the scripts, and a project does not h
 | `check_adrs.py` | Checks the ADRs against their template and their numbering (ADR 0001) | The hook `adrs` and the CI |
 | `check_practices.py` | Checks the map of the practices, and that the texts name only the ADRs that they need (ADR 0008) | The hook `practices` and the CI |
 | `check_links.py` | Checks the relative links and the anchors of the Markdown files (ADR 0008) | The hook `markdown-links`, through `run_with_requirements.py` |
+| `check_branch.py` | Checks the name of the current branch before a commit, with the rule of `check_pull_request.py` (ADR 0003) | The hook `branch-name` |
 | `check_pull_request.py` | Checks the branch name, the closing line and the breaking change of a pull request (ADR 0003, ADR 0006) | The workflow `checks.yml` |
 | `release.py` | Computes the next version and the release notes (ADR 0005, ADR 0006) | The workflow `release.yml`, or a person to see the next version |
 | `run_with_requirements.py` | Runs a script in an environment made from `requirements.txt` | The hook `markdown-links` |
@@ -44,6 +45,7 @@ Each script finds the others in its own folder. The second column is what it imp
 | `run_with_requirements.py` | none | It runs another script as a process |
 | `apply_settings.py` | none | |
 | `release.py` | none | |
+| `check_branch.py` | `check_pull_request` | |
 | `check_pull_request.py` | none | |
 
 - `markers.py` reads the blocks of lines that an ADR owns in a file that several ADRs share (`parse`), and takes out the blocks of the ADRs that a project did not keep (`remove`).

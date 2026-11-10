@@ -49,5 +49,32 @@ class AuditOfTheDependencies(unittest.TestCase):
         self.assertIn("--hook-stage manual", read(WORKFLOW))
 
 
+def branch_name():
+    """Return the text of the hook branch-name, and the line that opens the block that holds it."""
+    text = read(CONFIG)
+    found = re.search(r"^      - id: branch-name\n(?:        .*\n)+", text, flags=re.MULTILINE)
+    opening = [line for line in text[: found.start()].splitlines() if line.strip().startswith("# groundwork:")]
+    return (found.group(0) if found else ""), (opening[-1].strip() if opening else "")
+
+
+class NameOfTheBranch(unittest.TestCase):
+    def test_the_hook_belongs_to_the_block_of_the_change_workflow(self):
+        hook, opening = branch_name()
+        self.assertIn("id: branch-name", hook)
+        self.assertEqual(opening, "# groundwork:0003")
+
+    def test_it_runs_the_script_before_a_commit_and_in_the_stage_that_the_ci_runs(self):
+        hook, _ = branch_name()
+        self.assertIn("python .groundwork/scripts/check_branch.py", hook)
+        found = re.search(r"stages: \[(.+)\]", hook)
+        self.assertIsNotNone(found)
+        self.assertEqual(sorted(stage.strip() for stage in found.group(1).split(",")), ["manual", "pre-commit"])
+
+    def test_it_runs_when_no_file_changes(self):
+        hook, _ = branch_name()
+        self.assertIn("always_run: true", hook)
+        self.assertIn("pass_filenames: false", hook)
+
+
 if __name__ == "__main__":
     unittest.main()

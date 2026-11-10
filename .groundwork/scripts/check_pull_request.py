@@ -40,13 +40,18 @@ def check(branch: str, base: str, body: str, title: str) -> list[str]:
     return problems
 
 
+def name_problem(branch: str) -> str | None:
+    """Return what is wrong with the name of a branch, None when it is named as expected or is a bot's."""
+    if branch.startswith(BOT_BRANCHES) or BRANCH.match(branch):
+        return None
+    return f"The branch '{branch}' is not named <type>/<issue-number>-<slug>, with a type of ADR 0002 and a slug in kebab case."
+
+
 def branch_problems(branch, base, body):
-    match = BRANCH.match(branch)
-    if not match:
-        return [
-            f"The branch '{branch}' is not named <type>/<issue-number>-<slug>, with a type of ADR 0002 and a slug in kebab case."
-        ]
-    issue = match.group("issue")
+    problem = name_problem(branch)
+    if problem:
+        return [problem]
+    issue = BRANCH.match(branch).group("issue")
     closes = CLOSES.findall(body or "")
     refs = REFS.findall(body or "")
     maintenance = MAINTENANCE.match(base)

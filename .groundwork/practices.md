@@ -40,12 +40,15 @@ The ADRs outside the ranges that groundwork reserves, which are its own decision
   - `.github/ISSUE_TEMPLATE/change.md`
   - `.groundwork/rulesets/main.json`
   - `.groundwork/scripts/apply_settings.py`
+  - `.groundwork/scripts/check_branch.py`
   - `.groundwork/scripts/check_pull_request.py`
   - `.groundwork/scripts/test_apply_settings.py`
+  - `.groundwork/scripts/test_check_branch.py`
   - `.groundwork/scripts/test_check_pull_request.py`
   - `.github/PULL_REQUEST_TEMPLATE.md`
 - Shared lines:
   - `CONTRIBUTING.md`
+  - `.pre-commit-config.yaml`
 
 ### 0004. [Repository language is English](../docs/adr/0004-repository-language-english.md)
 

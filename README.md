@@ -86,6 +86,7 @@ Only the latest release is maintained.
 Checks run before each commit and in CI, as described in [ADR 0008](docs/adr/0008-automated-checks.md). They are defined in [`.pre-commit-config.yaml`](.pre-commit-config.yaml) and use the [pre-commit](https://pre-commit.com) framework:
 
 - the commit title follows [ADR 0002](docs/adr/0002-conventional-commits.md)
+- the branch is named `<type>/<issue-number>-<slug>` ([ADR 0003](docs/adr/0003-change-workflow.md)), checked at each commit by [`.groundwork/scripts/check_branch.py`](.groundwork/scripts/check_branch.py) with the rule that the CI applies to the pull request
 - the commit message refers to no agent session ([ADR 0007](docs/adr/0007-ai-assisted-changes.md))
 - no secret is committed, detected by [gitleaks](https://github.com/gitleaks/gitleaks) in the staged changes before a commit and in the whole history on demand
 - Markdown files follow the rules of [markdownlint](https://github.com/DavidAnson/markdownlint), configured in [`.markdownlint.yaml`](.markdownlint.yaml)

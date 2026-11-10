@@ -81,6 +81,18 @@ repos:
         always_run: true
         stages: [pre-commit, manual]
 
+      # groundwork:0003
+      # ADR 0003: the branch is named <type>/<issue-number>-<slug>, the rule that the CI applies
+      # to the pull request, so that a wrongly named branch is caught at its first commit.
+      - id: branch-name
+        name: Check the name of the branch (ADR 0003)
+        language: python
+        entry: python .groundwork/scripts/check_branch.py
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, manual]
+      # /groundwork
+
       # groundwork:0002
       # ADR 0002: <type>[(scope)][!]: <description>, with a single lowercase word
       # as scope, a description that starts with a lowercase letter and no final period.

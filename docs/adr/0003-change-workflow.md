@@ -16,7 +16,7 @@ The fix of a vulnerability that is not public yet is made in the temporary priva
 
 - **Issues:** one issue per change. The title names the outcome. The body gives the context, the deliverables, the acceptance criteria as a plain list, and what is out of scope. Each issue belongs to a milestone.
 - **Milestones:** a milestone may test a hypothesis. When it opens, its description states the hypothesis and what would confirm or refute it. It is closed with a verdict, confirmed, refuted or inconclusive, written in its description with links to the ADRs and the issues that follow from it. It has no version of its own: its changes are released as any others.
-- **Branches:** one branch per issue, created from `main` and named `<type>/<issue-number>-<issue-title-in-kebab-case>`, where `<type>` is a commit type defined in [ADR 0002](0002-conventional-commits.md), for example `docs/1-bootstrap-the-repository`.
+- **Branches:** one branch per issue, created from `main` and named `<type>/<issue-number>-<issue-title-in-kebab-case>`, where `<type>` is a commit type defined in [ADR 0002](0002-conventional-commits.md), for example `docs/1-bootstrap-the-repository`. The branch of the fix of a vulnerability that is not public yet has no issue and is named `fix/0-<slug>`. A hook checks the name at each commit, except on `main`, on a maintenance branch and when HEAD is detached, and the check of the pull request applies the same rule.
 - **Pull requests:** one pull request per issue, from that branch to `main`.
   - The title follows [ADR 0002](0002-conventional-commits.md).
   - The description contains `Closes #<issue-number>` and the acceptance criteria of the issue as a checklist.
@@ -33,6 +33,7 @@ The fix of a vulnerability that is not public yet is made in the temporary priva
 ## Consequences
 
 - Nothing checks the milestone of a pull request, so a contributor can still set one.
+- A branch created before the hook was installed, or with `--no-verify`, is caught only by the check of the pull request.
 - Every change has a stated purpose and a point where it is considered done.
 - Acceptance criteria are stated once, in the issue, and checked in the pull request.
 - `main` only contains finished issues and dependency updates, and its history is the list of them in the order they were completed.
