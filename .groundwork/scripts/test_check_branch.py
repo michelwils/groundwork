@@ -9,7 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 SCRIPT = os.path.join(HERE, "check_branch.py")
 GIT_ENV = {
-    **os.environ,
+    **{name: value for name, value in os.environ.items() if not name.startswith("GIT_")},
     "GIT_AUTHOR_NAME": "A",
     "GIT_AUTHOR_EMAIL": "a@example.com",
     "GIT_COMMITTER_NAME": "A",
@@ -23,8 +23,10 @@ def git(directory, *arguments):
     ).stdout
 
 
-def run(directory):
-    return subprocess.run([sys.executable, "-I", SCRIPT], cwd=directory, capture_output=True, text=True)
+def run(directory, environment=None):
+    return subprocess.run(
+        [sys.executable, "-I", SCRIPT], cwd=directory, env=environment or GIT_ENV, capture_output=True, text=True
+    )
 
 
 class Repository(unittest.TestCase):
@@ -62,6 +64,21 @@ class Accepted(Repository):
 
     def test_a_maintenance_branch(self):
         self.assertEqual(self.on("maintenance/v1").returncode, 0)
+
+    def test_the_other_usual_name_of_the_default_branch(self):
+        git(self.directory, "branch", "-m", "master")
+        self.assertEqual(run(self.directory).returncode, 0)
+
+    def test_the_default_branch_that_the_remote_names(self):
+        git(self.directory, "branch", "-m", "trunk")
+        self.assertEqual(run(self.directory).returncode, 1)
+        git(self.directory, "update-ref", "refs/remotes/origin/trunk", "HEAD")
+        git(self.directory, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk")
+        self.assertEqual(run(self.directory).returncode, 0)
+
+    def test_git_that_is_not_installed(self):
+        result = run(self.directory, {**GIT_ENV, "PATH": ""})
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_detached_head(self):
         git(self.directory, "checkout", "-q", "--detach")

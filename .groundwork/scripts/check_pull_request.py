@@ -48,10 +48,11 @@ def name_problem(branch: str) -> str | None:
 
 
 def branch_problems(branch, base, body):
-    problem = name_problem(branch)
-    if problem:
-        return [problem]
-    issue = BRANCH.match(branch).group("issue")
+    match = BRANCH.match(branch)
+    if not match:
+        problem = name_problem(branch)
+        return [problem] if problem else []
+    issue = match.group("issue")
     closes = CLOSES.findall(body or "")
     refs = REFS.findall(body or "")
     maintenance = MAINTENANCE.match(base)

@@ -149,6 +149,9 @@ class BreakingChange(unittest.TestCase):
     def test_the_problems_of_the_branch_and_of_the_footer_are_both_given(self):
         self.assertEqual(len(check(body="", title="feat!: rename it")), 2)
 
+    def test_the_branch_of_a_bot_has_no_problem_of_its_name(self):
+        self.assertEqual(check_pull_request.branch_problems("dependabot/pre_commit/x", "main", ""), [])
+
     def test_the_branches_of_bots_are_skipped(self):
         self.assertEqual(check(branch="dependabot/pip/x-1", body="", title="Bump x!: y"), [])
 

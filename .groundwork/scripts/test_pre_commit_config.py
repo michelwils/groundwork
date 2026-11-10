@@ -53,8 +53,10 @@ def branch_name():
     """Return the text of the hook branch-name, and the line that opens the block that holds it."""
     text = read(CONFIG)
     found = re.search(r"^      - id: branch-name\n(?:        .*\n)+", text, flags=re.MULTILINE)
+    if not found:
+        return "", ""
     opening = [line for line in text[: found.start()].splitlines() if line.strip().startswith("# groundwork:")]
-    return (found.group(0) if found else ""), (opening[-1].strip() if opening else "")
+    return found.group(0), (opening[-1].strip() if opening else "")
 
 
 class NameOfTheBranch(unittest.TestCase):
