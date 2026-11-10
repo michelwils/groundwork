@@ -132,6 +132,7 @@ jobs:
         run: |
           "$RUNNER_TEMP/scripts/bin/python" -m unittest discover -s .groundwork/scripts -p 'test_*.py' \
             -k 'test_apply_choice_on_the_real_files.' \
+            -k 'test_check_branch.' \
             -k 'test_checks_workflow.' \
             -k 'test_codeowners_template.' \
             -k 'test_entries_of_the_project.' \
