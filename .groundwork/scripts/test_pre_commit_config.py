@@ -65,12 +65,13 @@ class NameOfTheBranch(unittest.TestCase):
         self.assertIn("id: branch-name", hook)
         self.assertEqual(opening, "# groundwork:0003")
 
-    def test_it_runs_the_script_before_a_commit_and_in_the_stage_that_the_ci_runs(self):
+    def test_it_runs_the_script_before_a_commit_and_not_in_the_ci(self):
+        """The CI checks out a detached HEAD or main, where the script checks nothing, so it leaves the manual stage."""
         hook, _ = branch_name()
         self.assertIn("python .groundwork/scripts/check_branch.py", hook)
         found = re.search(r"stages: \[(.+)\]", hook)
         self.assertIsNotNone(found)
-        self.assertEqual(sorted(stage.strip() for stage in found.group(1).split(",")), ["manual", "pre-commit"])
+        self.assertEqual([stage.strip() for stage in found.group(1).split(",")], ["pre-commit"])
 
     def test_it_runs_when_no_file_changes(self):
         hook, _ = branch_name()

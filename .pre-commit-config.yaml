@@ -90,7 +90,7 @@ repos:
         entry: python .groundwork/scripts/check_branch.py
         pass_filenames: false
         always_run: true
-        stages: [pre-commit, manual]
+        stages: [pre-commit]
       # /groundwork
 
       # groundwork:0002
