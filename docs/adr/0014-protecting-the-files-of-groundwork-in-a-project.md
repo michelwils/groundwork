@@ -43,3 +43,9 @@ We will let a project require the review of its code owners for the files of gro
 - A rule that blocks the push of changes to given paths was rejected: it is meant for private or internal repositories and it blocks the push of the update branch too. A check that compares the files with the recorded version was rejected too: it runs the code of the branch, so the same pull request can weaken it.
 - The copy of the template is the project's. A path that groundwork protects later reaches a project that copied the template only if the project adds the line.
 - The line `/.github/workflows/` of the template also covers `.github/workflows/project-checks.yml`, where the project writes its own jobs. With the requirement on, a change to those jobs needs, as GitHub documents it, the approval of an owner, as a change to the jobs of groundwork does, since a job that is weakened passes its own check. A project that does not want that review edits its copy of the template.
+
+## Options considered
+
+- **Locking the files of groundwork.** Some are meant to be changed by the project, such as its lines outside the blocks of shared files, its hooks and its jobs.
+- **Requiring a review for every project.** A project with a single account would have nobody to approve. The option is off by default.
+- **Relying on the checks alone.** The checks run the configuration that a pull request can change, so they do not protect the files that carry trust.

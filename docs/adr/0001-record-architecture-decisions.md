@@ -8,13 +8,14 @@ groundwork is a set of choices about how projects are structured and run. Withou
 
 ## Decision
 
-We will record each significant decision as an Architecture Decision Record (ADR), using the format proposed by Michael Nygard: context, decision, consequences.
+We will record each significant decision as an Architecture Decision Record (ADR), using the format proposed by Michael Nygard: context, decision, consequences, with a section of the options considered added.
 
 - **Location:** `docs/adr/`.
 - **Naming:** `NNNN-title-in-kebab-case.md`, where `NNNN` is a four-digit sequence number. Numbers are never reused.
 - **Ranges:** a source of ADRs reserves a range of numbers by announcing it, and a project does not create an ADR in a range that its source reserves. groundwork reserves `0001` to `0999`. A community that creates its own base from groundwork may reserve other ranges, declared in the file `.groundwork-ranges` at its root. The file holds one range `NNNN-NNNN` per line, bounds included, the first not above the second, and a line that starts with `#` is a comment. A line that does not follow this format is refused, and a range overlaps neither `0001` to `0999` nor another range. Without the file, a source reserves `0001` to `0999` only. A project reads the reserved ranges from this file, which it receives from its source. In each range it reserves, a source numbers its ADRs from the first number of the range, without skipping any.
 - **The project:** every number that no range reserves is free. A project numbers its own ADRs from the first number that no range reserves, which is `1000` when its source reserves `0001` to `0999` only, and skips only the numbers in a reserved range. groundwork is itself a project: its own decisions that do not apply to the projects that adopt it are numbered from `1000`, outside what it reserves, and are not synchronised.
 - **Template:** `docs/adr/template.md`.
+- **Options considered:** the last section of an ADR lists the other options that were weighed and why each was not chosen. An ADR that had none says so and why. The section is never empty.
 - **Statuses:** `proposed`, `accepted`, `rejected`, and `superseded by NNNN`.
 - **Changing a decision:** while the major version of the project that writes an ADR is `0`, an accepted ADR may be changed in place, including to add, change or remove a rule, and its status stays `accepted`. From `1.0.0`, an accepted ADR may be clarified in place only when its meaning does not change (wording, missing detail, broken links). A decision that is reversed or contradicted is then replaced by a new ADR, and the old one is updated only to set its status to `superseded by NNNN`.
 - **Writing:** ADRs are written in English, short, and describe one decision each.
@@ -28,3 +29,9 @@ We will record each significant decision as an Architecture Decision Record (ADR
 - An ADR added by groundwork or by a community base never takes the number of a project's ADR, so moving a project to a later version does not conflict on file names or references.
 - A community that reserves a range in which projects already have ADRs makes those projects renumber them. It reserves a range above the numbers its projects use.
 - A clarification and a replacement are told apart by one question: would someone relying on the old text be surprised by the new one?
+
+## Options considered
+
+- **A wiki or a document outside the repository.** It ages apart from the code and its history, and a change of the code does not show the change of the decision.
+- **Another format of record, such as MADR or Y-statements.** They add fields, such as the drivers or the pros and cons of each option, that every record must then fill. The format of Michael Nygard is the smallest one that keeps the reasons.
+- **Comments in the code and commit messages alone.** They keep the reason of one change, not a decision that spans several files and stays in force.

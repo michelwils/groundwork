@@ -24,3 +24,9 @@ We will ask each project to state which licenses it accepts in its dependencies,
 - The dependencies of a dependency are covered too, but without a tool for the stack they are hard to see.
 - Each new dependency costs a reading of its license, and the list costs one statement.
 - A project that needs more, or something else, adds its own in an ADR.
+
+## Options considered
+
+- **A list of licenses set by groundwork.** Which licenses a project can accept depends on its own license, on its application and on the rules of its organisation, so the list is the project's.
+- **A required tool that lists licenses.** Tools depend on the stack. A project whose stack has one may add its check, and none is required.
+- **Saying nothing.** A dependency added without reading its license can force a project to relicense, to disclose code or to give the dependency up later, at a cost.

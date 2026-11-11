@@ -13,3 +13,7 @@ What we decided, in full sentences, starting with "We will…".
 ## Consequences
 
 What becomes easier or harder as a result, including the downsides.
+
+## Options considered
+
+The other options that were weighed, and why each was not chosen. When there was none, say so and why.

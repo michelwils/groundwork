@@ -30,3 +30,8 @@ The rules are applied by the rules for agents, by the baseline checks for the ru
 - Only the review applies the rules that no tool detects. A rule that is not read in a diff is not applied.
 - A change that touches a trust boundary takes one more reading. That is the cost of the rules.
 - The rules are general. A project that needs more, because of its sort of application or the data it holds, adds its own in an ADR.
+
+## Options considered
+
+- **Rules tied to a language, a framework or a scanner.** They would fit one stack only. These rules name none, so that they hold for any project.
+- **Leaving the security of the code to each project.** The faults that let an application be taken over are few and well known, and each project would find them again.

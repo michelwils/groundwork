@@ -45,3 +45,9 @@ When a feature is switched on by changing a setting at run time, the `feat` comm
 - With maintenance branches, the latest tag by date is not always the highest version.
 - The fix of a vulnerability that is not public yet is made outside this workflow, as `SECURITY.md` says. A rollback is a new fix or a `revert`, made like any other change.
 - A releasable `main` relies on the CI checks.
+
+## Options considered
+
+- **Long-lived branches for releases, as in Git Flow.** `main` would not be releasable at any time, and each fix would have to be merged between branches. A maintenance branch exists only for an older major version, on demand.
+- **A maintenance branch for every minor version.** A minor increment does not break users, so one branch per major version is enough.
+- **Feature branches kept open until the feature is done.** They drift from `main` and delay the review. The feature is split into issues, merged as they are done and kept dormant.

@@ -26,3 +26,8 @@ We will have `update_groundwork.py` write its result as one JSON object to a fil
 - The update gets an option, and the opener a temporary directory. Both belong to the public contract as the behaviour of files that groundwork provides.
 - A caller that read the text of the update, other than a person, must read the file. No such caller is known in groundwork.
 - A format with fields by position, such as a list separated by NUL, was rejected: adding a field would shift the others.
+
+## Options considered
+
+- **Keep reading the report for a person with patterns.** It is the cause of the fault of the advisory: a path with a line break added a line to the report.
+- **Escape the paths in the report.** The report would still be a text that two scripts must agree on, with a format that nobody states and that the person who reads it can change.
