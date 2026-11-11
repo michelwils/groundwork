@@ -92,3 +92,9 @@ We will check the repository automatically, in two places, from one configuratio
 - A project that already added entries at the end of `.github/dependabot.yml` or hooks at the end of `.pre-commit-config.yaml` has one conflict per file, when the update brings the comment that ends the entries of groundwork, and moves them below it.
 - A project that changed an entry of groundwork in `.github/dependabot.yml` has a conflict at the first update that takes the entries out.
 - A project that had Dependabot propose the updates of its own workflows or hooks through the entries of groundwork receives none until it adds the entries above.
+
+## Options considered
+
+- **Review alone.** Mechanical mistakes are found late and take the time of the reviewer.
+- **Hooks on the contributor's machine alone.** A hook can be skipped or missing, so the same checks must also run where nobody can skip them.
+- **CI alone.** A mistake is found after the push, and checks of the commit message and of the secrets are best made before the commit exists.

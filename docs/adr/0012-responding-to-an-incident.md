@@ -24,3 +24,8 @@ A vulnerability that is reported to the project is handled as `SECURITY.md` says
 - The principles do not prevent an incident or limit its damage by themselves. They replace neither monitoring, nor a roster, nor a deadline, nor the exercise of a response, which depend on the project and are not stated here.
 - The review is only worth what the project does with its findings. A review whose issues are never handled changes nothing.
 - A project with a single maintainer decides, informs and reviews alone. The principles give it a list to follow, not a second person.
+
+## Options considered
+
+- **Answering as it comes.** The questions of who acts, who is told and what is learned are then answered in a hurry under pressure, and often by nobody.
+- **A plan with roles, channels and tools.** It would fit a team and a stack, and not a project with a single maintainer. The principles name no tool and no channel.

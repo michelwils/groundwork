@@ -28,3 +28,8 @@ We will write every commit message following [Conventional Commits 1.0.0](https:
 
 - The history can be scanned by type and read by tools.
 - Every commit needs a type, which takes a moment to choose. A commit that fits two types is usually a sign it should be split.
+
+## Options considered
+
+- **Free-form commit messages.** They are inconsistent and hard to scan, and no tool can derive a version or a changelog from them.
+- **A set of types of our own.** Most tools that read Conventional Commits know the set of the Angular guidelines, and a different set would lose them.

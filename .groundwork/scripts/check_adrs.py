@@ -4,15 +4,15 @@
 Every Markdown file of docs/adr/ except template.md is named `NNNN-title-in-kebab-case.md`. It starts with
 `# NNNN. Title`, with the number of its name, and has a line `**Status:**` with `proposed`,
 `accepted`, `rejected` or `superseded by NNNN`, which refers to a more recent ADR that exists,
-alone or as the link of the template. It has the sections Context, Decision and Consequences, each
-once, in that order and not empty. Other sections may follow.
+alone or as the link of the template. It has the sections Context, Decision, Consequences and Options considered,
+each once, in that order and not empty. Other sections may follow.
 
 A number is never reused, and there is no duplicate. In each range that the source reserves, `0001` to
 `0999` and the ranges of `.groundwork-ranges`, the numbers go from the first of the range without a
 skipped one, except the ones that the choice of the project, `.groundwork-adrs`, leaves out. The ADRs
 of the project go from the first number that no range reserves, skipping only reserved numbers
 (ADR 0001). The two files are read with their line numbers, and a line that is refused is reported here.
-template.md has the title `# NNNN. …` and the three sections.
+template.md has the title `# NNNN. …` and the four sections.
 
 A community base whose `.groundwork-adrs` does not list its own range has that range left out by the
 choice, so a skipped number in it is not reported: the base lists its range to be checked.
@@ -37,7 +37,7 @@ STATUS = re.compile(r"^\*\*Status:\*\* ?(.*)$")
 SUPERSEDED = re.compile(r"^superseded by (?:\[(\d{4})\]\((\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*\.md\)|(\d{4}))$")
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 STATUSES = ("proposed", "accepted", "rejected")
-SECTIONS = ("Context", "Decision", "Consequences")
+SECTIONS = ("Context", "Decision", "Consequences", "Options considered")
 
 
 def read(path):

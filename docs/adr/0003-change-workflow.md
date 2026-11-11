@@ -43,3 +43,9 @@ The fix of a vulnerability that is not public yet is made in the temporary priva
 - The commits on a branch are not kept on `main`. They remain visible in the pull request.
 - The merge settings and the ruleset live in the hosting platform, not in the repository, even though a file of the repository describes the ruleset. Each repository that adopts the workflow must configure them, and nothing in the repository checks them.
 - The fix of a vulnerability that is not public yet reaches `main` while the ruleset is disabled, with checks run on the maintainer's machine and then on `main`. That window is the cost of keeping the fault private until the fix is merged. The commit that the platform makes for that merge does not follow [ADR 0002](0002-conventional-commits.md), so the release is given its version.
+
+## Options considered
+
+- **Working on `main` and reviewing afterwards.** There is no place to state the intent or to review the result before it lands.
+- **A merge commit or a rebase instead of a squash.** `main` would hold the commits of each branch and no longer one commit per issue, and the title checked on the pull request would not be the commit title.
+- **A pull request without an issue.** The intent, the discussion and the result would share one place, and the acceptance criteria would not be stated once before the work.

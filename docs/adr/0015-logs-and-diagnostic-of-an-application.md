@@ -24,3 +24,8 @@ We will apply these principles to the logs and the diagnostic of an application.
 - The principles do not make logs useful or safe: a project that follows them can still log too little or too much. The fields, the levels and the values are the project's, and the principles are only as good as that statement.
 - No tool checks these principles. Only the review applies them.
 - The collection, the storage and the retention of the logs, the metrics and the tracing are decisions of the projects.
+
+## Options considered
+
+- **A library, a format or a retention period set by groundwork.** They depend on the stack and on the law of the project. The principles name none, and the project gives its own.
+- **Leaving the logs to each application.** The applications of one team would name their fields and their levels differently, and an event could not be followed across them.

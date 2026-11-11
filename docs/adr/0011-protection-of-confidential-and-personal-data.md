@@ -28,3 +28,8 @@ The principles are applied by the rules for agents and by the review.
 - The classification, the purposes and the retention periods depend on the application. Each project states them, and the principles are only as good as that statement.
 - No tool detects most of these principles. Only the review applies them, and a principle that is not read in a diff is not applied.
 - The principles are general. A project that needs more, because of the data it holds or the law that applies to it, adds its own in an ADR.
+
+## Options considered
+
+- **Naming a law and its duties.** They depend on the sort of data and on the jurisdiction of the project, and this decision is not legal advice. The project checks the duties that apply to it.
+- **Extending the rules for the faults of the code.** Those rules are about faults of the code, not about which data an application collects, how long it keeps them and to whom they go.

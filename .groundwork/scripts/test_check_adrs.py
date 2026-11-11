@@ -25,10 +25,15 @@ We will do it.
 ## Consequences
 
 What changes.
+
+## Options considered
+
+The other options, and why each was not chosen.
 """
+SECTIONS = ("Context", "Decision", "Consequences", "Options considered")
 
 
-def adr(number, title="A decision", status="accepted", sections=("Context", "Decision", "Consequences")):
+def adr(number, title="A decision", status="accepted", sections=SECTIONS):
     body = "".join(f"## {name}\n\nText of {name}.\n\n" for name in sections)
     return f"# {number}. {title}\n\n**Status:** {status}\n\n{body}".rstrip("\n") + "\n"
 
@@ -152,15 +157,27 @@ class Adrs(Fixture):
         self.only("0001-a.md:1")
 
     def test_every_section_is_required(self):
-        for missing in ("Context", "Decision", "Consequences"):
+        for missing in SECTIONS:
             with self.subTest(missing=missing):
-                sections = tuple(name for name in ("Context", "Decision", "Consequences") if name != missing)
+                sections = tuple(name for name in SECTIONS if name != missing)
                 self.put("0001-a.md", adr("0001", sections=sections))
                 self.only(missing)
 
     def test_the_sections_must_come_in_the_order_of_the_template(self):
-        self.put("0001-a.md", adr("0001", sections=("Decision", "Context", "Consequences")))
+        self.put("0001-a.md", adr("0001", sections=("Decision", "Context", "Consequences", "Options considered")))
         self.only("order")
+
+    def test_the_options_considered_come_after_the_consequences(self):
+        self.put("0001-a.md", adr("0001", sections=("Context", "Decision", "Options considered", "Consequences")))
+        self.only("order")
+
+    def test_an_adr_of_the_three_sections_of_before_lacks_the_options_considered(self):
+        self.put("0001-a.md", adr("0001", sections=("Context", "Decision", "Consequences")))
+        self.assertIn("the section 'Options considered' is missing", self.only("Options considered"))
+
+    def test_the_options_considered_must_not_be_empty(self):
+        self.put("0001-a.md", adr("0001").replace("Text of Options considered.\n", ""))
+        self.only("the section 'Options considered' is empty")
 
     def test_a_section_title_may_have_a_closing_sequence_of_hashes(self):
         self.put("0001-a.md", adr("0001").replace("## Context", "## Context ##"))
@@ -171,7 +188,9 @@ class Adrs(Fixture):
         self.assertEqual(self.problems(), [])
 
     def test_a_section_must_not_be_repeated(self):
-        self.put("0001-a.md", adr("0001", sections=("Context", "Decision", "Decision", "Consequences")))
+        self.put(
+            "0001-a.md", adr("0001", sections=("Context", "Decision", "Decision", "Consequences", "Options considered"))
+        )
         self.only("Decision")
 
     def test_a_section_must_not_be_empty(self):
@@ -179,11 +198,14 @@ class Adrs(Fixture):
         self.only("empty")
 
     def test_more_sections_are_allowed(self):
-        self.put("0001-a.md", adr("0001", sections=("Context", "Decision", "Alternatives", "Consequences")))
+        self.put(
+            "0001-a.md",
+            adr("0001", sections=("Context", "Decision", "Consequences", "Options considered", "Alternatives")),
+        )
         self.assertEqual(self.problems(), [])
 
     def test_a_heading_in_a_code_block_is_not_a_section(self):
-        content = adr("0001", sections=("Context", "Consequences")) + "\n```\n## Decision\n```\n"
+        content = adr("0001", sections=("Context", "Consequences", "Options considered")) + "\n```\n## Decision\n```\n"
         self.put("0001-a.md", content)
         self.only("Decision")
 
@@ -222,6 +244,11 @@ class Adrs(Fixture):
 
     def test_the_template_needs_its_title_and_its_sections(self):
         self.put("template.md", TEMPLATE.replace("## Decision\n\nWe will do it.\n\n", ""))
+        self.only("template.md")
+        self.put(
+            "template.md",
+            TEMPLATE.replace("\n## Options considered\n\nThe other options, and why each was not chosen.\n", ""),
+        )
         self.only("template.md")
         self.put("template.md", TEMPLATE.replace("# NNNN. Title of the decision", "# Title"))
         self.only("template.md:1")

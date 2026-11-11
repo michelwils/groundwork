@@ -62,7 +62,7 @@ groundwork follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html), a
 - for a project that keeps some of the ADRs only: the rules of the ADRs it keeps and of the ones they need, and the files that [`.groundwork/practices.md`](.groundwork/practices.md) gives for them
 - the markers that delimit the lines of an ADR in a file that several ADRs share, `<!-- groundwork:NNNN -->` … `<!-- /groundwork -->` in Markdown and `# groundwork:NNNN` … `# /groundwork` in YAML
 
-The README, the Context and Consequences sections of ADRs, and wording that does not change a rule are not part of it.
+The README, the Context, Consequences and Options considered sections of ADRs, and wording that does not change a rule are not part of it.
 
 **Changes to the contract.**
 
@@ -71,7 +71,7 @@ The README, the Context and Consequences sections of ADRs, and wording that does
 | any type with `!` | A rule is reversed, or a file is removed, renamed or changed so that it no longer does what projects rely on | major |
 | `feat` | A rule or a file is added | minor |
 | `fix`, `perf` | A rule is clarified without changing its meaning, or a file is improved without changing what it does | patch |
-| `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`, `revert` | Anything outside the contract: the README, the Context and Consequences sections of ADRs, wording | none |
+| `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`, `revert` | Anything outside the contract: the README, the Context, Consequences and Options considered sections of ADRs, wording | none |
 
 A release increments the version once, by the highest increment among the changes since the previous release.
 

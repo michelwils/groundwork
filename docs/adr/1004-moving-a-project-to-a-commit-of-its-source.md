@@ -30,3 +30,9 @@ We will let a person move a project to the head of its source with `update_groun
 - The format of `.groundwork-version` is part of the public contract: the second form is a new form, and an old form stays valid.
 - A source that rewrites its history leaves the project with a commit it cannot find. The project puts `X.Y.Z` back in the file by hand.
 - A branch other than the default branch of the source is not covered.
+
+## Options considered
+
+- **Record only the latest release that the commit contains.** The format would not change, but the next update would merge from that release: what the project applied from the commit would count as changes of the project and would conflict with the same lines in the next release.
+- **Copy the files by hand.** It loses the merge and the record of what the project is based on.
+- **Make the head the default, or use it in the weekly workflow.** A project would move to an unreleased change without a person deciding it. `--to head` is never the default.
