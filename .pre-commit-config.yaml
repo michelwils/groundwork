@@ -30,7 +30,7 @@ repos:
       - id: editorconfig-checker
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.31.1
+    rev: v1.32.0
     hooks:
       # Audits the workflows for security mistakes, offline so that the result does
       # not depend on a GitHub token that may be set on the machine.
