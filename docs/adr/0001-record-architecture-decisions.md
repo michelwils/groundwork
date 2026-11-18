@@ -4,7 +4,11 @@
 
 ## Context
 
-groundwork is a set of choices about how projects are structured and run. Without a written record, the reasons behind those choices are forgotten, and later changes either repeat past discussions or undo decisions by accident. The format of Michael Nygard has no place for the options that were weighed, so a reviewer cannot tell whether a decision was chosen among options, and a later reader repeats a discussion that was settled. Tasks and open points that stay in an accepted ADR age with it, and a second subject decided in a paragraph of an ADR is not found.
+groundwork is a set of choices about how projects are structured and run. Without a written record, the reasons behind those choices are forgotten, and later changes either repeat past discussions or undo decisions by accident.
+
+The format of Michael Nygard has no place for the options that were weighed, so a reviewer cannot tell whether a decision was chosen among options, and a later reader repeats a discussion that was settled.
+
+It does not say either what an ADR leaves out. Tasks and open points that stay in an accepted ADR age with it, and a second subject decided in a paragraph of an ADR is not found.
 
 ## Decision
 
