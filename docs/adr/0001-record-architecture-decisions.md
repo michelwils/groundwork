@@ -18,13 +18,15 @@ We will record each significant decision as an Architecture Decision Record (ADR
 - **Options considered:** after the Consequences, a section named `Options considered` lists the other options that were weighed and why each was not chosen. An ADR that had none says so and why. The section is never empty, and the check fails when its name or its place differs.
 - **Statuses:** `proposed`, `accepted`, `rejected`, and `superseded by NNNN`.
 - **Changing a decision:** while the major version of the project that writes an ADR is `0`, an accepted ADR may be changed in place, including to add, change or remove a rule, and its status stays `accepted`. From `1.0.0`, an accepted ADR may be clarified in place only when its meaning does not change (wording, missing detail, broken links). A decision that is reversed or contradicted is then replaced by a new ADR, and the old one is updated only to set its status to `superseded by NNNN`.
-- **Writing:** ADRs are written in English, short, and describe one decision each.
+- **Content:** an ADR holds a decision and its reasons. The open points and the steps to carry out go to issues, and each related subject to an issue or an ADR of its own. While its status is `proposed`, an ADR may list its open points in its Context. They go to issues, or are decided, when it is accepted.
+- **Writing:** ADRs are written in English and short.
 
 ## Consequences
 
 - The reasons for every significant decision stay in the repository, next to the code and the history.
 - An ADR without the section Options considered fails the check, so a project that receives it adds the section to each of its ADRs.
 - Each decision costs a short document, which is overhead for small choices. Not every choice needs an ADR.
+- No check tells a task from a decision, so the review keeps the rule of what an ADR holds. An ADR can still hold a task that nobody moved to an issue.
 - From `1.0.0`, the history of a decision is read by following the chain of superseded ADRs. Before, it is in the history of the file of the ADR.
 - A project that follows a source whose major version is `0` receives ADRs changed in place. The type of the commit, as the table of the changes to the contract in the README gives it, tells what the change breaks.
 - An ADR added by groundwork or by a community base never takes the number of a project's ADR, so moving a project to a later version does not conflict on file names or references.
