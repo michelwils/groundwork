@@ -13,7 +13,7 @@ Me, as the starting point of my desktop and web applications. The repository is 
 
 ## What it covers
 
-- Recording architecture decisions, in ADRs of four sections, the options considered among them, that hold decisions and leave the tasks and the open points to issues, with the numbers `0001` to `0999` reserved for the ADRs of groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md))
+- Recording architecture decisions, with the options considered and without the tasks and the open points, which go to issues, and with the numbers `0001` to `0999` reserved for the ADRs of groundwork ([ADR 0001](docs/adr/0001-record-architecture-decisions.md))
 - How changes are made: issues, milestones, including one that tests a hypothesis, branches and pull requests
 - Commit messages
 - Versioning and releases

@@ -30,7 +30,7 @@ We will keep every file of groundwork that has no conventional name in one direc
 - The directory tells whose a file is, and a file of groundwork cannot collide with a project's file.
 - The paths of 21 files that a published release holds change, and so does every reference to them: the hooks, the workflows, Dependabot's configuration, the tests and the texts. The release notes say so. No project depends on them yet.
 - The tools read the directory although its name starts with a dot: the hooks that check Markdown and editor settings take the names of the files that git tracks, and they flagged a mistake that was put there on purpose.
-- Dependabot already updates a dot-prefixed directory, `/.github/scripts` (the pull request #57 did), and its documentation does not say that another one is refused. Dependabot has updated `/.groundwork/scripts` since the move (#242, #247 and #248).
+- Dependabot already updates a dot-prefixed directory, `/.github/scripts` (the pull request #57 did), and its documentation does not say that another one is refused. Dependabot has updated `/.groundwork/scripts` since the move.
 - The scripts keep importing each other from their own directory, and a project that adds scripts of its own keeps them in `.github/scripts/`.
 - The list of the conventional names in the test is a judgement, and a new file has to be added to it or put in `.groundwork/`.
 - A project root holds a directory `.groundwork/` and files `.groundwork-*`, which are the project's. The two names are close: the first holds the files of groundwork, the second the project's state.

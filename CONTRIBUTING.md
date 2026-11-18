@@ -110,6 +110,9 @@ A reviewer, and whoever checks their own work, check:
 - the checks and the tests of the change, run as the CI runs them ([Checks](#checks))
 <!-- /groundwork -->
 - the links, by following them
+<!-- groundwork:0001 -->
+- in an ADR, a task or an open point that no issue holds, against what an ADR holds ([ADR 0001](docs/adr/0001-record-architecture-decisions.md))
+<!-- /groundwork -->
 <!-- groundwork:0005 -->
 - the type of the pull request title, against the public contract in the [README](README.md), since it sets the next version
 <!-- /groundwork -->
