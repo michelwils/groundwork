@@ -79,9 +79,10 @@ def sections(lines):
 def check_sections(name, lines, problems):
     found = sections(lines)
     names = [heading[0] for heading in found]
-    for required in SECTIONS:
+    for index, required in enumerate(SECTIONS):
         if required not in names:
-            problems.append(f"{name}:1: the section '{required}' is missing")
+            where = f"; it goes after '{SECTIONS[index - 1]}'" if index else ""
+            problems.append(f"{name}:1: the section '{required}' is missing{where}")
         elif names.count(required) > 1:
             problems.append(f"{name}:{found[names.index(required)][1]}: the section '{required}' is repeated")
     once = [heading for heading in names if heading in SECTIONS and names.count(heading) == 1]
