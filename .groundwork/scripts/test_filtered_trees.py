@@ -21,7 +21,7 @@ import practices_map  # noqa: E402
 README = "# Project\n\nText.\n"
 LICENSE = "License.\n"
 
-ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n"
+ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n\n## Options considered\n\nText.\n"
 MAP = """# Practices
 
 ## Practices

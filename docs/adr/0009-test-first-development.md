@@ -25,3 +25,8 @@ We will write the test of a change of behaviour before the code that makes it pa
 - Code that is hard to test first has to be designed differently, which costs time at the start of a change.
 - No tool can check that the test was written first. It shows in the order of the pull request's commits, which squash removes from `main`. It relies on review, and on the agent's report when the agent could not follow the practice.
 - Writing the test first does not make it a good test, and it sets no level of coverage.
+
+## Options considered
+
+- **Tests written after the code.** They tend to confirm what the code does and not what was required, and they are the first thing dropped when time is short.
+- **A coverage threshold alone.** It shows what the tests run, not that a test can fail. The test seen to fail first shows that it can.

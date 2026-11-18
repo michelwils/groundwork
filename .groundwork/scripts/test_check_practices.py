@@ -12,7 +12,7 @@ SCRIPT = os.path.join(HERE, "check_practices.py")
 
 CONTRIBUTING = "Rules.\n\n<!-- groundwork:0001 -->\nDecisions.\n<!-- /groundwork -->\n"
 
-ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n"
+ADR = "# {n}. Decision {n}\n\n**Status:** accepted\n\n## Context\n\nText.\n\n## Decision\n\nText.\n\n## Consequences\n\nText.\n\n## Options considered\n\nText.\n"
 
 
 def entry(number, needs="none", files=(), shared=()):

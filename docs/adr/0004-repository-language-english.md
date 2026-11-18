@@ -18,3 +18,7 @@ We will write all repository content in English.
 - The repository reads as a single document, whoever wrote a given part.
 - Contributors who are more comfortable in another language must write in English, which can slow them down or reduce precision.
 - Content written elsewhere, for example in a discussion, has to be translated before it is added to the repository.
+
+## Options considered
+
+- **The language of the maintainers or of each contributor.** The repository is public and meant to be reused, and a mix of languages is harder to read, to search and to keep consistent.

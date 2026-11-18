@@ -39,3 +39,7 @@ We will accept changes made with a coding agent, under the same rules as any oth
 - Recognising a trust boundary rests on the agent's judgement too. The review is where a missed one is found.
 - A person or another agent can resume the work from the issue and the pull request, without the conversation that produced them.
 - The rules rely on the instructions given to the agent. Only the absence of references to a session is checked automatically.
+
+## Options considered
+
+- **Review at the end, with no plan.** An agent that starts on its own reading of an issue can build the wrong thing, and the maintainer finds out at the review. A plan is approved before any file changes.
