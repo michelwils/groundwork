@@ -181,6 +181,14 @@ class Adrs(Fixture):
         self.put("0001-a.md", adr("0001", sections=("Decision", "Consequences", "Options considered")))
         self.assertTrue(self.only("missing").endswith("the section 'Context' is missing"))
 
+    def test_a_missing_section_does_not_say_where_it_goes_after_a_section_that_is_missing_too(self):
+        self.put("0001-a.md", adr("0001", sections=("Context",)))
+        problems = self.problems()
+        self.assertEqual(sum("it goes after" in problem for problem in problems), 1)
+        for name in ("Consequences", "Options considered"):
+            (problem,) = [problem for problem in problems if f"'{name}' is missing" in problem]
+            self.assertNotIn("it goes after", problem)
+
     def test_the_options_considered_must_not_be_empty(self):
         self.put("0001-a.md", adr("0001").replace("Text of Options considered.\n", ""))
         self.only("the section 'Options considered' is empty")

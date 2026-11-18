@@ -62,7 +62,7 @@ groundwork follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html), a
 - for a project that keeps some of the ADRs only: the rules of the ADRs it keeps and of the ones they need, and the files that [`.groundwork/practices.md`](.groundwork/practices.md) gives for them
 - the markers that delimit the lines of an ADR in a file that several ADRs share, `<!-- groundwork:NNNN -->` … `<!-- /groundwork -->` in Markdown and `# groundwork:NNNN` … `# /groundwork` in YAML
 
-The README, the text of the Context, Consequences and Options considered sections of ADRs, and wording that does not change a rule are not part of it. The sections that an ADR must have are.
+The README, the text of the Context, Consequences and Options considered sections of ADRs, and wording that does not change a rule are not part of it. The sections that an ADR must have, and their order, are part of it.
 
 **Changes to the contract.**
 

@@ -6,9 +6,7 @@
 
 `update_groundwork.py` moves a project to a release. It reads the versions from the tags `v*` of the source, `.groundwork-version` holds one line `X.Y.Z`, the files are merged three ways from the tag of the recorded version to the tag of the new one, and the branch is named after the new version.
 
-A project sometimes needs a change of groundwork before it is released, to try it. Copying the files by hand loses the merge and the record of what the project is based on.
-
-Recording only the latest release that the commit contains would keep the format, but the next update would merge from that release: what the project applied from the commit would count as changes of the project, and they conflict with the same lines in the next release.
+A project sometimes needs a change of groundwork before it is released, to try it.
 
 ## Decision
 
@@ -33,6 +31,6 @@ We will let a person move a project to the head of its source with `update_groun
 
 ## Options considered
 
-- **Record only the latest release that the commit contains.** The format would not change, but the next update would merge from that release: what the project applied from the commit would count as changes of the project and would conflict with the same lines in the next release.
+- **Record only the latest release that the commit contains.** It would keep the format, but the next update would merge from that release: what the project applied from the commit would count as changes of the project, and they conflict with the same lines in the next release.
 - **Copy the files by hand.** It loses the merge and the record of what the project is based on.
 - **Make the head the default, or use it in the weekly workflow.** A project would move to an unreleased change without a person deciding it. `--to head` is never the default.

@@ -28,6 +28,6 @@ We will have `update_groundwork.py` write its result as one JSON object to a fil
 
 ## Options considered
 
-- **Keep reading the report for a person with patterns.** It is the cause of the fault of the advisory: a path with a line break added a line to the report.
+- **Keep reading the report for a person with patterns.** It is what caused the fault of the advisory.
 - **A format with fields by position, such as a list separated by NUL.** Adding a field would shift the others.
 - **Escape the paths in the report.** The report would still be a text that two scripts must agree on, with a format that nobody states and that the person who reads it can change.

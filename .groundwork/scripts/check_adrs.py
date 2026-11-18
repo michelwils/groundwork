@@ -81,7 +81,7 @@ def check_sections(name, lines, problems):
     names = [heading[0] for heading in found]
     for index, required in enumerate(SECTIONS):
         if required not in names:
-            where = f"; it goes after '{SECTIONS[index - 1]}'" if index else ""
+            where = f"; it goes after '{SECTIONS[index - 1]}'" if index and SECTIONS[index - 1] in names else ""
             problems.append(f"{name}:1: the section '{required}' is missing{where}")
         elif names.count(required) > 1:
             problems.append(f"{name}:{found[names.index(required)][1]}: the section '{required}' is repeated")
