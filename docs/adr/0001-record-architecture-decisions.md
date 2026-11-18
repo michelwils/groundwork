@@ -4,7 +4,11 @@
 
 ## Context
 
-groundwork is a set of choices about how projects are structured and run. Without a written record, the reasons behind those choices are forgotten, and later changes either repeat past discussions or undo decisions by accident. The format of Michael Nygard has no place for the options that were weighed, so a reviewer cannot tell whether a decision was chosen among options, and a later reader repeats a discussion that was settled.
+groundwork is a set of choices about how projects are structured and run. Without a written record, the reasons behind those choices are forgotten, and later changes either repeat past discussions or undo decisions by accident.
+
+The format of Michael Nygard has no place for the options that were weighed, so a reviewer cannot tell whether a decision was chosen among options, and a later reader repeats a discussion that was settled.
+
+It does not say either what an ADR leaves out. Tasks and open points that stay in an accepted ADR age with it, and a second subject decided in a paragraph of an ADR is not found.
 
 ## Decision
 
@@ -18,6 +22,7 @@ We will record each significant decision as an Architecture Decision Record (ADR
 - **Options considered:** after the Consequences, a section named `Options considered` lists the other options that were weighed and why each was not chosen. An ADR that had none says so and why. The section is never empty, and the check fails when its name or its place differs.
 - **Statuses:** `proposed`, `accepted`, `rejected`, and `superseded by NNNN`.
 - **Changing a decision:** while the major version of the project that writes an ADR is `0`, an accepted ADR may be changed in place, including to add, change or remove a rule, and its status stays `accepted`. From `1.0.0`, an accepted ADR may be clarified in place only when its meaning does not change (wording, missing detail, broken links). A decision that is reversed or contradicted is then replaced by a new ADR, and the old one is updated only to set its status to `superseded by NNNN`.
+- **Content:** an ADR holds a decision and its reasons. The open points and the steps to carry out go to issues, and each related subject to an issue or an ADR of its own. While its status is `proposed`, an ADR may list its open points in its Context. They go to issues, or are decided, when it is accepted.
 - **Writing:** ADRs are written in English, short, and describe one decision each.
 
 ## Consequences
@@ -25,6 +30,7 @@ We will record each significant decision as an Architecture Decision Record (ADR
 - The reasons for every significant decision stay in the repository, next to the code and the history.
 - An ADR without the section Options considered fails the check, so a project that receives it adds the section to each of its ADRs.
 - Each decision costs a short document, which is overhead for small choices. Not every choice needs an ADR.
+- No check tells a task from a decision, so the review keeps the rule of what an ADR holds. An ADR can still hold a task that nobody moved to an issue.
 - From `1.0.0`, the history of a decision is read by following the chain of superseded ADRs. Before, it is in the history of the file of the ADR.
 - A project that follows a source whose major version is `0` receives ADRs changed in place. The type of the commit, as the table of the changes to the contract in the README gives it, tells what the change breaks.
 - An ADR added by groundwork or by a community base never takes the number of a project's ADR, so moving a project to a later version does not conflict on file names or references.
@@ -35,3 +41,5 @@ We will record each significant decision as an Architecture Decision Record (ADR
 
 - **A wiki or a document outside the repository.** It ages apart from the code and its history, and a change of the code does not show the change of the decision.
 - **A fuller format of record, such as MADR.** Every record would fill more fields. One section added to the format of Michael Nygard keeps it close to what it was.
+- **A check that refuses the Markdown task list `- [ ]`.** A box can appear in an example, and no check tells a task from a decision, so the review keeps the rule.
+- **Open points allowed in an ADR of any status.** They would age in an accepted ADR, which the rule prevents. Only a `proposed` ADR, which has open points until it is accepted, may list them.
