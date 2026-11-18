@@ -95,6 +95,5 @@ We will check the repository automatically, in two places, from one configuratio
 
 ## Options considered
 
-- **Review alone.** Mechanical mistakes are found late and take the time of the reviewer.
 - **Hooks on the contributor's machine alone.** A hook can be skipped or missing, so the same checks must also run where nobody can skip them.
 - **CI alone.** A mistake is found after the push, and checks of the commit message and of the secrets are best made before the commit exists.

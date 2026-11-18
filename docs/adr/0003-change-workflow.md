@@ -46,6 +46,5 @@ The fix of a vulnerability that is not public yet is made in the temporary priva
 
 ## Options considered
 
-- **Working on `main` and reviewing afterwards.** There is no place to state the intent or to review the result before it lands.
 - **A merge commit or a rebase instead of a squash.** `main` would hold the commits of each branch and no longer one commit per issue, and the title checked on the pull request would not be the commit title.
 - **A pull request without an issue, for every change.** The bots and the fix of a vulnerability that is not public yet are the exceptions that the decision gives. Otherwise the intent, the discussion and the result would share one place, and the acceptance criteria would not be stated once before the work.

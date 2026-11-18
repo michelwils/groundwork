@@ -21,5 +21,4 @@ We will write all repository content in English.
 
 ## Options considered
 
-- **The language of each contributor or of the maintainers.** A mix of languages is harder to read, to search and to keep consistent, and the repository is meant to be reused.
-- **Code in English and documentation in another language.** The same people read both, and identifiers and documents refer to each other, so a split makes the search and the consistency worse.
+- **The language of the maintainers or of each contributor.** The repository is public and meant to be reused, and a mix of languages is harder to read, to search and to keep consistent.

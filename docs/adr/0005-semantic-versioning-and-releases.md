@@ -63,4 +63,3 @@ The workflow can run without publishing, to show the version and the notes. The 
 
 - **Calendar versioning.** A date tells when a release was made, not whether a user must change something.
 - **A version for every merge.** Users would face a new version for each change, whether or not it matters to them. A release is made when the maintainers decide.
-- **A version chosen by hand.** The type of each commit already says the increment, so choosing it again lets the two disagree.

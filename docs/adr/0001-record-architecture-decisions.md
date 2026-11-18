@@ -34,5 +34,4 @@ We will record each significant decision as an Architecture Decision Record (ADR
 ## Options considered
 
 - **A wiki or a document outside the repository.** It ages apart from the code and its history, and a change of the code does not show the change of the decision.
-- **Another format of record, such as MADR or Y-statements.** They add fields, such as the drivers or the pros and cons of each option, that every record must then fill. One section for the options keeps the format of Michael Nygard close to what it was.
-- **Comments in the code and commit messages alone.** They keep the reason of one change, not a decision that spans several files and stays in force.
+- **A fuller format of record, such as MADR.** Every record would fill more fields. One section added to the format of Michael Nygard keeps it close to what it was.

@@ -31,5 +31,4 @@ We will write every commit message following [Conventional Commits 1.0.0](https:
 
 ## Options considered
 
-- **Free-form commit messages.** They are inconsistent and hard to scan, and no tool can derive a version or a changelog from them.
 - **A set of types of our own.** Most tools that read Conventional Commits know the set of the Angular guidelines, and a different set would lose them.

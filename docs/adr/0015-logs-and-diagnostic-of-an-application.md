@@ -28,4 +28,3 @@ We will apply these principles to the logs and the diagnostic of an application.
 ## Options considered
 
 - **A library, a format or a retention period set by groundwork.** They depend on the stack and on the law of the project. The principles name none, and the project gives its own.
-- **Leaving the logs to each application.** The applications of one team would name their fields and their levels differently, and an event could not be followed across them.

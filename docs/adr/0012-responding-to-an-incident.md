@@ -27,5 +27,4 @@ A vulnerability that is reported to the project is handled as `SECURITY.md` says
 
 ## Options considered
 
-- **Answering as it comes.** The questions of who acts, who is told and what is learned are then answered in a hurry under pressure, and often by nobody.
 - **A plan with roles, channels and tools.** It would fit a team and a stack, and not a project with a single maintainer. The principles name no tool and no channel.

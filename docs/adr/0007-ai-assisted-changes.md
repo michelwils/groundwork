@@ -42,5 +42,4 @@ We will accept changes made with a coding agent, under the same rules as any oth
 
 ## Options considered
 
-- **A ban on coding agents.** It gives up their work and tells nothing of the changes that involve one. The disclosure keeps those changes visible and a person responsible.
 - **Review at the end, with no plan.** An agent that starts on its own reading of an issue can build the wrong thing, and the maintainer finds out at the review. A plan is approved before any file changes.
